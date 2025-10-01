@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}Классификатор нарушений{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="fas fa-exclamation-triangle text-warning"></i> Классификатор нарушений ЛЦТ</h1>
+                <div class="btn-group" role="group">
+                    <a href="{% url 'inspector:dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад к дашборду
+                    </a>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-list-ul"></i> Всего нарушений</h5>
+                            <h3 class="card-text">{{ total_violations }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-industry"></i> Культура производства</h5>
+                            <h3 class="card-text">
+                                {% for stat in stats_by_category %}
+                                    {% if stat.category == 'culture' %}{{ stat.count }}{% endif %}
+                                {% endfor %}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-tools"></i> Технические</h5>
+                            <h3 class="card-text">
+                                {% for stat in stats_by_category %}
+                                    {% if stat.category == 'technical' %}{{ stat.count }}{% endif %}
+                                {% endfor %}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-shield-alt"></i> Безопасность</h5>
+                            <h3 class="card-text">
+                                {% for stat in stats_by_category %}
+                                    {% if stat.category == 'safety' %}{{ stat.count }}{% endif %}
+                                {% endfor %}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="category" class="form-label">Категория</label>
+                            <select name="category" id="category" class="form-select">
+                                <option value="all">Все категории</option>
+                                {% for key, value in categories %}
+                                    <option value="{{ key }}" {% if current_category == key %}selected{% endif %}>
+                                        {{ value }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="violation_type" class="form-label">Тип нарушения</label>
+                            <select name="violation_type" id="violation_type" class="form-select">
+                                <option value="all">Все типы</option>
+                                {% for key, value in violation_types %}
+                                    <option value="{{ key }}" {% if current_violation_type == key %}selected{% endif %}>
+                                        {{ value }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">Поиск</label>
+                            <input type="text" name="search" id="search" class="form-control" 
+                                   value="{{ search_query }}" placeholder="Поиск в названии нарушения">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search"></i> Найти
+                            </button>
+                            <a href="{% url 'inspector:violation_classifier' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Сброс
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Таблица нарушений -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table"></i> Список нарушений 
+                        <small class="text-muted">({{ violations.paginator.count }} записей)</small>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Категория</th>
+                                    <th>Тип</th>
+                                    <th>Описание нарушения</th>
+                                    <th>Срок устранения</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for violation in violations %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge 
+                                                {% if violation.category == 'culture' %}bg-warning{% endif %}
+                                                {% if violation.category == 'technical' %}bg-danger{% endif %}
+                                                {% if violation.category == 'safety' %}bg-info{% endif %}
+                                                {% if violation.category == 'documentation' %}bg-secondary{% endif %}
+                                            ">
+                                                {{ violation.get_category_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if violation.violation_type == 'fixable' %}bg-success{% endif %}
+                                                {% if violation.violation_type == 'serious' %}bg-warning{% endif %}
+                                                {% if violation.violation_type == 'critical' %}bg-danger{% endif %}
+                                            ">
+                                                {{ violation.get_violation_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 400px;" 
+                                                 data-bs-toggle="tooltip" title="{{ violation.name }}">
+                                                {{ violation.name }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">
+                                                {{ violation.fix_period }} {{ violation.fix_period|pluralize:"день,дня,дней" }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-info" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#violationModal{{ violation.id }}">
+                                                <i class="fas fa-eye"></i> Подробнее
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Модальное окно с подробностями -->
+                                    <div class="modal fade" id="violationModal{{ violation.id }}" tabindex="-1">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">
+                                                        <i class="fas fa-exclamation-triangle"></i> 
+                                                        {{ violation.get_category_display }}
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <p><strong>Тип:</strong> 
+                                                                <span class="badge 
+                                                                    {% if violation.violation_type == 'fixable' %}bg-success{% endif %}
+                                                                    {% if violation.violation_type == 'serious' %}bg-warning{% endif %}
+                                                                    {% if violation.violation_type == 'critical' %}bg-danger{% endif %}
+                                                                ">
+                                                                    {{ violation.get_violation_type_display }}
+                                                                </span>
+                                                            </p>
+                                                            <p><strong>Срок устранения:</strong> 
+                                                                <span class="badge bg-primary">
+                                                                    {{ violation.fix_period }} {{ violation.fix_period|pluralize:"день,дня,дней" }}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <p><strong>Категория:</strong> 
+                                                                <span class="badge 
+                                                                    {% if violation.category == 'culture' %}bg-warning{% endif %}
+                                                                    {% if violation.category == 'technical' %}bg-danger{% endif %}
+                                                                    {% if violation.category == 'safety' %}bg-info{% endif %}
+                                                                    {% if violation.category == 'documentation' %}bg-secondary{% endif %}
+                                                                ">
+                                                                    {{ violation.get_category_display }}
+                                                                </span>
+                                                            </p>
+                                                            <p><strong>Добавлено:</strong> 
+                                                                {{ violation.created_at|date:"d.m.Y H:i" }}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <hr>
+                                                    <h6><strong>Описание нарушения:</strong></h6>
+                                                    <p class="text-justify">{{ violation.name }}</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        Закрыть
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4">
+                                            <div class="text-muted">
+                                                <i class="fas fa-search fa-2x mb-3"></i>
+                                                <p>Нарушения не найдены</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Пагинация -->
+                {% if violations.has_other_pages %}
+                    <div class="card-footer">
+                        <nav aria-label="Пагинация нарушений">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if violations.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if current_category != 'all' %}category={{ current_category }}&{% endif %}{% if current_violation_type != 'all' %}violation_type={{ current_violation_type }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}page={{ violations.previous_page_number }}">
+                                            &laquo; Предыдущая
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Страница {{ violations.number }} из {{ violations.paginator.num_pages }}
+                                    </span>
+                                </li>
+                                
+                                {% if violations.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if current_category != 'all' %}category={{ current_category }}&{% endif %}{% if current_violation_type != 'all' %}violation_type={{ current_violation_type }}&{% endif %}{% if search_query %}search={{ search_query }}&{% endif %}page={{ violations.next_page_number }}">
+                                            Следующая &raquo;
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация тултипов
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

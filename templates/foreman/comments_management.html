@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block title %}Управление замечаниями - Прораб{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Заголовок -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h1 class="text-2xl font-bold text-gray-900">
+        <i class="fas fa-exclamation-triangle text-accent-red mr-2"></i>
+        Управление замечаниями
+      </h1>
+      <p class="mt-1 text-sm text-gray-600">
+        Просмотр и устранение замечаний по вашим объектам
+      </p>
+    </div>
+  </div>
+
+  <!-- Фильтры -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="p-6">
+      <form method="GET" class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-64">
+          <label for="project" class="block text-sm font-medium text-gray-700 mb-1">Проект</label>
+          <select name="project" id="project" class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue/50">
+            <option value="all">Все проекты</option>
+            {% for project in projects %}
+              <option value="{{ project.id }}" {% if current_project == project.id|stringformat:"s" %}selected{% endif %}>
+                {{ project.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="flex-1 min-w-48">
+          <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+          <select name="status" id="status" class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue/50">
+            <option value="all">Все статусы</option>
+            <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>На рассмотрении</option>
+            <option value="accepted" {% if current_status == 'accepted' %}selected{% endif %}>Принято к исполнению</option>
+            <option value="resolved" {% if current_status == 'resolved' %}selected{% endif %}>Устранено</option>
+            <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Отклонено</option>
+          </select>
+        </div>
+        
+        <div class="flex items-end">
+          <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200">
+            <i class="fas fa-filter mr-2"></i>Применить
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Список замечаний -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">
+        <i class="fas fa-list text-primary-blue mr-2"></i>
+        Замечания ({{ comments.paginator.count }})
+      </h2>
+    </div>
+    <div class="p-6">
+      {% if comments %}
+        <div class="space-y-4">
+          {% for comment in comments %}
+            <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center space-x-3 mb-2">
+                    <h3 class="text-lg font-medium text-gray-900">{{ comment.title }}</h3>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      {% if comment.priority == 'low' %}bg-gray-100 text-gray-800
+                      {% elif comment.priority == 'medium' %}bg-yellow-100 text-yellow-800
+                      {% elif comment.priority == 'high' %}bg-red-100 text-red-800
+                      {% elif comment.priority == 'critical' %}bg-purple-100 text-purple-800
+                      {% endif %}">
+                      {{ comment.get_priority_display }}
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      {% if comment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                      {% elif comment.status == 'accepted' %}bg-blue-100 text-blue-800
+                      {% elif comment.status == 'resolved' %}bg-green-100 text-green-800
+                      {% elif comment.status == 'rejected' %}bg-red-100 text-red-800
+                      {% endif %}">
+                      {{ comment.get_status_display }}
+                    </span>
+                    {% if comment.is_overdue %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>Просрочено
+                      </span>
+                    {% endif %}
+                  </div>
+                  
+                  <p class="text-gray-600 mb-3">{{ comment.description }}</p>
+                  
+                  <div class="flex items-center space-x-6 text-sm text-gray-500">
+                    <div class="flex items-center">
+                      <i class="fas fa-building mr-1"></i>
+                      <span>{{ comment.project.name|truncatechars:40 }}</span>
+                    </div>
+                    <div class="flex items-center">
+                      <i class="fas fa-user mr-1"></i>
+                      <span>{{ comment.created_by.get_full_name }}</span>
+                    </div>
+                    <div class="flex items-center">
+                      <i class="fas fa-calendar mr-1"></i>
+                      <span>{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+                    </div>
+                    {% if comment.due_date %}
+                      <div class="flex items-center">
+                        <i class="fas fa-clock mr-1"></i>
+                        <span>До {{ comment.due_date|date:"d.m.Y" }}</span>
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  {% if comment.response_comment %}
+                    <div class="mt-4 p-3 bg-gray-50 rounded-md">
+                      <p class="text-sm text-gray-600">
+                        <strong>Ответ:</strong> {{ comment.response_comment }}
+                      </p>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <div class="ml-6 flex flex-col space-y-2">
+                  {% if comment.status == 'accepted' and comment.assigned_to == user %}
+                    <a href="{% url 'foreman:resolve_comment' comment.id %}" 
+                       class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700">
+                      <i class="fas fa-check mr-2"></i>
+                      Отметить устраненным
+                    </a>
+                  {% endif %}
+                  
+                  {% if comment.created_at_location %}
+                    <span class="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-md">
+                      <i class="fas fa-map-marker-alt mr-1"></i>
+                      На объекте
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Пагинация -->
+        {% if comments.has_other_pages %}
+          <div class="mt-6 flex items-center justify-between">
+            <div class="flex-1 flex justify-between">
+              {% if comments.has_previous %}
+                <a href="?page={{ comments.previous_page_number }}&project={{ current_project }}&status={{ current_status }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                  Предыдущая
+                </a>
+              {% endif %}
+              
+              <div class="flex items-center space-x-2">
+                <span class="text-sm text-gray-700">
+                  Страница {{ comments.number }} из {{ comments.paginator.num_pages }}
+                </span>
+              </div>
+              
+              {% if comments.has_next %}
+                <a href="?page={{ comments.next_page_number }}&project={{ current_project }}&status={{ current_status }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                  Следующая
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+      {% else %}
+        <div class="text-center py-12">
+          <i class="fas fa-inbox text-gray-400 text-4xl mb-4"></i>
+          <p class="text-gray-500 mb-4">Замечаний не найдено</p>
+          <p class="text-sm text-gray-400">
+            {% if current_status == 'accepted' %}
+              Нет замечаний к устранению
+            {% elif current_status == 'pending' %}
+              Нет новых замечаний на рассмотрении
+            {% else %}
+              Попробуйте изменить фильтры для поиска замечаний
+            {% endif %}
+          </p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Информационная панель -->
+  <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <i class="fas fa-info-circle text-blue-400"></i>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-blue-800">
+          Как работать с замечаниями
+        </h3>
+        <div class="mt-2 text-sm text-blue-700">
+          <ul class="list-disc list-inside space-y-1">
+            <li><strong>На рассмотрении</strong> - новые замечания, ожидающие принятия к исполнению</li>
+            <li><strong>Принято к исполнению</strong> - замечания, которые нужно устранить в указанные сроки</li>
+            <li><strong>Устранено</strong> - замечания, отмеченные как исправленные</li>
+            <li><strong>Отклонено</strong> - замечания, признанные необоснованными</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Comments management page loaded');
+    
+    // Автоотправка формы при изменении фильтров
+    const filterForm = document.querySelector('form');
+    const projectSelect = document.getElementById('project');
+    const statusSelect = document.getElementById('status');
+    
+    [projectSelect, statusSelect].forEach(select => {
+        if (select) {
+            select.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        }
+    });
+    
+    // Подсвечиваем просроченные замечания
+    const overdueComments = document.querySelectorAll('[data-overdue="true"]');
+    overdueComments.forEach(comment => {
+        comment.classList.add('border-red-200', 'bg-red-50');
+    });
+});
+</script>
+{% endblock %}

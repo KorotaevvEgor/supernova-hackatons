@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}Личный кабинет - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="max-w-full mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-primary-dark">
+            <i class="fas fa-user-cog text-accent-peach mr-3"></i>
+            Личный кабинет
+        </h1>
+        <p class="text-gray-600 mt-2">
+            Управление и аналитика по объектам строительного контроля
+        </p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-gradient-to-r from-primary-blue to-secondary-blue p-6 rounded-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100">Мои проекты</p>
+                    <p class="text-3xl font-bold">{{ projects_count }}</p>
+                    <p class="text-xs text-blue-200">Активных: {{ active_projects_count }}</p>
+                </div>
+                <i class="fas fa-building text-3xl text-blue-200"></i>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 p-6 rounded-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-yellow-100">Ожидают решения</p>
+                    <p class="text-3xl font-bold">{{ pending_comments|add:pending_remarks }}</p>
+                    <p class="text-xs text-yellow-200">Замечания: {{ pending_comments }} нов., {{ pending_remarks }} стар.</p>
+                </div>
+                <i class="fas fa-exclamation-triangle text-3xl text-yellow-200"></i>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-purple-100">Изменения графика</p>
+                    <p class="text-3xl font-bold">{{ pending_schedule_changes }}</p>
+                    <p class="text-xs text-purple-200">К согласованию</p>
+                </div>
+                <i class="fas fa-calendar-alt text-3xl text-purple-200"></i>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-green-500 to-green-600 p-6 rounded-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100">К верификации</p>
+                    <p class="text-3xl font-bold">{{ works_to_verify }}</p>
+                    <p class="text-xs text-green-200">Работ</p>
+                </div>
+                <i class="fas fa-check-circle text-3xl text-green-200"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Recent Comments -->
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 class="text-xl font-medium text-gray-900">
+                    <i class="fas fa-exclamation-triangle mr-2 text-yellow-500"></i>
+                    Новые замечания
+                </h2>
+                <a href="/projects/comments/" class="text-sm text-primary-blue hover:underline">
+                    Смотреть все
+                </a>
+            </div>
+            <div class="p-6">
+                {% if recent_comments %}
+                <div class="space-y-4">
+                    {% for comment in recent_comments %}
+                    <div class="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div class="flex-shrink-0">
+                            {% if comment.priority == 'critical' %}
+                                <i class="fas fa-exclamation-circle text-red-500 text-lg"></i>
+                            {% elif comment.priority == 'high' %}
+                                <i class="fas fa-exclamation-triangle text-orange-500 text-lg"></i>
+                            {% elif comment.priority == 'medium' %}
+                                <i class="fas fa-info-circle text-yellow-500 text-lg"></i>
+                            {% else %}
+                                <i class="fas fa-circle text-gray-400 text-lg"></i>
+                            {% endif %}
+                        </div>
+                        <div class="ml-4 flex-1 min-w-0">
+                            <h4 class="font-medium text-gray-900 truncate">{{ comment.title }}</h4>
+                            <p class="text-sm text-gray-600">{{ comment.project.name|truncatechars:30 }}</p>
+                            <p class="text-xs text-gray-500">
+                                {{ comment.created_by.get_full_name }} • {{ comment.created_at|date:"d.m.Y H:i" }}
+                            </p>
+                        </div>
+                        <div class="ml-4 flex flex-col items-end space-y-1">
+                            <span class="inline-block px-2 py-1 rounded-full text-xs font-medium
+                                {% if comment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif comment.status == 'accepted' %}bg-blue-100 text-blue-800
+                                {% elif comment.status == 'resolved' %}bg-green-100 text-green-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ comment.get_status_display }}
+                            </span>
+                            {% if comment.status == 'pending' %}
+                            <div class="flex space-x-1">
+                                <button onclick="quickApproveComment({{ comment.id }})" 
+                                        class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700">
+                                    ✓
+                                </button>
+                                <button onclick="quickRejectComment({{ comment.id }})" 
+                                        class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">
+                                    ✗
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-clipboard-check text-gray-300 text-4xl mb-4"></i>
+                    <p class="text-gray-500">Новые замечания отсутствуют</p>
+                    <p class="text-sm text-gray-400 mt-1">Отлично! Новых замечаний нет</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Projects -->
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-medium text-gray-900">
+                    <i class="fas fa-project-diagram mr-2 text-accent-peach"></i>
+                    Активные проекты
+                </h2>
+            </div>
+            <div class="p-6">
+                {% if active_projects %}
+                <div class="space-y-4">
+                    {% for project in active_projects %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-medium text-gray-900">{{ project.name|truncatechars:30 }}</h4>
+                            <span class="text-sm font-medium text-green-600">{{ project.completion_percentage }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                            <div class="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full" 
+                                 style="width: {{ project.completion_percentage }}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>{{ project.address|truncatechars:25 }}</span>
+                            <a href="{% url 'projects:project_detail' project.id %}" 
+                               class="text-primary-blue hover:underline">
+                                Подробнее
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-project-diagram text-gray-300 text-4xl mb-4"></i>
+                    <p class="text-gray-500">Нет активных проектов</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mt-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-medium text-gray-900 mb-6">
+                <i class="fas fa-bolt mr-2 text-yellow-500"></i>
+                Быстрые действия
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {% if pending_comments > 0 %}
+                <a href="/projects/comments/" 
+                   class="bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg hover:from-red-600 hover:to-red-700 transition-all transform hover:scale-105">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-2xl mr-3"></i>
+                        <div>
+                            <div class="font-medium">Новые замечания</div>
+                            <div class="text-sm opacity-90">{{ pending_comments }} ожидают решения</div>
+                        </div>
+                    </div>
+                </a>
+                {% endif %}
+                
+                {% if accepted_comments > 0 %}
+                <a href="/projects/comments/?status=accepted" 
+                   class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105">
+                    <div class="flex items-center">
+                        <i class="fas fa-tasks text-2xl mr-3"></i>
+                        <div>
+                            <div class="font-medium">В работе</div>
+                            <div class="text-sm opacity-90">{{ accepted_comments }} замечаний</div>
+                        </div>
+                    </div>
+                </a>
+                {% endif %}
+                
+                {% if pending_remarks > 0 %}
+                <a href="{% url 'dashboard:manage_remarks' %}" 
+                   class="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-4 rounded-lg hover:from-yellow-600 hover:to-yellow-700 transition-all transform hover:scale-105">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-circle text-2xl mr-3"></i>
+                        <div>
+                            <div class="font-medium">Старые замечания</div>
+                            <div class="text-sm opacity-90">{{ pending_remarks }} ожидают</div>
+                        </div>
+                    </div>
+                </a>
+                {% endif %}
+                
+                {% if pending_schedule_changes > 0 %}
+                <a href="{% url 'dashboard:manage_schedule_changes' %}" 
+                   class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all transform hover:scale-105">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-alt text-2xl mr-3"></i>
+                        <div>
+                            <div class="font-medium">График работ</div>
+                            <div class="text-sm opacity-90">{{ pending_schedule_changes }} изменений</div>
+                        </div>
+                    </div>
+                </a>
+                {% endif %}
+                
+                {% if works_to_verify > 0 %}
+                <a href="/verification/" 
+                   class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-2xl mr-3"></i>
+                        <div>
+                            <div class="font-medium">Верификация</div>
+                            <div class="text-sm opacity-90">{{ works_to_verify }} работ</div>
+                        </div>
+                    </div>
+                </a>
+                {% endif %}
+                
+                <a href="{% url 'projects:work_schedule' %}" 
+                   class="bg-gradient-to-r from-primary-blue to-secondary-blue text-white p-4 rounded-lg hover:from-secondary-blue hover:to-primary-dark transition-all transform hover:scale-105">
+                    <div class="flex items-center">
+                        <i class="fas fa-sitemap text-2xl mr-3"></i>
+                        <div>
+                            <div class="font-medium">Сетевой график</div>
+                            <div class="text-sm opacity-90">Все работы</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Быстрые действия с замечаниями
+async function quickApproveComment(commentId) {
+    if (!confirm('Принять замечание к исполнению?')) return;
+    
+    try {
+        const response = await fetch(`{% url "dashboard:approve_comment" 0 %}`.replace('0', commentId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({})
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Обновляем страницу для отображения изменений
+            window.location.reload();
+        } else {
+            alert('Ошибка: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error approving comment:', error);
+        alert('Произошла ошибка при обработке запроса');
+    }
+}
+
+async function quickRejectComment(commentId) {
+    const reason = prompt('Укажите причину отклонения замечания:');
+    if (!reason) return;
+    
+    try {
+        const response = await fetch(`{% url "dashboard:reject_comment" 0 %}`.replace('0', commentId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ reason: reason })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Обновляем страницу для отображения изменений
+            window.location.reload();
+        } else {
+            alert('Ошибка: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error rejecting comment:', error);
+        alert('Произошла ошибка при обработке запроса');
+    }
+}
+</script>
+
+{% endblock %}

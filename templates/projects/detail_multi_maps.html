@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white overflow-hidden shadow rounded-lg mb-8">
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex-1">
+                    <h1 class="mt-2 text-3xl font-bold text-gray-900">{{ project.name }}</h1>
+                    <p class="mt-2 text-sm text-gray-600">{{ project.address }}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="px-3 py-1 text-sm rounded-full 
+                        {% if project.status == 'active' %}bg-blue-100 text-blue-800
+                        {% elif project.status == 'completed' %}bg-green-100 text-green-800
+                        {% elif project.status == 'suspended' %}bg-red-100 text-red-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ project.get_status_display }}
+                    </span>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-primary-blue">{{ project.completion_percentage }}%</div>
+                        <div class="text-sm text-gray-500">Готовность</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Карта с выбором провайдера -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-map-marked-alt text-primary-blue mr-2"></i>
+                        Местоположение
+                    </h3>
+                    <div class="flex space-x-2">
+                        <select id="map-provider" class="text-sm border border-gray-300 rounded px-3 py-1">
+                            <option value="osm" selected>🗺️ Стандартная карта</option>
+                            <option value="satellite">🛰️ Спутниковая</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <div id="map-loading" class="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
+                    <div class="text-center">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-blue mb-2"></div>
+                        <p class="text-sm text-gray-600">Загрузка карты...</p>
+                    </div>
+                </div>
+                <div id="map" class="h-96 rounded-lg" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Провайдеры карт без политической символики
+const mapProviders = {
+    satellite: {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: '© ESRI, DigitalGlobe, GeoEye, Earthstar Geographics',
+        name: 'ESRI Спутник'
+    },
+    yandex: {
+        url: 'https://core-sat.maps.yandex.net/tiles?l=sat&v=3.1025.0&x={x}&y={y}&z={z}&scale=1&lang=ru_RU',
+        attribution: '© Яндекс',
+        name: 'Яндекс Спутник'
+    },
+    '2gis': {
+        url: 'https://tile2.maps.2gis.com/tiles?x={x}&y={y}&z={z}&v=1.1',
+        attribution: '© 2ГИС',
+        name: '2ГИС'
+    },
+    osm: {
+        url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        attribution: '© OpenStreetMap contributors',
+        name: 'OpenStreetMap'
+    }
+};
+
+let map;
+let currentLayer;
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🗺️ Инициализация многопровайдерной карты...');
+    
+    if (typeof L === 'undefined') {
+        console.error('❌ Leaflet не загружен!');
+        document.getElementById('map-loading').innerHTML = `
+            <div class="text-center text-red-500">
+                <i class="fas fa-exclamation-triangle text-3xl mb-3"></i>
+                <h3 class="text-lg font-semibold mb-2">Карта недоступна</h3>
+                <p class="text-sm">Ошибка загрузки библиотеки карт</p>
+                <button onclick="location.reload()" class="mt-2 px-4 py-2 bg-primary-blue text-white rounded hover:bg-blue-600">
+                    Обновить страницу
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    console.log('✅ Leaflet доступен, создаем карту...');
+    
+    try {
+        // Создаём карту
+        map = L.map('map').setView([55.7558, 37.6176], 12); // Москва по умолчанию
+        
+        // Добавляем начальный слой (2ГИС по умолчанию)
+        loadMapProvider('2gis');
+        
+        console.log('✅ Карта создана успешно!');
+        
+        // Скрываем loading и показываем карту
+        document.getElementById('map-loading').style.display = 'none';
+        document.getElementById('map').style.display = 'block';
+        
+        // Обрабатываем данные проекта
+        let projectsData = [];
+        try {
+            projectsData = {{ project_for_map|default:"[]"|safe }};
+            console.log('📊 Данные проекта для карты:', projectsData);
+        } catch (e) {
+            console.error('❌ Ошибка парсинга данных проекта:', e);
+            projectsData = [];
+        }
+        
+        if (projectsData && projectsData.length > 0) {
+            console.log(`🏢 Отображаем ${projectsData.length} проект(ов) на карте`);
+            
+            projectsData.forEach((project, index) => {
+                console.log(`🏠 Обработка проекта ${index + 1}:`, project);
+                
+                if (project.coordinates && project.coordinates.coordinates) {
+                    let color = '#2563EB';
+                    if (project.status === 'active') color = '#2563EB';
+                    else if (project.status === 'completed') color = '#059669';
+                    else if (project.status === 'suspended') color = '#DC2626';
+                    else if (project.status === 'planned') color = '#6B7280';
+                    
+                    try {
+                        // Вычисляем центр полигона
+                        let coords = project.coordinates.coordinates[0];
+                        if (project.coordinates.type === 'MultiPolygon') {
+                            coords = project.coordinates.coordinates[0][0];
+                        }
+                        
+                        const centerLng = coords.reduce((sum, coord) => sum + coord[0], 0) / coords.length;
+                        const centerLat = coords.reduce((sum, coord) => sum + coord[1], 0) / coords.length;
+                        
+                        console.log(`🎯 Центр проекта: [${centerLat}, ${centerLng}]`);
+                        
+                        // Центрируем карту на проекте
+                        map.setView([centerLat, centerLng], 15);
+                        
+                        // Добавляем маркер
+                        const marker = L.marker([centerLat, centerLng])
+                            .bindPopup(`
+                                <div class="p-3">
+                                    <h3 class="font-bold text-gray-900">🏢 ${project.name}</h3>
+                                    <p class="text-sm text-gray-700 mt-1">📍 ${project.address || 'Адрес не указан'}</p>
+                                    <p class="text-xs text-gray-600 mt-2">📊 Статус: ${project.status}</p>
+                                    <p class="text-xs text-gray-600">🎯 Готовность: ${project.completion}%</p>
+                                </div>
+                            `)
+                            .addTo(map);
+                        
+                        // Добавляем полигон проекта
+                        const polygonCoords = coords.map(coord => [coord[1], coord[0]]);
+                        const polygon = L.polygon(polygonCoords, {
+                            color: color,
+                            fillColor: color,
+                            fillOpacity: 0.2,
+                            weight: 2
+                        }).bindPopup(`
+                            <div class="p-3">
+                                <h3 class="font-bold text-gray-900">🏗️ ${project.name}</h3>
+                                <p class="text-sm text-gray-700 mt-1">📍 ${project.address || 'Адрес не указан'}</p>
+                                <div class="mt-2 space-y-1">
+                                    <p class="text-xs text-gray-600">📋 Статус: ${project.status}</p>
+                                    <p class="text-xs text-gray-600">📈 Готовность: ${project.completion}%</p>
+                                    <p class="text-xs text-gray-600">👷 Прораб: ${project.foreman || 'Не назначен'}</p>
+                                    <p class="text-xs text-gray-600">🏛️ Контроль: ${project.control_service || 'Не назначен'}</p>
+                                </div>
+                            </div>
+                        `).addTo(map);
+                        
+                        console.log('✅ Маркер и полигон добавлены на карту');
+                    } catch (coordError) {
+                        console.error('❌ Ошибка обработки координат:', coordError);
+                    }
+                } else {
+                    console.warn('⚠️ Нет координат для проекта:', project);
+                }
+            });
+        } else {
+            console.warn('⚠️ Нет данных проекта для отображения на карте');
+            
+            // Остаемся на Москве по умолчанию и добавляем общий маркер
+            const defaultMarker = L.marker([55.7558, 37.6176])
+                .bindPopup(`
+                    <div class="p-3 text-center">
+                        <h3 class="font-bold text-gray-900">🏛️ Москва</h3>
+                        <p class="text-sm text-gray-700">Местоположение по умолчанию</p>
+                        <p class="text-xs text-gray-500 mt-2">Координаты проекта не указаны</p>
+                    </div>
+                `)
+                .addTo(map);
+        }
+        
+        // Обработчик смены провайдера карт
+        document.getElementById('map-provider').addEventListener('change', function(e) {
+            const provider = e.target.value;
+            loadMapProvider(provider);
+            console.log(`🔄 Переключение на провайдер: ${mapProviders[provider].name}`);
+        });
+        
+        console.log('✅ Карта инициализирована успешно!');
+        
+    } catch (error) {
+        console.error('❌ Не удалось создать карту:', error);
+        document.getElementById('map-loading').innerHTML = `
+            <div class="text-center text-red-500">
+                <i class="fas fa-exclamation-triangle text-3xl mb-3"></i>
+                <h3 class="text-lg font-semibold mb-2">Карта недоступна</h3>
+                <p class="text-sm text-gray-600 mb-2">Ошибка инициализации: ${error.message || 'Неизвестная ошибка'}</p>
+                <div class="space-x-2">
+                    <button onclick="location.reload()" class="px-4 py-2 bg-primary-blue text-white rounded hover:bg-blue-600">
+                        Обновить страницу
+                    </button>
+                    <button onclick="this.parentElement.parentElement.style.display='none'" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
+                        Скрыть
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+});
+
+function loadMapProvider(providerKey) {
+    const provider = mapProviders[providerKey];
+    if (!provider || !map) return;
+    
+    // Удаляем текущий слой
+    if (currentLayer) {
+        map.removeLayer(currentLayer);
+    }
+    
+    // Добавляем новый слой
+    currentLayer = L.tileLayer(provider.url, {
+        maxZoom: 18,
+        attribution: provider.attribution
+    }).addTo(map);
+    
+    console.log(`✅ Загружен провайдер: ${provider.name}`);
+}
+</script>
+{% endblock %}

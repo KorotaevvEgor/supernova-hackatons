@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+
+{% block title %}Верификация работ: {{ project.name }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 mb-6 text-white shadow-xl">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold mb-1">
+                        Верификация работ
+                    </h1>
+                    <p class="text-blue-100 text-lg">{{ project.name }}</p>
+                    <p class="text-blue-200 text-sm">{{ project.address }}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="/projects/" 
+                   class="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-lg hover:shadow-xl border border-blue-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Назад к проектам
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Status -->
+    <div id="location-status" class="mb-6"></div>
+
+    <!-- Works List -->
+    {% if works %}
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-tasks text-blue-600 mr-2"></i>
+                Работы для верификации ({{ works|length }})
+            </h2>
+            <p class="text-sm text-blue-700 mt-1">
+                Для верификации необходимо подтвердить своё местоположение на объекте
+            </p>
+        </div>
+        
+        <div class="divide-y divide-gray-200">
+            {% for work in works %}
+            <div class="p-6 hover:bg-gray-50 transition-all duration-200" id="work-{{ work.id }}">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-900">{{ work.name }}</h3>
+                        <p class="text-blue-600 mt-1 font-medium">{{ work.work_type.name }}</p>
+                        
+                        <div class="mt-3 grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500">Объём:</span>
+                                <span class="font-medium">{{ work.volume }} {{ work.unit }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Плановое окончание:</span>
+                                <span class="font-medium">{{ work.planned_end_date|date:"d.m.Y" }}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Статус:</span>
+                                <span class="inline-block px-2 py-1 rounded-full text-xs font-medium
+                                    {% if work.status == 'completed' %}bg-blue-100 text-blue-800
+                                    {% elif work.status == 'in_progress' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ work.get_status_display }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Отмечено прорабом:</span>
+                                <span class="text-green-600 font-medium">
+                                    <i class="fas fa-check mr-1"></i>Да
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {% if work.description %}
+                        <div class="mt-3">
+                            <p class="text-sm text-gray-600">{{ work.description }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="ml-6 flex flex-col space-y-2">
+                        {% if work.is_delayed %}
+                        <span class="inline-block px-3 py-1 bg-gradient-to-r from-red-100 to-red-200 text-red-700 rounded-full text-xs font-semibold animate-pulse">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>Просрочено
+                        </span>
+                        {% endif %}
+                        
+                        <button onclick="verifyWork({{ work.id }})" 
+                               class="verification-button inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:from-gray-400 disabled:to-gray-500"
+                               id="verify-btn-{{ work.id }}" disabled>
+                            <i class="fas fa-check mr-2"></i>Верифицировать
+                        </button>
+                        
+                        <div class="text-xs text-gray-500 text-center" id="status-{{ work.id }}">
+                            Ожидание геолокации...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Verification Notes -->
+                <div class="mt-4">
+                    <label for="notes-{{ work.id }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Примечания к верификации (опционально)
+                    </label>
+                    <textarea id="notes-{{ work.id }}" rows="2" 
+                              class="w-full border-2 border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                              placeholder="Добавьте комментарии к верификации..."></textarea>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg p-12 text-center border border-gray-100">
+        <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center">
+            <i class="fas fa-check-circle text-green-600 text-3xl"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-3">Нет работ для верификации</h3>
+        <p class="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">Все работы на данном объекте уже верифицированы или ещё не отмечены прорабом как выполненные.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+let userLocation = null;
+let isLocationInBounds = false;
+
+// Функция проверки нахождения точки в полигоне
+function pointInPolygon(x, y, polygon) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i][0], yi = polygon[i][1];
+        const xj = polygon[j][0], yj = polygon[j][1];
+        
+        if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+            inside = !inside;
+        }
+    }
+    return inside;
+}
+
+// Получаем геолокацию пользователя
+function getCurrentLocation() {
+    const locationStatus = document.getElementById('location-status');
+    
+    if (navigator.geolocation) {
+        locationStatus.innerHTML = `
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 shadow-lg">
+                <div class="flex items-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-4"></div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-blue-900">Определение местоположения</h3>
+                        <p class="text-blue-700 mt-1">Пожалуйста, разрешите доступ к геолокации для верификации работ</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                userLocation = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                };
+                
+                // Проверяем, находится ли пользователь в пределах объекта
+                checkLocationInBounds();
+            },
+            function(error) {
+                locationStatus.innerHTML = `
+                    <div class="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-xl p-6 shadow-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-2xl mr-4"></i>
+                            <div>
+                                <h3 class="text-lg font-semibold text-red-900">Ошибка геолокации</h3>
+                                <p class="text-red-700 mt-1">Невозможно определить местоположение. Верификация недоступна.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                console.error('Ошибка геолокации:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    } else {
+        locationStatus.innerHTML = `
+            <div class="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-xl p-6 shadow-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-times-circle text-red-600 text-2xl mr-4"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold text-red-900">Геолокация не поддерживается</h3>
+                        <p class="text-red-700 mt-1">Ваш браузер не поддерживает геолокацию</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function checkLocationInBounds() {
+    const locationStatus = document.getElementById('location-status');
+    
+    if (!userLocation) {
+        locationStatus.innerHTML = `
+            <div class="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-xl p-6 shadow-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl mr-4"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold text-red-900">Местоположение не определено</h3>
+                        <p class="text-red-700 mt-1">Невозможно определить местоположение. Верификация недоступна.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        isLocationInBounds = false;
+        return;
+    }
+    
+    {% if user_lat and user_lng %}
+    // Если координаты переданы из URL, используем их
+    userLocation = {
+        latitude: {{ user_lat }},
+        longitude: {{ user_lng }}
+    };
+    {% endif %}
+    
+    // Проверяем нахождение в полигоне проекта
+    {% if project.coordinates %}
+    const projectCoordinates = {{ project.coordinates|safe }};
+    isLocationInBounds = pointInPolygon(userLocation.longitude, userLocation.latitude, projectCoordinates);
+    {% else %}
+    // Если координаты проекта не заданы, разрешаем верификацию
+    isLocationInBounds = true;
+    {% endif %}
+    
+    if (isLocationInBounds) {
+        locationStatus.innerHTML = `
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 shadow-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle text-green-600 text-2xl mr-4"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold text-green-900">Местоположение подтверждено</h3>
+                        <p class="text-green-700 mt-1">Вы находитесь на территории объекта. Верификация доступна.</p>
+                        <p class="text-sm text-green-600 mt-2 font-mono bg-green-100 px-2 py-1 rounded">Координаты: ${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Активируем кнопки верификации
+        document.querySelectorAll('[id^="verify-btn-"]').forEach(btn => {
+            btn.disabled = false;
+        });
+        
+        document.querySelectorAll('[id^="status-"]').forEach(status => {
+            status.textContent = 'Готов к верификации';
+            status.classList.remove('text-gray-500');
+            status.classList.add('text-green-600');
+        });
+    } else {
+        locationStatus.innerHTML = `
+            <div class="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-6 shadow-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-map-marker-alt text-orange-600 text-2xl mr-4"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold text-orange-900">Вне территории объекта</h3>
+                        <p class="text-orange-700 mt-1">Вы находитесь вне границ объекта. Верификация недоступна.</p>
+                        <p class="text-sm text-orange-600 mt-2 font-mono bg-orange-100 px-2 py-1 rounded">Координаты: ${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Отключаем кнопки верификации
+        document.querySelectorAll('[id^="verify-btn-"]').forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-ban mr-2"></i>Недоступно';
+        });
+        
+        document.querySelectorAll('[id^="status-"]').forEach(status => {
+            status.textContent = 'Верификация недоступна';
+            status.classList.remove('text-green-600');
+            status.classList.add('text-red-600');
+        });
+    }
+}
+
+function verifyWork(workId) {
+    if (!userLocation) {
+        alert('Не удалось определить местоположение');
+        return;
+    }
+    
+    if (!isLocationInBounds) {
+        alert('Вы находитесь вне территории объекта');
+        return;
+    }
+    
+    const btn = document.getElementById(`verify-btn-${workId}`);
+    const notes = document.getElementById(`notes-${workId}`).value;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Верификация...';
+    
+    fetch(`/verification/verify/${workId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            latitude: userLocation.latitude,
+            longitude: userLocation.longitude,
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Успешная верификация
+            const workDiv = document.getElementById(`work-${workId}`);
+            workDiv.innerHTML = `
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-8 shadow-lg">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-600 text-4xl mr-6 animate-bounce"></i>
+                        <div>
+                            <h3 class="text-2xl font-bold text-green-900">Работа верифицирована</h3>
+                            <p class="text-green-700 text-lg mt-1">${data.message}</p>
+                            <p class="text-green-600 mt-2 font-mono bg-green-100 px-3 py-1 rounded-lg inline-block">Время верификации: ${new Date().toLocaleString('ru-RU')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Проверяем, все ли работы верифицированы
+            const remainingWorks = document.querySelectorAll('[id^="verify-btn-"]:not([disabled])');
+            if (remainingWorks.length === 0) {
+                // Все работы верифицированы
+                setTimeout(() => {
+                    window.location.href = '/projects/';
+                }, 2000);
+            }
+        } else {
+            alert(data.error || 'Ошибка при верификации');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check mr-2"></i>Верифицировать';
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Произошла ошибка при верификации');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check mr-2"></i>Верифицировать';
+    });
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    getCurrentLocation();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}OCR - Распознавание текста{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-8">
+  <!-- Заголовок -->
+  <div class="mb-8">
+    <div class="flex items-center space-x-4">
+      <a href="{% url 'foreman:materials_control' %}" class="text-gray-600 hover:text-gray-900">
+        <i class="fas fa-arrow-left text-lg"></i>
+      </a>
+      <h1 class="text-2xl font-bold text-gray-900">Распознавание текста из изображений</h1>
+    </div>
+  </div>
+
+  <!-- Загрузка файла -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <h2 class="text-lg font-medium text-gray-900 mb-2">
+      <i class="fas fa-file-image text-primary-blue mr-2"></i>Загрузка изображения
+    </h2>
+    
+    <p class="text-gray-600 mb-4">
+      Загрузите изображение или PDF-файл с текстом для распознавания. 
+      Поддерживаются форматы: JPG, PNG, PDF.
+    </p>
+
+    <!-- Зона загрузки файла -->
+    <div id="dropZone" 
+         class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md py-8 cursor-pointer hover:border-primary-blue transition-colors">
+      <i class="fas fa-file-upload text-4xl text-primary-blue mb-2"></i>
+      <p class="text-gray-700 font-medium text-center">
+        Перетащите файл сюда<br>или выберите файл
+      </p>
+      <input type="file" id="file" name="document" accept=".pdf,image/*" class="hidden">
+      <button type="button" id="file-select-btn" 
+              class="mt-4 px-6 py-2 bg-primary-blue text-white rounded-md hover:bg-primary-blue/90 transition-colors">
+        Выбрать файл
+      </button>
+    </div>
+
+    <!-- Превью файла и результаты -->
+    <div id="preview-container" class="mt-6 hidden">
+      <div class="bg-gray-50 rounded-lg p-4">
+        <div class="mb-4">
+          <h3 class="text-lg font-medium text-gray-900">Загруженный файл</h3>
+          <div id="preview-content" class="mt-2"></div>
+        </div>
+
+        <div class="mt-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Распознанный текст</h3>
+          <div id="ocr-result" class="bg-white p-4 rounded border">
+            <div id="loading-indicator" class="text-center text-gray-600 hidden">
+              <i class="fas fa-spinner fa-spin mr-2"></i>
+              Распознавание текста...
+            </div>
+            <pre id="ocr-text" class="text-sm text-gray-700 whitespace-pre-wrap"></pre>
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-end space-x-4">
+          <button type="button" id="copy-btn"
+                  class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+            <i class="fas fa-copy mr-2"></i>Копировать текст
+          </button>
+          <button type="button" id="new-file-btn"
+                  class="px-4 py-2 bg-primary-blue text-white rounded-md hover:bg-primary-blue/90 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Загрузить другой файл
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extrajs %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('file');
+  const fileSelectBtn = document.getElementById('file-select-btn');
+  const previewContainer = document.getElementById('preview-container');
+  const previewContent = document.getElementById('preview-content');
+  const ocrResult = document.getElementById('ocr-result');
+  const ocrText = document.getElementById('ocr-text');
+  const loadingIndicator = document.getElementById('loading-indicator');
+  const copyBtn = document.getElementById('copy-btn');
+  const newFileBtn = document.getElementById('new-file-btn');
+
+  // File select button click
+  fileSelectBtn.addEventListener('click', () => fileInput.click());
+
+  // Handle drag and drop events
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  // Visual feedback for drag and drop
+  dropZone.addEventListener('dragenter', () => {
+    dropZone.classList.add('border-primary-blue');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-primary-blue');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    dropZone.classList.remove('border-primary-blue');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFile(files[0]);
+    }
+  });
+
+  // Handle file selection
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      handleFile(e.target.files[0]);
+    }
+  });
+
+  // Process the selected file
+  async function handleFile(file) {
+    // Show file preview
+    previewContainer.classList.remove('hidden');
+    dropZone.classList.add('hidden');
+    
+    if (file.type.startsWith('image/')) {
+      previewContent.innerHTML = `
+        <img src="${URL.createObjectURL(file)}" alt="Preview" class="max-w-full h-auto rounded">
+      `;
+    } else if (file.type === 'application/pdf') {
+      previewContent.innerHTML = `
+        <div class="flex items-center space-x-2 text-gray-600">
+          <i class="fas fa-file-pdf text-4xl"></i>
+          <span>${file.name}</span>
+        </div>
+      `;
+    }
+
+    // Show loading indicator
+    loadingIndicator.classList.remove('hidden');
+    ocrText.textContent = '';
+
+    // Send file for OCR processing
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/ocr/process/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value
+        }
+      });
+
+      const data = await response.json();
+      
+      loadingIndicator.classList.add('hidden');
+      
+      if (data.success) {
+        ocrText.textContent = data.text;
+      } else {
+        ocrText.textContent = 'Ошибка при распознавании текста: ' + data.error;
+      }
+    } catch (error) {
+      loadingIndicator.classList.add('hidden');
+      ocrText.textContent = 'Произошла ошибка при обработке файла';
+      console.error('OCR Error:', error);
+    }
+  }
+
+  // Copy text button
+  copyBtn.addEventListener('click', () => {
+    const text = ocrText.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      // Show copy success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg';
+      notification.textContent = 'Текст скопирован';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 2000);
+    });
+  });
+
+  // New file button
+  newFileBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    previewContainer.classList.add('hidden');
+    dropZone.classList.remove('hidden');
+    ocrText.textContent = '';
+  });
+});
+</script>
+{% endblock %}

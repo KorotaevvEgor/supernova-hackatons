@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Тест логики активного меню{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="bg-white rounded-lg shadow-lg p-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">🎯 Тест логики активного состояния меню</h1>
+    
+    <div class="space-y-6">
+      <div class="bg-green-50 border-l-4 border-green-500 p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-check-circle text-green-500"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-green-800">Исправлена логика активного состояния</h3>
+            <div class="mt-2 text-sm text-green-700">
+              <p>✅ Только один пункт меню может быть активным одновременно</p>
+              <p>✅ Приоритет точного соответствия над префиксным</p>
+              <p>✅ Специфичные URL (длиннее) имеют приоритет над общими</p>
+              <p>✅ Главная страница активна только при точном совпадении "/"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-info-circle text-blue-500"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-blue-800">Алгоритм определения активного пункта</h3>
+            <div class="mt-2 text-sm text-blue-700">
+              <ol class="list-decimal list-inside space-y-1">
+                <li><strong>Сбор всех пунктов меню</strong> (кроме градиентных кнопок)</li>
+                <li><strong>Сортировка по приоритету</strong>: точные совпадения → длинные URL → короткие URL</li>
+                <li><strong>Поиск лучшего совпадения</strong>: точное > префиксное</li>
+                <li><strong>Применение состояния</strong>: только к одному элементу</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-lightbulb text-yellow-500"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-yellow-800">Примеры URL и их соответствий</h3>
+            <div class="mt-2 text-sm text-yellow-700">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 class="font-semibold">Точные соответствия:</h4>
+                  <ul class="list-disc list-inside space-y-1 mt-1">
+                    <li><code>/</code> → <strong>Главная</strong></li>
+                    <li><code>/projects/</code> → <strong>Мои объекты</strong></li>
+                    <li><code>/projects/comments/</code> → <strong>Замечания</strong></li>
+                    <li><code>/materials/</code> → <strong>Материалы</strong></li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="font-semibold">Приоритеты:</h4>
+                  <ul class="list-disc list-inside space-y-1 mt-1">
+                    <li><strong>Высший:</strong> Точное совпадение URL</li>
+                    <li><strong>Средний:</strong> Префиксное совпадение (длинные)</li>
+                    <li><strong>Низший:</strong> Префиксное совпадение (короткие)</li>
+                    <li><strong>Особый:</strong> Главная только при <code>/</code></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <div class="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg p-6 text-white">
+          <div class="flex items-center">
+            <div class="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-4">
+              <i class="fas fa-route text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold">URL Routing</h3>
+              <p class="text-sm opacity-90">Умный анализ путей</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-teal-600 rounded-lg p-6 text-white">
+          <div class="flex items-center">
+            <div class="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-4">
+              <i class="fas fa-target text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold">Точность</h3>
+              <p class="text-sm opacity-90">Один активный пункт</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-lg p-6 text-white">
+          <div class="flex items-center">
+            <div class="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-4">
+              <i class="fas fa-sort-amount-down text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold">Приоритеты</h3>
+              <p class="text-sm opacity-90">Специфичность имеет значение</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg p-6 text-white">
+          <div class="flex items-center">
+            <div class="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center mr-4">
+              <i class="fas fa-code text-xl"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold">JavaScript</h3>
+              <p class="text-sm opacity-90">Динамическое определение</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 p-6 bg-gray-50 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">🔧 Техническая реализация</h3>
+        <div class="text-sm text-gray-600 space-y-2">
+          <p><strong>Проблема:</strong> При URL <code>/projects/comments/</code> оба пункта ("Мои объекты" и "Замечания") были активными</p>
+          <p><strong>Причина:</strong> <code>currentPath.startsWith(href)</code> срабатывал для <code>/projects/</code> внутри <code>/projects/comments/</code></p>
+          <p><strong>Решение:</strong> Приоритизация точных совпадений и ограничение на один активный пункт</p>
+          
+          <div class="mt-4">
+            <h4 class="font-semibold mb-2">Логика сопоставления:</h4>
+            <div class="bg-white p-3 rounded border font-mono text-xs">
+              <div>1. Точное совпадение: currentPath === href</div>
+              <div>2. Префикс с разделителем: currentPath.startsWith(href + '/')</div>
+              <div>3. Главная страница: href === '/' && currentPath === '/'</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Дополнительная отладочная информация
+document.addEventListener('DOMContentLoaded', function() {
+  const currentPath = window.location.pathname;
+  console.log('🎯 Current path:', currentPath);
+  
+  const menuItems = document.querySelectorAll('.sidebar-nav-item:not(.anti-flicker-btn)');
+  console.log('📋 Menu items found:', menuItems.length);
+  
+  menuItems.forEach((item, index) => {
+    const href = item.getAttribute('href');
+    const text = item.querySelector('span')?.textContent?.trim();
+    const isActive = item.classList.contains('active');
+    console.log(`${index + 1}. ${text} (${href}) - ${isActive ? '✅ ACTIVE' : '⭕ inactive'}`);
+  });
+});
+</script>
+{% endblock %}

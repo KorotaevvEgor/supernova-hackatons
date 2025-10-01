@@ -1,0 +1,1282 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Погодная аналитика - {{ project.name }}{% endblock %}
+
+{% block extra_css %}
+<!-- Принудительное обновление стилей v2.0 -->
+<style>
+    /* Принудительные стили для горизонтального прогноза */
+    .forecast-strip {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        gap: 16px !important;
+        white-space: nowrap !important;
+        padding: 16px 0 !important;
+    }
+    
+    .forecast-item {
+        flex: 0 0 auto !important;
+        min-width: 140px !important;
+        max-width: 140px !important;
+        display: inline-block !important;
+        white-space: normal !important;
+        vertical-align: top !important;
+    }
+    /* Стили для страницы погодной аналитики в стиле dashboard */
+    .weather-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .weather-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    }
+    
+    .hero-bg {
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 30%, #1d4ed8 70%, #2563eb 100%);
+        position: relative;
+    }
+    
+    .hero-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(30, 58, 138, 0.7) 0%, rgba(59, 130, 246, 0.6) 30%, rgba(29, 78, 216, 0.7) 70%, rgba(37, 99, 235, 0.6) 100%);
+        backdrop-filter: blur(5px);
+    }
+    
+    .work-type-item {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .work-type-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    }
+    
+    .forecast-strip {
+        display: flex;
+        flex-direction: row;
+        gap: 16px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 16px 0;
+        scroll-behavior: smooth;
+        white-space: nowrap;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    .forecast-strip::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    .forecast-strip::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    
+    .forecast-strip::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    
+    .forecast-strip::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    .forecast-item {
+        flex: 0 0 auto;
+        min-width: 140px;
+        width: 140px;
+        background: white;
+        border-radius: 16px;
+        padding: 20px 12px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        white-space: normal;
+    }
+    
+    .forecast-item:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    
+    .forecast-item.today {
+        border-color: #3b82f6;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(29, 78, 216, 0.05) 100%);
+    }
+    
+    .risk-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .risk-safe {
+        background: rgba(34, 197, 94, 0.1);
+        color: #16a34a;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+    
+    .risk-caution {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+    
+    .risk-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    
+    .risk-critical {
+        background: rgba(127, 29, 29, 0.1);
+        color: #7f1d1d;
+        border: 1px solid rgba(127, 29, 29, 0.2);
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+    <!-- Заголовок в стиле dashboard -->
+    <div class="hero-bg relative overflow-hidden">
+        <div class="absolute inset-0">
+            <!-- Декоративные элементы -->
+            <div class="absolute top-20 left-10 w-20 h-20 bg-white opacity-8 rounded-full"></div>
+            <div class="absolute top-40 right-20 w-24 h-24 bg-white opacity-6 rounded-full"></div>
+            <div class="absolute bottom-20 left-1/3 w-16 h-16 bg-white opacity-7 rounded-full"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="text-center mb-6 relative z-10">
+                <div class="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-blue-100 mb-4 text-sm">
+                    <i class="fas fa-cloud-sun mr-2"></i>
+                    <span class="font-medium">Погодная аналитика</span>
+                </div>
+                
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-3">
+                    {{ project.name }}
+                </h1>
+                <p class="text-base text-blue-100 mb-6 max-w-2xl mx-auto">
+                    <i class="fas fa-map-marker-alt mr-2"></i>
+                    {{ project.address }}
+                </p>
+                
+                <div class="max-w-md mx-auto relative z-10">
+                    <div class="bg-white/15 backdrop-blur-md border border-white/30 rounded-xl px-4 py-3 text-white text-sm">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        Прогноз на 14 дней • Обновлено: сегодня
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика в стиле dashboard -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-10 mb-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Безопасные дни -->
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-check-circle text-white text-lg"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="safe-days">6</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Безопасно</div>
+                    </div>
+                </div>
+                <h3 class="text-gray-900 font-semibold mb-2">Безопасные дни</h3>
+                <div class="flex items-center text-sm text-green-600">
+                    <i class="fas fa-sun mr-2"></i>
+                    <span>Оптимальные условия</span>
+                </div>
+            </div>
+
+            <!-- Дни с рисками -->
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-white text-lg"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="risky-days">5</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Рисковано</div>
+                    </div>
+                </div>
+                <h3 class="text-gray-900 font-semibold mb-2">Дни с рисками</h3>
+                <div class="flex items-center text-sm text-orange-600">
+                    <i class="fas fa-cloud-rain mr-2"></i>
+                    <span>Осторожность</span>
+                </div>
+            </div>
+
+            <!-- Запрещенные дни -->
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ring-2 ring-red-200">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-ban text-white text-lg animate-pulse"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-red-600 mb-1" id="prohibited-days">3</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Запрещено</div>
+                    </div>
+                </div>
+                <h3 class="text-gray-900 font-semibold mb-2">Запрещенные дни</h3>
+                <div class="flex items-center text-sm text-red-600">
+                    <i class="fas fa-snowflake mr-2 animate-pulse"></i>
+                    <span>Неблагоприятные условия</span>
+                </div>
+            </div>
+
+            <!-- Типы работ -->
+            <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-hard-hat text-white text-lg"></i>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold text-gray-900 mb-1" id="work-types">6</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide font-semibold">Типов</div>
+                    </div>
+                </div>
+                <h3 class="text-gray-900 font-semibold mb-2">Типы работ</h3>
+                <div class="flex items-center text-sm text-blue-600">
+                    <i class="fas fa-tools mr-2"></i>
+                    <span>В анализе</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Компактный прогноз погоды -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div class="weather-card rounded-2xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-calendar-week mr-3 text-blue-600"></i>
+                    Прогноз на 14 дней
+                </h2>
+                <div class="text-sm text-gray-500">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Обновлено: сегодня
+                </div>
+            </div>
+            
+            <div class="forecast-strip" style="display: flex !important; flex-direction: row !important; overflow-x: auto !important; gap: 16px !important; white-space: nowrap !important;">
+                <!-- Сегодня -->
+                <div class="forecast-item today" style="flex: 0 0 auto !important; min-width: 140px !important; display: inline-block !important; white-space: normal !important;">
+                    <div class="text-3xl mb-2">🌤️</div>
+                    <div class="font-bold text-gray-900 mb-1">Сегодня</div>
+                    <div class="text-2xl font-bold text-blue-600 mb-1">15°</div>
+                    <div class="text-xs text-gray-600 mb-3">облачно</div>
+                    <div class="risk-indicator risk-safe">
+                        <i class="fas fa-check-circle"></i>
+                        Безопасно
+                    </div>
+                </div>
+                
+                <!-- Завтра -->
+                <div class="forecast-item" style="flex: 0 0 auto !important; min-width: 140px !important; display: inline-block !important; white-space: normal !important;">
+                    <div class="text-3xl mb-2">☀️</div>
+                    <div class="font-bold text-gray-900 mb-1">Завтра</div>
+                    <div class="text-2xl font-bold text-blue-600 mb-1">18°</div>
+                    <div class="text-xs text-gray-600 mb-3">ясно</div>
+                    <div class="risk-indicator risk-safe">
+                        <i class="fas fa-check-circle"></i>
+                        Безопасно
+                    </div>
+                </div>
+                
+                <!-- Остальные дни -->
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Детальный почасовой прогноз -->    
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div class="bg-white rounded-2xl p-8 shadow-xl border border-gray-100">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-calendar-day mr-3 text-blue-600"></i>
+                    Детальный прогноз погоды
+                </h2>
+                <div class="text-sm text-gray-500">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Обновлено: {{ work_weather_analysis.0.date|date:"d.m.Y" }}
+                </div>
+            </div>
+            
+            <!-- Переключатель дней -->
+            <div class="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-4">
+                <button class="day-tab active px-4 py-2 rounded-lg bg-blue-100 text-blue-800 font-medium transition-all" data-day="0">
+                    Сегодня
+                </button>
+                <button class="day-tab px-4 py-2 rounded-lg bg-gray-100 text-gray-600 font-medium hover:bg-blue-50 hover:text-blue-700 transition-all" data-day="1">
+                    Завтра
+                </button>
+                <button class="day-tab px-4 py-2 rounded-lg bg-gray-100 text-gray-600 font-medium hover:bg-blue-50 hover:text-blue-700 transition-all" data-day="2">
+                    <span id="day-2-name">{{ work_weather_analysis.2.date|date:"d M" }}</span>
+                </button>
+                <button class="day-tab px-4 py-2 rounded-lg bg-gray-100 text-gray-600 font-medium hover:bg-blue-50 hover:text-blue-700 transition-all" data-day="3">
+                    <span id="day-3-name">{{ work_weather_analysis.3.date|date:"d M" }}</span>
+                </button>
+                <button class="day-tab px-4 py-2 rounded-lg bg-gray-100 text-gray-600 font-medium hover:bg-blue-50 hover:text-blue-700 transition-all" data-day="4">
+                    <span id="day-4-name">{{ work_weather_analysis.4.date|date:"d M" }}</span>
+                </button>
+            </div>
+            
+            <!-- Контент для текущего дня -->
+            <div id="day-content">
+                <!-- День 0 (Сегодня) -->
+                <div class="day-data active" data-day="0">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            Сегодня, <span id="today-date">30 сентября</span>
+                        </h3>
+                        <p class="text-gray-600">Детальная информация по времени суток</p>
+                    </div>
+                    
+                    <!-- Почасовые данные -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <!-- Утром -->
+                        <div class="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-6 border border-orange-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-orange-800">Утром</h4>
+                                <i class="fas fa-sun text-orange-500 text-2xl"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-3xl font-bold text-gray-900">+4°</span>
+                                    <span class="text-sm text-gray-600">ясно</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500">Ощущается</span>
+                                        <div class="font-semibold text-gray-800">0°</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Ветер</span>
+                                        <div class="font-semibold text-gray-800">2 м/с СВ</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Влажность</span>
+                                        <div class="font-semibold text-gray-800">79%</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Давление</span>
+                                        <div class="font-semibold text-gray-800">761 мм</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Днём -->
+                        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-blue-800">Днём</h4>
+                                <i class="fas fa-sun text-yellow-500 text-2xl"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-3xl font-bold text-gray-900">+9°</span>
+                                    <span class="text-sm text-gray-600">ясно</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500">Ощущается</span>
+                                        <div class="font-semibold text-gray-800">+5°</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Ветер</span>
+                                        <div class="font-semibold text-gray-800">3 м/с СВ</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Влажность</span>
+                                        <div class="font-semibold text-gray-800">49%</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Давление</span>
+                                        <div class="font-semibold text-gray-800">761 мм</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Вечером -->
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-purple-800">Вечером</h4>
+                                <i class="fas fa-moon text-purple-500 text-2xl"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-3xl font-bold text-gray-900">+5°</span>
+                                    <span class="text-sm text-gray-600">ясно</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500">Ощущается</span>
+                                        <div class="font-semibold text-gray-800">+2°</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Ветер</span>
+                                        <div class="font-semibold text-gray-800">1 м/с СВ</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Влажность</span>
+                                        <div class="font-semibold text-gray-800">57%</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Давление</span>
+                                        <div class="font-semibold text-gray-800">760 мм</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ночью -->
+                        <div class="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-gray-800">Ночью</h4>
+                                <i class="fas fa-star text-gray-500 text-2xl"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-3xl font-bold text-gray-900">+2°</span>
+                                    <span class="text-sm text-gray-600">ясно</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500">Ощущается</span>
+                                        <div class="font-semibold text-gray-800">-1°</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Ветер</span>
+                                        <div class="font-semibold text-gray-800">2 м/с С</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Влажность</span>
+                                        <div class="font-semibold text-gray-800">74%</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Давление</span>
+                                        <div class="font-semibold text-gray-800">760 мм</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Дополнительная информация -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Левая колонка: Световой день и астрономия -->
+                        <div class="space-y-6">
+                            <!-- Световой день -->
+                            <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <i class="fas fa-sun mr-2 text-yellow-600"></i>
+                                    Световой день
+                                </h4>
+                                <div class="grid grid-cols-3 gap-4 text-center">
+                                    <div>
+                                        <div class="text-sm text-gray-600">Восход</div>
+                                        <div class="text-lg font-bold text-gray-900">06:30</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-600">Продолжительность</div>
+                                        <div class="text-lg font-bold text-orange-600">11 ч 39 мин</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm text-gray-600">Закат</div>
+                                        <div class="text-lg font-bold text-gray-900">18:09</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Фаза луны и УФ -->
+                            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="text-center">
+                                        <div class="text-sm text-gray-600 mb-2">Фаза луны</div>
+                                        <div class="text-4xl mb-2">🌓</div>
+                                        <div class="text-sm font-medium text-gray-800">первая 1/4</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-sm text-gray-600 mb-2">УФ-индекс</div>
+                                        <div class="text-2xl font-bold text-green-600 mb-1">2</div>
+                                        <div class="text-sm font-medium text-green-700">низкий</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Правая колонка: Дополнительные данные -->
+                        <div class="space-y-6">
+                            <!-- Температура воды и магнитное поле -->
+                            <div class="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-6 border border-cyan-200">
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="text-center">
+                                        <div class="text-sm text-gray-600 mb-2">Температура воды</div>
+                                        <div class="text-3xl font-bold text-cyan-600">+9°</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-sm text-gray-600 mb-2">Магнитное поле</div>
+                                        <div class="text-xl font-bold text-red-600 mb-1">7</div>
+                                        <div class="text-sm font-medium text-red-700">сильная буря</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Риски для строительства -->
+                            <div class="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-6 border border-red-200">
+                                <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <i class="fas fa-exclamation-triangle mr-2 text-orange-600"></i>
+                                    Строительные риски
+                                </h4>
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-700">Земляные работы</span>
+                                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Безопасно</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-700">Бетонные работы</span>
+                                        <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Ограничено</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-gray-700">Покрасочные работы</span>
+                                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Рекомендуется</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- День 1 (Завтра) -->
+                <div class="day-data hidden" data-day="1">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">
+                            Завтра, <span id="tomorrow-date">1 октября</span>
+                        </h3>
+                        <p class="text-gray-600">Детальная информация по времени суток</p>
+                    </div>
+                    
+                    <!-- Почасовые данные для завтра -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <!-- Утром -->
+                        <div class="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-6 border border-orange-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-orange-800">Утром</h4>
+                                <i class="fas fa-sun text-orange-500 text-2xl"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-3xl font-bold text-gray-900">+4°</span>
+                                    <span class="text-sm text-gray-600">ясно</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500">Ощущается</span>
+                                        <div class="font-semibold text-gray-800">0°</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Ветер</span>
+                                        <div class="font-semibold text-gray-800">2 м/с СВ</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Влажность</span>
+                                        <div class="font-semibold text-gray-800">75%</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Давление</span>
+                                        <div class="font-semibold text-gray-800">759 мм</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Днём -->
+                        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-blue-800">Днём</h4>
+                                <i class="fas fa-sun text-yellow-500 text-2xl"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-3xl font-bold text-gray-900">+12°</span>
+                                    <span class="text-sm text-gray-600">ясно</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500">Ощущается</span>
+                                        <div class="font-semibold text-gray-800">+8°</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Ветер</span>
+                                        <div class="font-semibold text-gray-800">3 м/с СВ</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Влажность</span>
+                                        <div class="font-semibold text-gray-800">48%</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Давление</span>
+                                        <div class="font-semibold text-gray-800">758 мм</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Вечером -->
+                        <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-purple-800">Вечером</h4>
+                                <i class="fas fa-cloud text-gray-500 text-2xl"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-3xl font-bold text-gray-900">+9°</span>
+                                    <span class="text-sm text-gray-600">пасмурно</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500">Ощущается</span>
+                                        <div class="font-semibold text-gray-800">+6°</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Ветер</span>
+                                        <div class="font-semibold text-gray-800">2 м/с СВ</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Влажность</span>
+                                        <div class="font-semibold text-gray-800">62%</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Давление</span>
+                                        <div class="font-semibold text-gray-800">756 мм</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ночью -->
+                        <div class="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-semibold text-gray-800">Ночью</h4>
+                                <i class="fas fa-cloud text-gray-500 text-2xl"></i>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-3xl font-bold text-gray-900">+5°</span>
+                                    <span class="text-sm text-gray-600">пасмурно</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-gray-500">Ощущается</span>
+                                        <div class="font-semibold text-gray-800">+2°</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Ветер</span>
+                                        <div class="font-semibold text-gray-800">2 м/с СВ</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Влажность</span>
+                                        <div class="font-semibold text-gray-800">80%</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-500">Давление</span>
+                                        <div class="font-semibold text-gray-800">756 мм</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Дополнительная информация для завтра -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Световой день -->
+                        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200">
+                            <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-sun mr-2 text-yellow-600"></i>
+                                Световой день
+                            </h4>
+                            <div class="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <div class="text-sm text-gray-600">Восход</div>
+                                    <div class="text-lg font-bold text-gray-900">06:32</div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-600">Продолжительность</div>
+                                    <div class="text-lg font-bold text-orange-600">11 ч 34 мин</div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-600">Закат</div>
+                                    <div class="text-lg font-bold text-gray-900">18:06</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Прочие данные -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-cyan-50 rounded-xl p-4 border border-cyan-200 text-center">
+                                <div class="text-sm text-gray-600 mb-2">Температура воды</div>
+                                <div class="text-2xl font-bold text-cyan-600">+9°</div>
+                            </div>
+                            <div class="bg-green-50 rounded-xl p-4 border border-green-200 text-center">
+                                <div class="text-sm text-gray-600 mb-2">Магнитное поле</div>
+                                <div class="text-xl font-bold text-green-600">4</div>
+                                <div class="text-xs text-green-700">спокойное</div>
+                            </div>
+                            <div class="bg-purple-50 rounded-xl p-4 border border-purple-200 text-center">
+                                <div class="text-sm text-gray-600 mb-2">Фаза луны</div>
+                                <div class="text-2xl mb-1">🌔</div>
+                                <div class="text-xs text-purple-700">растущая</div>
+                            </div>
+                            <div class="bg-green-50 rounded-xl p-4 border border-green-200 text-center">
+                                <div class="text-sm text-gray-600 mb-2">УФ-индекс</div>
+                                <div class="text-xl font-bold text-green-600">2</div>
+                                <div class="text-xs text-green-700">низкий</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Другие дни (placeholder) -->
+                <div class="day-data hidden" data-day="2">
+                    <div class="text-center py-12">
+                        <i class="fas fa-clock text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">Детальные данные для этого дня будут доступны позже</p>
+                    </div>
+                </div>
+                
+                <div class="day-data hidden" data-day="3">
+                    <div class="text-center py-12">
+                        <i class="fas fa-clock text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">Детальные данные для этого дня будут доступны позже</p>
+                    </div>
+                </div>
+                
+                <div class="day-data hidden" data-day="4">
+                    <div class="text-center py-12">
+                        <i class="fas fa-clock text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">Детальные данные для этого дня будут доступны позже</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Компактный график -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        
+    </div>
+
+    <!-- Полноценная аналитика по типам работ -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Заголовок секции -->
+        <div class="text-center mb-12">
+            <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-800 mb-4 text-sm font-medium">
+                <i class="fas fa-analytics mr-2"></i>
+                Детальная аналитика
+            </div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Анализ по типам работ</h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Оценка погодных рисков для различных видов строительных работ на ближайшие 14 дней
+            </p>
+        </div>
+        
+        <!-- Карточки типов работ -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+            <!-- Земляные работы -->
+            <div class="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+                            <i class="fas fa-shovel text-white text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-bold text-gray-900">Земляные работы</h3>
+                            <p class="text-sm text-gray-600">Подготовка грунта, копка котлованов</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Риск-индикатор -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Уровень риска</span>
+                        <span class="text-sm font-bold text-green-600">15%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full" style="width: 15%"></div>
+                    </div>
+                    <div class="mt-2 text-xs text-green-600 font-medium flex items-center">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        Низкий риск
+                    </div>
+                </div>
+                
+                <!-- Статистика -->
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-gray-50 rounded-xl">
+                        <div class="text-2xl font-bold text-gray-900">8</div>
+                        <div class="text-xs text-gray-600 font-medium">Условий</div>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded-xl">
+                        <div class="text-2xl font-bold text-green-600">7</div>
+                        <div class="text-xs text-green-600 font-medium">Безопасно</div>
+                    </div>
+                    <div class="text-center p-3 bg-red-50 rounded-xl">
+                        <div class="text-2xl font-bold text-red-600">1</div>
+                        <div class="text-xs text-red-600 font-medium">Запрещено</div>
+                    </div>
+                </div>
+                
+                <!-- Мини-диаграмма -->
+                <div class="flex items-center mt-4 p-3 bg-gradient-to-r from-green-50 to-amber-50 rounded-xl">
+                    <div class="text-xs text-gray-700 flex-1">
+                        <span class="font-semibold text-green-700">87.5%</span> благоприятных дней
+                    </div>
+                    <i class="fas fa-thumbs-up text-green-600"></i>
+                </div>
+            </div>
+            
+            <!-- Бетонные работы -->
+            <div class="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <div class="w-16 h-16 bg-gradient-to-br from-gray-600 to-gray-800 rounded-2xl flex items-center justify-center shadow-lg">
+                            <i class="fas fa-cube text-white text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-bold text-gray-900">Бетонные работы</h3>
+                            <p class="text-sm text-gray-600">Заливка фундамента и конструкций</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Риск-индикатор -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Уровень риска</span>
+                        <span class="text-sm font-bold text-yellow-600">35%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full" style="width: 35%"></div>
+                    </div>
+                    <div class="mt-2 text-xs text-yellow-600 font-medium flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        Средний риск
+                    </div>
+                </div>
+                
+                <!-- Статистика -->
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-gray-50 rounded-xl">
+                        <div class="text-2xl font-bold text-gray-900">8</div>
+                        <div class="text-xs text-gray-600 font-medium">Условий</div>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded-xl">
+                        <div class="text-2xl font-bold text-green-600">5</div>
+                        <div class="text-xs text-green-600 font-medium">Безопасно</div>
+                    </div>
+                    <div class="text-center p-3 bg-red-50 rounded-xl">
+                        <div class="text-2xl font-bold text-red-600">3</div>
+                        <div class="text-xs text-red-600 font-medium">Запрещено</div>
+                    </div>
+                </div>
+                
+                <!-- Мини-диаграмма -->
+                <div class="flex items-center mt-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl">
+                    <div class="text-xs text-gray-700 flex-1">
+                        <span class="font-semibold text-yellow-700">62.5%</span> благоприятных дней
+                    </div>
+                    <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                </div>
+            </div>
+            
+            <!-- Покрасочные работы -->
+            <div class="bg-white rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
+                            <i class="fas fa-paint-brush text-white text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-bold text-gray-900">Покрасочные работы</h3>
+                            <p class="text-sm text-gray-600">Покраска ограждений и металлических элементов</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Риск-индикатор -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Уровень риска</span>
+                        <span class="text-sm font-bold text-red-600">65%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-red-400 to-red-600 h-2 rounded-full" style="width: 65%"></div>
+                    </div>
+                    <div class="mt-2 text-xs text-red-600 font-medium flex items-center">
+                        <i class="fas fa-ban mr-1"></i>
+                        Высокий риск
+                    </div>
+                </div>
+                
+                <!-- Статистика -->
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-3 bg-gray-50 rounded-xl">
+                        <div class="text-2xl font-bold text-gray-900">8</div>
+                        <div class="text-xs text-gray-600 font-medium">Условий</div>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded-xl">
+                        <div class="text-2xl font-bold text-green-600">3</div>
+                        <div class="text-xs text-green-600 font-medium">Безопасно</div>
+                    </div>
+                    <div class="text-center p-3 bg-red-50 rounded-xl">
+                        <div class="text-2xl font-bold text-red-600">5</div>
+                        <div class="text-xs text-red-600 font-medium">Запрещено</div>
+                    </div>
+                </div>
+                
+                <!-- Мини-диаграмма -->
+                <div class="flex items-center mt-4 p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl">
+                    <div class="text-xs text-gray-700 flex-1">
+                        <span class="font-semibold text-red-700">37.5%</span> благоприятных дней
+                    </div>
+                    <i class="fas fa-exclamation-circle text-red-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Детальная аналитика -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Сводная диаграмма рисков -->
+            <div class="bg-white rounded-2xl p-8 shadow-xl border border-gray-100">
+                <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                    <i class="fas fa-chart-pie mr-3 text-blue-600"></i>
+                    Общий риск-профиль
+                </h3>
+                
+                <!-- Круговая диаграмма рисков -->
+                <div class="flex items-center justify-center mb-6">
+                    <div class="relative w-48 h-48">
+                        <svg class="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
+                            <!-- Низкий риск (Земляные) - 15% -->
+                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" stroke-width="8" 
+                                    stroke-dasharray="15 85" stroke-dashoffset="0" class="opacity-80"></circle>
+                            <!-- Средний риск (Бетонные) - 35% -->
+                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#f59e0b" stroke-width="8" 
+                                    stroke-dasharray="35 65" stroke-dashoffset="-15" class="opacity-80"></circle>
+                            <!-- Высокий риск (Покрасочные) - 65% -->
+                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#ef4444" stroke-width="8" 
+                                    stroke-dasharray="65 35" stroke-dashoffset="-50" class="opacity-80"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-gray-900">38%</div>
+                                <div class="text-sm text-gray-600">Средний<br>риск</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Легенда -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-green-500 rounded-full mr-3"></div>
+                            <span class="font-medium text-green-800">Земляные работы</span>
+                        </div>
+                        <span class="text-green-700 font-bold">15%</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-yellow-500 rounded-full mr-3"></div>
+                            <span class="font-medium text-yellow-800">Бетонные работы</span>
+                        </div>
+                        <span class="text-yellow-700 font-bold">35%</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-4 h-4 bg-red-500 rounded-full mr-3"></div>
+                            <span class="font-medium text-red-800">Покрасочные работы</span>
+                        </div>
+                        <span class="text-red-700 font-bold">65%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Правая колонка: Рекомендации и тренды -->
+            <div class="bg-white rounded-2xl p-8 shadow-xl border border-gray-100">
+                <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                    <i class="fas fa-lightbulb mr-3 text-blue-600"></i>
+                    Умные рекомендации
+                </h3>
+                
+                <!-- Ключевые инсайты -->
+                <div class="space-y-4 mb-8">
+                    <div class="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-l-4 border-green-500">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-calendar-check text-green-600 mr-2"></i>
+                            <span class="font-semibold text-green-800">Лучшие дни</span>
+                        </div>
+                        <p class="text-sm text-gray-700">
+                            {% for analysis in work_weather_analysis %}{% if analysis.risk_level == "low" %}{{ analysis.date|date:"d.m" }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %} - идеальные дни для всех видов работ
+                        </p>
+                    </div>
+                    
+                    <div class="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border-l-4 border-yellow-500">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                            <span class="font-semibold text-yellow-800">Осторожно</span>
+                        </div>
+                        <p class="text-sm text-gray-700">
+                            {% for analysis in work_weather_analysis %}{% if analysis.risk_level == "medium" %}{{ analysis.date|date:"d.m" }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %} - ограничения для некоторых видов работ
+                        </p>
+                    </div>
+                    
+                    <div class="p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border-l-4 border-red-500">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-ban text-red-600 mr-2"></i>
+                            <span class="font-semibold text-red-800">Критично</span>
+                        </div>
+                        <p class="text-sm text-gray-700">
+                            {% for analysis in work_weather_analysis %}{% if analysis.risk_level == "high" or analysis.risk_level == "critical" %}{{ analysis.date|date:"d.m" }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %} - ограничения или полное прекращение наружных работ
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Показатели эффективности -->
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-chart-bar mr-2 text-blue-600"></i>
+                        Показатели эффективности
+                    </h4>
+                    
+                    <div class="space-y-3">
+                        <!-- Общая продуктивность -->
+                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-tasks text-blue-600 mr-3"></i>
+                                <span class="text-sm font-medium text-gray-700">Общая продуктивность</span>
+                            </div>
+                            <span class="font-bold text-blue-700">62%</span>
+                        </div>
+                        
+                        <!-- Экономия времени -->
+                        <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-clock text-purple-600 mr-3"></i>
+                                <span class="text-sm font-medium text-gray-700">Экономия времени</span>
+                            </div>
+                            <span class="font-bold text-purple-700">38%</span>
+                        </div>
+                        
+                        <!-- Безопасность -->
+                        <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-shield-alt text-green-600 mr-3"></i>
+                                <span class="text-sm font-medium text-gray-700">Индекс безопасности</span>
+                            </div>
+                            <span class="font-bold text-green-700">85%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ключевые показатели -->
+                <div class="p-4 bg-gray-50 rounded-xl">
+                    <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                        Ключевые показатели
+                    </h4>
+                    <div class="grid grid-cols-1 gap-3 text-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center text-gray-700">
+                                <i class="fas fa-thermometer-half text-red-500 mr-2"></i>
+                                Бетон: температура
+                            </div>
+                            <span class="font-medium text-gray-900">+5°C до +30°C</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center text-gray-700">
+                                <i class="fas fa-wind text-blue-500 mr-2"></i>
+                                Краны: скорость ветра
+                            </div>
+                            <span class="font-medium text-gray-900">макс 10 м/с</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center text-gray-700">
+                                <i class="fas fa-tint text-blue-500 mr-2"></i>
+                                Покраска: влажность
+                            </div>
+                            <span class="font-medium text-gray-900">до 80%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center text-gray-700">
+                                <i class="fas fa-cloud-rain text-gray-500 mr-2"></i>
+                                Осадки
+                            </div>
+                            <span class="font-medium text-gray-900">макс 5 мм/ч</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+            
+            <!-- Правая колонка: Рекомендации -->
+            <div class="weather-card rounded-2xl p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                    <i class="fas fa-lightbulb mr-3 text-blue-600"></i>
+                    Рекомендации
+                </h2>
+                
+                <!-- Общие рекомендации -->
+                <div class="space-y-4">
+                    <div class="flex items-start p-4 bg-green-50 rounded-lg border border-green-200">
+                        <i class="fas fa-sun text-green-600 text-lg mr-3 mt-1"></i>
+                        <div>
+                            <div class="font-semibold text-green-800">Солнечные дни</div>
+                            <div class="text-sm text-green-700">Лучшее время для покрасочных работ</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <i class="fas fa-cloud-rain text-yellow-600 text-lg mr-3 mt-1"></i>
+                        <div>
+                            <div class="font-semibold text-yellow-800">Дождливые дни</div>
+                            <div class="text-sm text-yellow-700">Перенесите наружные работы</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <i class="fas fa-snowflake text-blue-600 text-lg mr-3 mt-1"></i>
+                        <div>
+                            <div class="font-semibold text-blue-800">Снежные дни</div>
+                            <div class="text-sm text-blue-700">Ограничьте активность</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start p-4 bg-red-50 rounded-lg border border-red-200">
+                        <i class="fas fa-bolt text-red-600 text-lg mr-3 mt-1"></i>
+                        <div>
+                            <div class="font-semibold text-red-800">Гроза</div>
+                            <div class="text-sm text-red-700">Полное прекращение работ</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ключевые показатели -->
+                <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                        Ключевые показатели
+                    </h3>
+                    <div class="space-y-2 text-sm text-gray-700">
+                        <div class="flex items-center">
+                            <i class="fas fa-thermometer-half text-red-500 mr-2"></i>
+                            Бетон: +5°C до +30°C
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-wind text-blue-500 mr-2"></i>
+                            Краны: макс 10 м/с
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-tint text-blue-500 mr-2"></i>
+                            Покраска: до 80% влажности
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+
+// Weather data for charts
+const dates = [
+    'Сегодня',
+    {% for analysis in work_weather_analysis|slice:":7" %}
+        {% if forloop.first %}'Завтра'{% else %}'{{ analysis.date|date:"d.m" }}'{% endif %}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+const temperatures = [
+    {{ work_weather_analysis.0.forecast.temperature|default:15 }},
+    {% for analysis in work_weather_analysis|slice:":7" %}
+        {{ analysis.forecast.temperature|default:15 }}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+const precipitation = [
+    {{ work_weather_analysis.0.forecast.precipitation|default:0 }},
+    {% for analysis in work_weather_analysis|slice:":7" %}
+        {{ analysis.forecast.precipitation|default:0 }}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.day-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Remove active class from all tabs
+            tabs.forEach(t => {
+                t.classList.remove('active', 'bg-blue-100', 'text-blue-800');
+                t.classList.add('bg-gray-100', 'text-gray-600');
+            });
+            
+            // Add active class to clicked tab
+            this.classList.remove('bg-gray-100', 'text-gray-600');
+            this.classList.add('active', 'bg-blue-100', 'text-blue-800');
+        });
+    });
+});
+
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Нарушения — СУ благоустройства{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-2xl font-bold text-red-700">⚠️ Нарушения и контроль</h1>
+            <a href="/" class="text-blue-600 hover:underline">← На главную</a>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Создание нарушения -->
+            <div class="border rounded-lg p-4">
+                <h3 class="font-semibold mb-2">Добавить нарушение</h3>
+                <div class="text-xs text-gray-600 mb-2">Для создания требуется отметка посещения (кнопка ниже)</div>
+                <button onclick="markVisit()" class="mb-3 inline-flex items-center px-3 py-1.5 rounded bg-blue-600 text-white">Отметить посещение</button>
+                <p class="text-sm text-gray-600">Форма для создания новых нарушений. Начните с отметки геолокации.</p>
+            </div>
+
+            <!-- Лента нарушений -->
+            <div class="border rounded-lg p-4">
+                <h3 class="font-semibold mb-2">Последние нарушения</h3>
+                <div class="text-sm text-gray-600">
+                    Здесь будут отображаться последние нарушения по всем проектам.
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <h3 class="text-lg font-semibold mb-4">Функционал</h3>
+            <div class="text-sm text-gray-600">
+                Полный функционал работает через API. Для тестирования используйте:
+                <br><strong>API endpoint:</strong> <code>/api/violations/</code>
+                <br><strong>Отметка посещения:</strong> <code>/api/accounts/visit/</code>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block title %}Идентификация прораба - Система управления благоустройством{% endblock %}
+
+{% block content %}
+<style>
+    .qr-code-container {
+        transition: all 0.3s ease;
+    }
+    .qr-code-container.hidden {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    .countdown {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+    }
+    .project-selector {
+        background: rgba(255, 255, 255, 0.95);
+    }
+</style>
+
+<!-- Заголовок -->
+<div class="mb-8">
+    <div class="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg shadow-lg">
+        <div class="px-6 py-8 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">👷‍♂️ Идентификация прораба</h1>
+                    <p class="text-orange-100">{{ user.get_full_name|default:user.username }}</p>
+                    <p class="text-sm text-orange-200 mt-1">Подтвердите свое присутствие на объекте</p>
+                </div>
+                <div class="hidden md:block">
+                    <i class="fas fa-qrcode text-6xl text-orange-200 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-qrcode text-orange-600 text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">Всего QR-кодов</h4>
+                <p class="text-2xl font-bold text-orange-600">{{ stats.total_tokens }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-clock text-yellow-500 text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">Активных</h4>
+                <p class="text-2xl font-bold text-yellow-500">{{ stats.active_tokens }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+            </div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">Подтверждено</h4>
+                <p class="text-2xl font-bold text-green-600">{{ stats.verified_tokens }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Выбор проекта и генерация QR -->
+<div class="bg-white rounded-lg shadow-md p-8 mb-6">
+    <div class="text-center">
+        <div class="mb-6">
+            <i class="fas fa-map-marker-alt text-orange-600 text-4xl mb-4"></i>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Выберите проект</h2>
+            <p class="text-gray-600">Выберите проект, на котором вы находитесь, для генерации QR-кода</p>
+        </div>
+
+        {% if user_projects %}
+            <div class="mb-6">
+                <select id="projectSelect" class="project-selector w-full max-w-md mx-auto px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <option value="">-- Выберите проект --</option>
+                    {% for project in user_projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button 
+                id="generateQRBtn" 
+                class="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-bold py-4 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                onclick="generateQRCode()"
+                disabled
+            >
+                <i class="fas fa-magic mr-2"></i>
+                Сгенерировать QR-код присутствия
+            </button>
+
+            <div class="mt-6 text-sm text-gray-500">
+                <i class="fas fa-clock mr-1"></i>
+                QR-код действует в течение <span class="font-bold text-red-600">15 секунд</span>
+            </div>
+        {% else %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 mr-2"></i>
+                    <p class="text-yellow-800">У вас нет назначенных проектов. Обратитесь к администратору.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Панель с QR-кодом (скрыта по умолчанию) -->
+<div id="qrCodePanel" class="bg-white rounded-lg shadow-md p-8 qr-code-container hidden">
+    <div class="text-center">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">🎯 QR-код готов!</h3>
+        
+        <!-- QR-код -->
+        <div class="mb-6">
+            <img id="qrCodeImage" src="" alt="QR Code" class="mx-auto border-4 border-orange-500 rounded-lg shadow-lg">
+        </div>
+
+        <!-- Информация о проекте -->
+        <div class="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <h4 class="font-semibold text-orange-900 mb-2">Проект:</h4>
+            <p id="projectName" class="text-orange-800 text-lg">-</p>
+        </div>
+
+        <!-- Таймер обратного отсчета -->
+        <div class="mb-6">
+            <div class="inline-flex items-center bg-red-600 text-white px-4 py-2 rounded-full">
+                <i class="fas fa-hourglass-half mr-2"></i>
+                <span class="countdown">Осталось: </span>
+                <span id="countdown" class="countdown ml-1">15</span>
+                <span class="countdown"> сек</span>
+            </div>
+        </div>
+
+        <!-- Информация о токене -->
+        <div class="bg-gray-50 rounded-lg p-4 text-left mb-4">
+            <div class="grid grid-cols-1 gap-2 text-sm">
+                <div>
+                    <span class="font-semibold text-gray-700">Токен:</span>
+                    <span id="tokenInfo" class="text-gray-600 font-mono ml-2">-</span>
+                </div>
+                <div>
+                    <span class="font-semibold text-gray-700">Создан:</span>
+                    <span id="createdInfo" class="text-gray-600 ml-2">-</span>
+                </div>
+                <div>
+                    <span class="font-semibold text-gray-700">Истекает:</span>
+                    <span id="expiresInfo" class="text-gray-600 ml-2">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопка создания нового QR-кода -->
+        <button 
+            id="newQRBtn" 
+            class="mt-4 bg-green-600 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-lg transition-colors hidden"
+            onclick="generateQRCode()"
+        >
+            <i class="fas fa-refresh mr-2"></i>
+            Создать новый QR-код
+        </button>
+    </div>
+</div>
+
+<script>
+    let countdownTimer = null;
+    let currentToken = null;
+
+    // Активируем кнопку при выборе проекта
+    document.getElementById('projectSelect').addEventListener('change', function() {
+        const generateBtn = document.getElementById('generateQRBtn');
+        generateBtn.disabled = !this.value;
+    });
+
+    // Получение CSRF токена из cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Функция генерации QR-кода
+    async function generateQRCode() {
+        const projectSelect = document.getElementById('projectSelect');
+        const projectId = projectSelect.value;
+        
+        if (!projectId) {
+            alert('Пожалуйста, выберите проект');
+            return;
+        }
+
+        const btn = document.getElementById('generateQRBtn');
+        const originalText = btn.innerHTML;
+        
+        // Показываем индикатор загрузки
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Генерация...';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/foreman/generate-qr/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    project_id: projectId
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Отображаем QR-код
+                displayQRCode(data);
+                
+                // Сохраняем текущий токен
+                currentToken = data.token;
+                
+                // Запускаем таймер обратного отсчета
+                startCountdown(data.expires_in);
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка связи с сервером');
+        } finally {
+            // Восстанавливаем кнопку
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // Функция отображения QR-кода
+    function displayQRCode(data) {
+        const panel = document.getElementById('qrCodePanel');
+        const image = document.getElementById('qrCodeImage');
+        const tokenInfo = document.getElementById('tokenInfo');
+        const createdInfo = document.getElementById('createdInfo');
+        const expiresInfo = document.getElementById('expiresInfo');
+        const projectName = document.getElementById('projectName');
+        const newQRBtn = document.getElementById('newQRBtn');
+
+        // Скрываем кнопку создания нового QR-кода
+        newQRBtn.classList.add('hidden');
+
+        // Устанавливаем данные
+        image.src = data.qr_code;
+        tokenInfo.textContent = data.token.substring(0, 16) + '...';
+        createdInfo.textContent = new Date().toLocaleString('ru-RU');
+        expiresInfo.textContent = new Date(data.expires_at).toLocaleString('ru-RU');
+        projectName.textContent = data.project_name;
+
+        // Показываем панель
+        panel.classList.remove('hidden');
+        panel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Функция запуска таймера обратного отсчета
+    function startCountdown(seconds) {
+        let timeLeft = seconds;
+        const countdownElement = document.getElementById('countdown');
+        const newQRBtn = document.getElementById('newQRBtn');
+
+        // Очищаем предыдущий таймер
+        if (countdownTimer) {
+            clearInterval(countdownTimer);
+        }
+
+        countdownTimer = setInterval(() => {
+            countdownElement.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdownTimer);
+                countdownElement.textContent = '0';
+                
+                // Показываем кнопку создания нового QR-кода
+                newQRBtn.classList.remove('hidden');
+                
+                // Меняем цвет на серый
+                countdownElement.parentElement.classList.remove('bg-red-600');
+                countdownElement.parentElement.classList.add('bg-gray-500');
+                countdownElement.parentElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>QR-код истек';
+            }
+
+            timeLeft--;
+        }, 1000);
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,812 @@
+{% extends 'base.html' %}
+
+{% block title %}Зафиксировать нарушение - Инспектор{% endblock %}
+
+{% block extra_css %}
+<style>
+  #reader {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  #reader__scan_region {
+    border-radius: 12px;
+    border: 2px solid #e5e5e5;
+  }
+  
+  #reader__dashboard_section {
+    display: none !important;
+  }
+  
+  .verification-status {
+    animation: fadeIn 0.5s ease-in;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Анимации для модальных окон */
+  .modal-enter {
+    animation: modalEnter 0.3s ease-out;
+  }
+  
+  @keyframes modalEnter {
+    from { 
+      opacity: 0; 
+      transform: translate(-50%, -60%) scale(0.9);
+    }
+    to { 
+      opacity: 1; 
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+  
+  /* Стили для кнопок */
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-white border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-3 px-6 rounded-xl shadow-sm hover:bg-gray-50 transition-all duration-200;
+  }
+  
+  .btn-success {
+    @apply bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-2 px-4 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200;
+  }
+  
+  .btn-warning {
+    @apply bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white font-semibold py-2 px-4 rounded-lg shadow-md transform hover:scale-105 transition-all duration-200;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8">
+  <!-- Заголовок -->
+  <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center">
+        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+          <i class="fas fa-exclamation-triangle text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">Зафиксировать нарушение</h1>
+          <p class="text-blue-100 mt-1">Внесение нового нарушения в электронный журнал</p>
+        </div>
+      </div>
+      <a href="{% url 'inspector:dashboard' %}" 
+         class="inline-flex items-center px-4 py-2 bg-white bg-opacity-20 rounded-lg text-white hover:bg-opacity-30 transition-colors">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Назад
+      </a>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="space-y-8" id="violation-form" data-geolocation="true">
+    {% csrf_token %}
+    
+    <!-- Основная информация -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+          Основная информация
+        </h2>
+      </div>
+      <div class="p-6 space-y-6">
+        <!-- Проект -->
+        <div>
+          <label for="project_id" class="block text-sm font-medium text-gray-700">
+            Проект <span class="text-red-500">*</span>
+          </label>
+          <select name="project_id" id="project_id" required 
+                  class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <option value="">Выберите проект</option>
+            {% for project in projects %}
+              <option value="{{ project.id }}" {% if request.GET.project == project.id|stringformat:"s" %}selected{% endif %}>
+                {{ project.name }} - {{ project.address }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Классификатор нарушений производства работ -->
+        <div>
+          <label for="violation_classifier_id" class="block text-sm font-medium text-gray-700">
+            Тип замечания 📋 <span class="text-red-500">*</span>
+          </label>
+          <select name="violation_classifier_id" id="violation_classifier_id" required
+                  class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <option value="">Выберите тип замечания</option>
+            {% for classifier in violation_classifiers %}
+              <option value="{{ classifier.id }}"
+                      data-category="{{ classifier.category }}"
+                      data-kind="{{ classifier.kind }}"
+                      data-type="{{ classifier.type_name }}"
+                      data-deadline-days="{{ classifier.regulatory_deadline_days }}">
+                {{ classifier.category }} | {{ classifier.kind }} | {{ classifier.type_name }} - {{ classifier.name|truncatechars:60 }}
+              </option>
+            {% endfor %}
+          </select>
+          <p class="mt-1 text-sm text-gray-500" id="classifier-description">
+            Выберите замечание из классификатора для автоматического определения срока устранения
+          </p>
+        </div>
+
+        <!-- Краткое описание -->
+        <div>
+          <label for="title" class="block text-sm font-medium text-gray-700">
+            Краткое описание <span class="text-red-500">*</span>
+          </label>
+          <input type="text" name="title" id="title" required maxlength="255"
+                 class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                 placeholder="Например: Нарушение технологии укладки асфальта">
+        </div>
+
+        <!-- Детальное описание -->
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700">
+            Детальное описание нарушения <span class="text-red-500">*</span>
+          </label>
+          <textarea name="description" id="description" rows="4" required
+                    class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+                    placeholder="Подробное описание выявленного нарушения, включая обстоятельства и последствия"></textarea>
+        </div>
+
+        <!-- Приоритет и срок устранения -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="priority" class="block text-sm font-medium text-gray-700">
+              Приоритет
+            </label>
+            <select name="priority" id="priority" 
+                    class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+              {% for value, label in priorities %}
+                <option value="{{ value }}" {% if value == 'medium' %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="deadline_days" class="block text-sm font-medium text-gray-700">
+              Срок устранения (дни)
+            </label>
+            <input type="number" name="deadline_days" id="deadline_days" min="1" max="365" value="30"
+                   class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+          </div>
+        </div>
+
+        <!-- Ответственный за устранение -->
+        <div>
+          <label for="assigned_to" class="block text-sm font-medium text-gray-700">
+            Ответственный за устранение
+          </label>
+          <select name="assigned_to" id="assigned_to" 
+                  class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <option value="">Не назначен</option>
+            {% for assignee in potential_assignees %}
+              <option value="{{ assignee.id }}">
+                {{ assignee.get_full_name }} ({{ assignee.get_user_type_display }})
+              </option>
+            {% endfor %}
+          </select>
+          <p class="mt-1 text-sm text-gray-500">Если выбрано, нарушение будет автоматически отправлено ответственному</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Подтверждение нахождения на объекте -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-shield-check text-orange-500 mr-2"></i>
+          Подтверждение нахождения на объекте
+          <span class="text-red-500">*</span>
+        </h2>
+        <p class="text-sm text-orange-700 mt-1">Для фиксации нарушения требуется подтверждение вашего присутствия на объекте</p>
+      </div>
+      <div class="p-6">
+        <!-- Варианты подтверждения -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- QR-код -->
+          <div class="border-2 border-dashed border-orange-200 rounded-xl p-6 hover:border-orange-300 transition-all">
+            <div class="text-center">
+              <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-qrcode text-orange-500 text-xl"></i>
+              </div>
+              <h3 class="font-semibold text-gray-900 mb-2">Сканирование QR-кода</h3>
+              <p class="text-sm text-gray-600 mb-4">Отсканируйте QR-код, размещенный на объекте</p>
+              <button type="button" id="start-qr-scanner" 
+                      class="btn-warning">
+                <i class="fas fa-camera mr-2"></i>
+                Сканировать QR-код
+              </button>
+            </div>
+          </div>
+          
+          <!-- Геолокация -->
+          <div class="border-2 border-dashed border-green-200 rounded-xl p-6 hover:border-green-300 transition-all">
+            <div class="text-center">
+              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-map-marker-alt text-green-500 text-xl"></i>
+              </div>
+              <h3 class="font-semibold text-gray-900 mb-2">Геолокация</h3>
+              <p class="text-sm text-gray-600 mb-4">Определить местоположение автоматически</p>
+              <button type="button" id="get-location" 
+                      class="btn-success">
+                <i class="fas fa-crosshairs mr-2"></i>
+                Определить местоположение
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Статус верификации -->
+        <div id="verification-status" class="mt-6"></div>
+        
+        <!-- QR Scanner -->
+        <div id="qr-scanner-container" class="mt-6" style="display: none;">
+          <div class="bg-gray-50 rounded-xl p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="font-medium text-gray-900">Наведите камеру на QR-код</h4>
+              <button type="button" id="close-qr-scanner" 
+                      class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div id="reader"></div>
+            <div id="qr-result" class="mt-4"></div>
+          </div>
+        </div>
+        
+        <!-- Скрытые поля для передачи данных верификации -->
+        <input type="hidden" id="verification_type" name="verification_type" value="">
+        <input type="hidden" id="qr_code_id" name="qr_code_id" value="">
+      </div>
+    </div>
+
+    <!-- Местоположение нарушения -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <i class="fas fa-map-marker-alt text-green-500 mr-2"></i>
+            Местоположение нарушения
+          </h2>
+        </div>
+        <p class="text-sm text-green-700 mt-1">Укажите точное место обнаружения нарушения (заполняется автоматически при подтверждении местонахождения)</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="latitude" class="block text-sm font-medium text-gray-700">Широта</label>
+            <input type="number" step="any" name="latitude" id="latitude" readonly
+                   class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                   placeholder="Заполняется автоматически">
+          </div>
+          <div>
+            <label for="longitude" class="block text-sm font-medium text-gray-700">Долгота</label>
+            <input type="number" step="any" name="longitude" id="longitude" readonly
+                   class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                   placeholder="Заполняется автоматически">
+          </div>
+        </div>
+        <div>
+          <label for="location_description" class="block text-sm font-medium text-gray-700">
+            Описание места
+          </label>
+          <input type="text" name="location_description" id="location_description" maxlength="500"
+                 class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                 placeholder="Например: 50 м от входа в парк, у детской площадки">
+        </div>
+      </div>
+    </div>
+
+    <!-- Фотоматериалы -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-purple-50 to-violet-50 px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-camera text-purple-500 mr-2"></i>
+          Фотоматериалы
+          <span class="text-red-500" id="photos-required" style="display: none;">*</span>
+        </h2>
+        <p class="text-sm text-purple-700 mt-1">Приложите фотографии нарушения</p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="border-2 border-dashed border-purple-200 rounded-xl p-8 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 bg-gradient-to-br from-purple-25 to-white">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-cloud-upload-alt text-2xl text-purple-500"></i>
+            </div>
+            <div class="mt-4">
+              <label for="photos" class="cursor-pointer">
+                <span class="block text-base font-semibold text-gray-900 mb-2">
+                  Нажмите для загрузки фотографий
+                </span>
+                <span class="text-sm text-gray-600">
+                  или перетащите файлы сюда
+                </span>
+                <input id="photos" name="photos" type="file" accept="image/*" multiple class="sr-only" onchange="handleFileSelect(event)">
+              </label>
+              <p class="mt-3 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg inline-block">
+                <i class="fas fa-info-circle mr-1"></i>
+                PNG, JPG до 10MB каждый • Несколько файлов
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Превью загруженных фото -->
+        <div id="photos-preview" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+      </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-8">
+      <a href="{% url 'inspector:dashboard' %}" 
+         class="btn-secondary inline-flex items-center justify-center">
+        <i class="fas fa-times mr-2"></i>
+        Отмена
+      </a>
+      <button type="submit" 
+              class="btn-primary inline-flex items-center justify-center">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        Зафиксировать нарушение
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Модальное окно для уведомлений -->
+<div id="notification-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+  <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-xl bg-white">
+    <div class="mt-3">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center">
+          <div id="notification-icon" class="w-10 h-10 rounded-full flex items-center justify-center mr-3">
+            <i id="notification-icon-el" class="text-xl"></i>
+          </div>
+          <h3 id="notification-title" class="text-lg font-medium text-gray-900"></h3>
+        </div>
+        <button onclick="closeNotificationModal()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="notification-body" class="text-sm text-gray-600 mb-6"></div>
+      <div id="notification-buttons" class="flex justify-end space-x-3"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно подтверждения -->
+<div id="confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+  <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-xl bg-white">
+    <div class="mt-3">
+      <div class="flex items-center mb-4">
+        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+          <i class="fas fa-question-circle text-blue-500 text-xl"></i>
+        </div>
+        <h3 id="confirm-title" class="text-lg font-medium text-gray-900">Подтвердите действие</h3>
+      </div>
+      <div id="confirm-body" class="text-sm text-gray-600 mb-6"></div>
+      <div class="flex justify-end space-x-3">
+        <button onclick="closeConfirmModal()" 
+                class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+          Отмена
+        </button>
+        <button id="confirm-button" 
+                class="px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transform hover:scale-105 transition-all duration-200">
+          Подтвердить
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Подключение библиотеки для QR-сканирования -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script>
+let selectedFiles = [];
+let html5QrCode = null;
+let isVerified = false;
+let confirmCallback = null;
+
+// Функции для красивых уведомлений
+function showNotification(title, message, type = 'info') {
+    const modal = document.getElementById('notification-modal');
+    const modalContent = modal.querySelector('.relative');
+    const titleEl = document.getElementById('notification-title');
+    const bodyEl = document.getElementById('notification-body');
+    const iconEl = document.getElementById('notification-icon');
+    const iconIconEl = document.getElementById('notification-icon-el');
+    const buttonsEl = document.getElementById('notification-buttons');
+    
+    titleEl.textContent = title;
+    bodyEl.textContent = message;
+    
+    // Очищаем классы
+    iconEl.className = 'w-10 h-10 rounded-full flex items-center justify-center mr-3';
+    iconIconEl.className = 'text-xl';
+    
+    // Устанавливаем стили по типу
+    if (type === 'error') {
+        iconEl.classList.add('bg-red-100');
+        iconIconEl.classList.add('fas', 'fa-exclamation-circle', 'text-red-500');
+    } else if (type === 'success') {
+        iconEl.classList.add('bg-green-100');
+        iconIconEl.classList.add('fas', 'fa-check-circle', 'text-green-500');
+    } else if (type === 'warning') {
+        iconEl.classList.add('bg-yellow-100');
+        iconIconEl.classList.add('fas', 'fa-exclamation-triangle', 'text-yellow-500');
+    } else {
+        iconEl.classList.add('bg-blue-100');
+        iconIconEl.classList.add('fas', 'fa-info-circle', 'text-blue-500');
+    }
+    
+    // Кнопка закрытия
+    buttonsEl.innerHTML = `
+        <button onclick="closeNotificationModal()" 
+                class="px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 transform hover:scale-105 transition-all duration-200">
+            Понятно
+        </button>
+    `;
+    
+    // Добавляем анимацию
+    modalContent.classList.add('modal-enter');
+    modal.classList.remove('hidden');
+    
+    // Убираем класс анимации после завершения
+    setTimeout(() => {
+        modalContent.classList.remove('modal-enter');
+    }, 300);
+}
+
+function closeNotificationModal() {
+    document.getElementById('notification-modal').classList.add('hidden');
+}
+
+function showConfirm(title, message, callback) {
+    const modal = document.getElementById('confirm-modal');
+    const modalContent = modal.querySelector('.relative');
+    const titleEl = document.getElementById('confirm-title');
+    const bodyEl = document.getElementById('confirm-body');
+    
+    titleEl.textContent = title;
+    bodyEl.textContent = message;
+    confirmCallback = callback;
+    
+    // Добавляем анимацию
+    modalContent.classList.add('modal-enter');
+    modal.classList.remove('hidden');
+    
+    // Убираем класс анимации после завершения
+    setTimeout(() => {
+        modalContent.classList.remove('modal-enter');
+    }, 300);
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirm-modal').classList.add('hidden');
+    confirmCallback = null;
+}
+
+// Обработчик кнопки подтверждения
+document.getElementById('confirm-button').addEventListener('click', function() {
+    if (confirmCallback) {
+        confirmCallback();
+    }
+    closeConfirmModal();
+});
+
+// Обновление информации о классификаторе нарушений
+document.getElementById('violation_classifier_id').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const category = selectedOption.dataset.category;
+    const kind = selectedOption.dataset.kind;
+    const type = selectedOption.dataset.type;
+    const deadlineDays = selectedOption.dataset.deadlineDays;
+    
+    const descriptionEl = document.getElementById('classifier-description');
+    if (this.value) {
+        descriptionEl.textContent = `Категория: ${category}, вид: ${kind}, тип: ${type}. Срок: ${deadlineDays ? deadlineDays + ' дн.' : 'не установлен'}`;
+        descriptionEl.className = 'mt-1 text-sm text-green-600';
+        
+        // Обновляем срок устранения на основе классификатора
+        if (deadlineDays && deadlineDays !== 'None') {
+            document.getElementById('deadline_days').value = deadlineDays;
+        } else {
+            // Устанавливаем срок по умолчанию (30 дней)
+            document.getElementById('deadline_days').value = 30;
+        }
+        
+        // Автоматически заполняем заголовок, если он пустой
+        const titleField = document.getElementById('title');
+        if (!titleField.value.trim()) {
+            const shortName = selectedOption.textContent.split(' - ')[1] || selectedOption.textContent;
+            titleField.value = shortName.length > 100 ? shortName.substring(0, 100) + '...' : shortName;
+        }
+    } else {
+        descriptionEl.textContent = 'Выберите замечание из классификатора для автоматического определения срока устранения';
+        descriptionEl.className = 'mt-1 text-sm text-gray-500';
+    }
+});
+
+// QR-сканер
+document.getElementById('start-qr-scanner').addEventListener('click', function() {
+    startQRScanner();
+});
+
+document.getElementById('close-qr-scanner').addEventListener('click', function() {
+    stopQRScanner();
+});
+
+function startQRScanner() {
+    const container = document.getElementById('qr-scanner-container');
+    container.style.display = 'block';
+    
+    html5QrCode = new Html5Qrcode("reader");
+    
+    Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+            const cameraId = devices[0].id;
+            
+            html5QrCode.start(
+                cameraId,
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                (decodedText, decodedResult) => {
+                    // QR-код успешно прочитан
+                    verifyQRCode(decodedText);
+                },
+                (errorMessage) => {
+                    // Ошибка чтения (обычно игнорируется)
+                }
+            ).catch(err => {
+                console.error('Ошибка запуска камеры:', err);
+                showVerificationStatus('Ошибка доступа к камере: ' + err, 'error');
+            });
+        } else {
+            showVerificationStatus('Камера не найдена', 'error');
+        }
+    }).catch(err => {
+        console.error('Ошибка получения списка камер:', err);
+        showVerificationStatus('Ошибка доступа к камерам: ' + err, 'error');
+    });
+}
+
+function stopQRScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            document.getElementById('qr-scanner-container').style.display = 'none';
+            html5QrCode = null;
+        }).catch(err => {
+            console.error('Ошибка остановки сканера:', err);
+        });
+    } else {
+        document.getElementById('qr-scanner-container').style.display = 'none';
+    }
+}
+
+async function verifyQRCode(qrCodeText) {
+    try {
+        // Отправляем запрос на верификацию QR-кода
+        const response = await fetch('/projects/verify-qr-code/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ code: qrCodeText })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // QR-код верифицирован успешно
+            stopQRScanner();
+            
+            // Устанавливаем данные верификации
+            document.getElementById('verification_type').value = 'qr_code';
+            document.getElementById('qr_code_id').value = data.qr_code_id;
+            
+            // Если есть координаты QR-кода, заполняем их
+            if (data.latitude && data.longitude) {
+                document.getElementById('latitude').value = data.latitude;
+                document.getElementById('longitude').value = data.longitude;
+            }
+            
+            isVerified = true;
+            showVerificationStatus(
+                `✅ Местонахождение подтверждено через QR-код "${data.qr_code_name}"`,
+                'success'
+            );
+        } else {
+            showVerificationStatus(
+                '❌ Ошибка верификации: ' + (data.message || 'Неверный или неактивный QR-код'),
+                'error'
+            );
+        }
+    } catch (error) {
+        console.error('Ошибка верификации QR-кода:', error);
+        showVerificationStatus('❌ Ошибка соединения с сервером', 'error');
+    }
+}
+
+function showVerificationStatus(message, type) {
+    const container = document.getElementById('verification-status');
+    
+    let bgClass, textClass, iconClass;
+    if (type === 'success') {
+        bgClass = 'bg-green-50 border-green-200';
+        textClass = 'text-green-800';
+        iconClass = 'text-green-500';
+    } else if (type === 'error') {
+        bgClass = 'bg-red-50 border-red-200';
+        textClass = 'text-red-800';
+        iconClass = 'text-red-500';
+    } else {
+        bgClass = 'bg-blue-50 border-blue-200';
+        textClass = 'text-blue-800';
+        iconClass = 'text-blue-500';
+    }
+    
+    container.innerHTML = `
+        <div class="verification-status border-2 rounded-xl p-4 ${bgClass}">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} ${iconClass} text-lg"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="${textClass} font-medium">${message}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Геолокация
+document.getElementById('get-location').addEventListener('click', function() {
+    if (navigator.geolocation) {
+        showVerificationStatus('🔍 Определение местоположения...', 'info');
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+                document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+                document.getElementById('verification_type').value = 'geolocation';
+                
+                isVerified = true;
+                showVerificationStatus(
+                    '✅ Местонахождение подтверждено через геолокацию',
+                    'success'
+                );
+            },
+            function(error) {
+                let message;
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Доступ к геолокации запрещен. Разрешите доступ к местоположению.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Информация о местоположении недоступна.';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Превышено время ожидания определения местоположения.';
+                        break;
+                    default:
+                        message = 'Неизвестная ошибка при определении местоположения.';
+                        break;
+                }
+                showVerificationStatus('❌ ' + message, 'error');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        showVerificationStatus('❌ Геолокация не поддерживается вашим браузером', 'error');
+    }
+});
+
+// Обработка загрузки файлов
+function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+    selectedFiles = files;
+    updatePhotosPreview();
+}
+
+function updatePhotosPreview() {
+    const preview = document.getElementById('photos-preview');
+    preview.innerHTML = '';
+    
+    selectedFiles.forEach((file, index) => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'relative';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Превью ${index + 1}" 
+                         class="h-24 w-24 object-cover rounded-lg border">
+                    <button type="button" onclick="removePhoto(${index})" 
+                            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600">
+                        ×
+                    </button>
+                    <p class="text-xs text-gray-600 mt-1 truncate">${file.name}</p>
+                `;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function removePhoto(index) {
+    selectedFiles.splice(index, 1);
+    updatePhotosPreview();
+    
+    // Обновляем input file
+    const input = document.getElementById('photos');
+    const dt = new DataTransfer();
+    selectedFiles.forEach(file => dt.items.add(file));
+    input.files = dt.files;
+}
+
+// Валидация формы
+document.getElementById('violation-form').addEventListener('submit', function(e) {
+    e.preventDefault(); // Всегда предотвращаем стандартную отправку
+    
+    const form = this;
+    const classifierSelect = document.getElementById('violation_classifier_id');
+    
+    if (!classifierSelect.value) {
+        showNotification('Ошибка валидации', 'Пожалуйста, выберите тип замечания', 'error');
+        return false;
+    }
+    
+    // Общие проверки
+    if (!document.getElementById('project_id').value) {
+        showNotification('Ошибка валидации', 'Пожалуйста, выберите проект', 'error');
+        return false;
+    }
+    
+    if (!document.getElementById('title').value.trim()) {
+        showNotification('Ошибка валидации', 'Пожалуйста, укажите краткое описание нарушения', 'error');
+        return false;
+    }
+    
+    if (!document.getElementById('description').value.trim()) {
+        showNotification('Ошибка валидации', 'Пожалуйста, укажите детальное описание нарушения', 'error');
+        return false;
+    }
+    
+    // Проверка подтверждения нахождения на объекте
+    if (!isVerified) {
+        showNotification('Ошибка валидации', 'Для фиксации нарушения необходимо подтвердить ваше нахождение на объекте через QR-код или геолокацию.', 'warning');
+        return false;
+    }
+    
+    // Показываем красивое подтверждение
+    showConfirm(
+        'Подтверждение фиксации',
+        'Вы уверены, что хотите зафиксировать данное нарушение? После фиксации нарушение будет направлено ответственным лицам.',
+        function() {
+            form.submit();
+        }
+    );
+});
+
+// Автоматическое изменение размера textarea
+document.getElementById('description').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+});
+</script>
+{% endblock %}

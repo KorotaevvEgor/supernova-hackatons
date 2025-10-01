@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ comment.title }} - Замечание - Система управления благоустройством{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'moscow-blue': '#003366',
+                    'moscow-red': '#DC143C', 
+                    'moscow-gold': '#FFD700',
+                    'moscow-green': '#228B22',
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Навигация -->
+    <div class="mb-6">
+        <nav class="flex items-center space-x-2 text-sm text-gray-600">
+            <a href="{% url 'projects:project_list' %}" class="hover:text-moscow-blue">Проекты</a>
+            <span>/</span>
+            <a href="{% url 'projects:comments_list' %}" class="hover:text-moscow-blue">Замечания</a>
+            <span>/</span>
+            <span class="text-gray-800">{{ comment.title|truncatechars:50 }}</span>
+        </nav>
+    </div>
+
+    <!-- Основная информация -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+                <div class="flex items-center space-x-3 mb-3">
+                    <h1 class="text-2xl font-bold text-gray-800">{{ comment.title }}</h1>
+                    
+                    <!-- Статус -->
+                    <span class="px-3 py-1 rounded text-sm font-medium
+                        {% if comment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif comment.status == 'accepted' %}bg-blue-100 text-blue-800
+                        {% elif comment.status == 'resolved' %}bg-green-100 text-green-800
+                        {% elif comment.status == 'rejected' %}bg-gray-100 text-gray-800
+                        {% endif %}">
+                        {{ comment.get_status_display }}
+                    </span>
+
+                    <!-- Приоритет -->
+                    <span class="px-3 py-1 rounded text-sm font-medium
+                        {% if comment.priority == 'low' %}bg-gray-100 text-gray-600
+                        {% elif comment.priority == 'medium' %}bg-yellow-100 text-yellow-600
+                        {% elif comment.priority == 'high' %}bg-orange-100 text-orange-600
+                        {% elif comment.priority == 'critical' %}bg-red-100 text-red-600
+                        {% endif %}">
+                        {{ comment.get_priority_display }}
+                    </span>
+
+                    {% if comment.is_overdue %}
+                    <span class="px-3 py-1 bg-red-100 text-red-600 rounded text-sm font-medium">
+                        ⏰ Просрочено
+                    </span>
+                    {% endif %}
+
+                    {% if comment.created_at_location %}
+                    <span class="px-3 py-1 bg-green-100 text-green-600 rounded text-sm font-medium">
+                        📍 Создано на объекте
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="text-gray-700 mb-4 whitespace-pre-wrap">{{ comment.description }}</div>
+
+                <!-- Основная информация -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Проект:</span>
+                            <div class="mt-1">
+                                <a href="{% url 'projects:project_detail' comment.project.id %}" class="text-moscow-blue hover:underline font-medium">
+                                    {{ comment.project.name }}
+                                </a>
+                            </div>
+                        </div>
+
+                        {% if comment.work %}
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Связанная работа:</span>
+                            <div class="mt-1 font-medium">{{ comment.work.name }}</div>
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Создано:</span>
+                            <div class="mt-1">
+                                <span class="font-medium">{{ comment.created_by.get_full_name }}</span>
+                                <span class="text-gray-600">• {{ comment.created_at|date:"d.m.Y в H:i" }}</span>
+                            </div>
+                        </div>
+
+                        {% if comment.assigned_to %}
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Ответственный за устранение:</span>
+                            <div class="mt-1 font-medium">{{ comment.assigned_to.get_full_name }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="space-y-3">
+                        {% if comment.due_date %}
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Срок устранения:</span>
+                            <div class="mt-1 font-medium
+                                {% if comment.is_overdue %}text-red-600{% else %}text-gray-800{% endif %}">
+                                {{ comment.due_date|date:"d.m.Y" }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if comment.resolved_at %}
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Дата устранения:</span>
+                            <div class="mt-1 font-medium text-green-600">{{ comment.resolved_at|date:"d.m.Y в H:i" }}</div>
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Местоположение:</span>
+                            <div class="mt-1">
+                                <span class="text-sm text-gray-600">
+                                    {{ comment.location_lat|floatformat:6 }}, {{ comment.location_lng|floatformat:6 }}
+                                </span>
+                            </div>
+                        </div>
+
+                        {% if comment.response_comment %}
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Комментарий к ответу:</span>
+                            <div class="mt-1 text-gray-800">{{ comment.response_comment }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Действия -->
+            {% if can_manage or comment.assigned_to == user %}
+            <div class="ml-6 flex flex-col space-y-2">
+                {% if comment.status == 'pending' and can_manage %}
+                <button onclick="showAcceptModal()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    ✅ Принять к исполнению
+                </button>
+                <button onclick="showRejectModal()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    ❌ Отклонить замечание
+                </button>
+                {% elif comment.status == 'accepted' and comment.assigned_to == user %}
+                <button onclick="showResolveModal()" class="px-4 py-2 bg-moscow-green text-white rounded hover:bg-green-700">
+                    ✅ Отметить как устраненное
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Фотографии -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold mb-4">📷 Фотоматериалы</h3>
+            
+            {% if photos %}
+            <div class="space-y-4">
+                {% for photo in photos %}
+                <div class="border rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium
+                            {% if photo.is_before %}text-red-600{% else %}text-green-600{% endif %}">
+                            {% if photo.is_before %}📷 До устранения{% else %}✅ После устранения{% endif %}
+                        </span>
+                        <span class="text-xs text-gray-500">{{ photo.created_at|date:"d.m.Y H:i" }}</span>
+                    </div>
+                    
+                    <img src="{{ photo.photo.url }}" alt="{{ photo.description }}" 
+                         class="w-full h-48 object-cover rounded mb-2">
+                    
+                    {% if photo.description %}
+                    <p class="text-sm text-gray-700">{{ photo.description }}</p>
+                    {% endif %}
+                    
+                    <p class="text-xs text-gray-500 mt-1">
+                        Автор: {{ photo.taken_by.get_full_name }}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p>Фотоматериалы не добавлены</p>
+            </div>
+            {% endif %}
+
+            <!-- Кнопка добавления фото (если нужно) -->
+            {% if comment.assigned_to == user or can_manage %}
+            <div class="mt-4 pt-4 border-t">
+                <button class="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-moscow-blue hover:text-moscow-blue">
+                    📷 Добавить фото
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- История изменений -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold mb-4">📋 История изменений</h3>
+            
+            {% if status_changes %}
+            <div class="space-y-3">
+                {% for change in status_changes %}
+                <div class="flex items-start space-x-3 pb-3 {% if not forloop.last %}border-b{% endif %}">
+                    <div class="flex-shrink-0 w-8 h-8 bg-moscow-blue rounded-full flex items-center justify-center">
+                        <span class="text-white text-xs font-bold">{{ forloop.counter }}</span>
+                    </div>
+                    
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="text-sm font-medium text-gray-900">{{ change.changed_by.get_full_name }}</span>
+                            <span class="text-xs text-gray-500">{{ change.created_at|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        
+                        <div class="text-sm text-gray-600 mb-1">
+                            {% if change.from_status %}
+                                <span class="px-2 py-1 bg-gray-100 rounded text-xs">{{ change.from_status }}</span>
+                                <span class="mx-2">→</span>
+                            {% endif %}
+                            <span class="px-2 py-1 bg-moscow-blue text-white rounded text-xs">{{ change.to_status }}</span>
+                        </div>
+                        
+                        {% if change.reason %}
+                        <p class="text-sm text-gray-700">{{ change.reason }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <p>История изменений пуста</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно принятия замечания -->
+<div id="acceptModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 class="text-lg font-semibold mb-4">Принять замечание к исполнению</h3>
+        
+        <form id="acceptForm" method="post" action="{% url 'projects:accept_comment' comment.id %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Срок устранения</label>
+                <input type="date" name="due_date" class="w-full border rounded px-3 py-2">
+                <p class="text-xs text-gray-500 mt-1">Необязательно</p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Назначить ответственного</label>
+                <select name="assigned_to" class="w-full border rounded px-3 py-2">
+                    <option value="">Текущий ответственный</option>
+                    <!-- Здесь должен быть список пользователей, но для простоты пока оставим так -->
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Необязательно</p>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="hideAcceptModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    Отмена
+                </button>
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Принять
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно отклонения замечания -->
+<div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 class="text-lg font-semibold mb-4">Отклонить замечание</h3>
+        
+        <form id="rejectForm" method="post" action="{% url 'projects:reject_comment' comment.id %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Причина отклонения</label>
+                <textarea name="reason" class="w-full border rounded px-3 py-2" rows="4" required 
+                          placeholder="Укажите причину отклонения замечания"></textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="hideRejectModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    Отмена
+                </button>
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    Отклонить
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно устранения замечания -->
+<div id="resolveModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 class="text-lg font-semibold mb-4">Отметить замечание как устраненное</h3>
+        
+        <form id="resolveForm" method="post" action="{% url 'projects:resolve_comment' comment.id %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Комментарий к устранению</label>
+                <textarea name="comment" class="w-full border rounded px-3 py-2" rows="4" 
+                          placeholder="Опишите выполненные работы по устранению замечания (необязательно)"></textarea>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="hideResolveModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    Отмена
+                </button>
+                <button type="submit" class="px-4 py-2 bg-moscow-green text-white rounded hover:bg-green-700">
+                    Отметить как устраненное
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Модальные окна
+function showAcceptModal() {
+    document.getElementById('acceptModal').classList.remove('hidden');
+}
+
+function hideAcceptModal() {
+    document.getElementById('acceptModal').classList.add('hidden');
+}
+
+function showRejectModal() {
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
+
+function hideRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+}
+
+function showResolveModal() {
+    document.getElementById('resolveModal').classList.remove('hidden');
+}
+
+function hideResolveModal() {
+    document.getElementById('resolveModal').classList.add('hidden');
+}
+
+// Закрытие модальных окон по клику вне области
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('fixed')) {
+        hideAcceptModal();
+        hideRejectModal();
+        hideResolveModal();
+    }
+});
+</script>
+{% endblock %}

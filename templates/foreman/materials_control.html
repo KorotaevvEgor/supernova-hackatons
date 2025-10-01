@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+
+{% block title %}Входной контроль материалов - Прораб{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Заголовок и кнопка -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">
+          <i class="fas fa-boxes text-accent-peach mr-2"></i>
+          Входной контроль материалов
+        </h1>
+        <p class="mt-1 text-sm text-gray-600">
+          Регистрация и контроль поставок материалов на объекты
+        </p>
+      </div>
+      <div>
+        <a href="{% url 'foreman:add_material_delivery' %}" class="inline-flex items-center px-5 py-2 bg-primary-blue text-white text-base font-semibold rounded-md shadow hover:bg-primary-blue/90 transition">
+          <i class="fas fa-plus mr-2"></i>
+          Добавить поставку
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Фильтры -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="p-6">
+      <form method="GET" class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-64">
+          <label for="project" class="block text-sm font-medium text-gray-700 mb-1">Проект</label>
+          <select name="project" id="project" class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue/50">
+            <option value="all">Все проекты</option>
+            {% for project in projects %}
+              <option value="{{ project.id }}" {% if current_project == project.id|stringformat:"s" %}selected{% endif %}>
+                {{ project.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="flex-1 min-w-48">
+          <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+          <select name="status" id="status" class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue/50">
+            <option value="all">Все статусы</option>
+            <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>Ожидается</option>
+            <option value="delivered" {% if current_status == 'delivered' %}selected{% endif %}>Доставлено</option>
+            <option value="accepted" {% if current_status == 'accepted' %}selected{% endif %}>Принято</option>
+            <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Отклонено</option>
+          </select>
+        </div>
+        
+        <div class="flex items-end">
+          <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200">
+            <i class="fas fa-filter mr-2"></i>Применить
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Список материалов -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">
+        <i class="fas fa-list text-primary-blue mr-2"></i>
+        Поставки материалов
+      </h2>
+    </div>
+    <div class="p-6">
+      {% if materials %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Материал
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Проект
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Количество
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Поставщик
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Дата поставки
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Статус
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  ТТН
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for material in materials %}
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10">
+                        <div class="h-10 w-10 rounded-full bg-accent-peach/20 flex items-center justify-center">
+                          <i class="fas fa-box text-accent-peach"></i>
+                        </div>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">
+                          {{ material.material_type.name }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                          {{ material.material_type.code }}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ material.project.name|truncatechars:30 }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">
+                      {{ material.quantity }} {{ material.material_type.unit }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ material.supplier }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ material.delivery_date|date:"d.m.Y H:i" }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      {% if material.status == 'pending' %}bg-yellow-100 text-yellow-800
+                      {% elif material.status == 'delivered' %}bg-blue-100 text-blue-800
+                      {% elif material.status == 'accepted' %}bg-green-100 text-green-800
+                      {% elif material.status == 'rejected' %}bg-red-100 text-red-800
+                      {% else %}bg-gray-100 text-gray-800
+                      {% endif %}">
+                      {{ material.get_status_display }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div class="flex items-center space-x-2">
+                      <span class="text-sm text-gray-600">{{ material.ttn_number }}</span>
+                      {% if material.ttn_image %}
+                        <a href="{{ material.ttn_image.url }}" target="_blank" class="text-primary-blue hover:underline">
+                          <i class="fas fa-image"></i>
+                        </a>
+                      {% endif %}
+                      {% if material.quality_certificate_image %}
+                        <a href="{{ material.quality_certificate_image.url }}" target="_blank" class="text-accent-peach hover:underline">
+                          <i class="fas fa-certificate"></i>
+                        </a>
+                      {% endif %}
+                        <!-- Кнопка запуска OCR -->
+                        {% if material.ttn_image and not material.ocr_recognized_data %}
+                          <button class="ml-2 px-2 py-1 bg-primary-blue text-white rounded text-xs ocr-trigger" data-delivery-id="{{ material.id }}">
+                            <i class="fas fa-robot mr-1"></i>Распознать ТТН
+                          </button>
+                        {% endif %}
+                        <!-- Отображение OCR-данных -->
+                        {% if material.ocr_recognized_data %}
+                          <span class="ml-2 text-green-700 text-xs">
+                            <i class="fas fa-check-circle"></i> OCR: {{ material.ocr_recognized_data.document_number }} от {{ material.ocr_recognized_data.document_date }}
+                            {% if material.ocr_confidence %}
+                              (уверенность: {{ material.ocr_confidence|floatformat:1 }}%)
+                            {% endif %}
+                          </span>
+                          {% if material.ocr_confidence and material.ocr_confidence < 60 %}
+                            <button class="ml-2 px-2 py-1 bg-yellow-400 text-black rounded text-xs ocr-edit-trigger" data-delivery-id="{{ material.id }}">
+                              <i class="fas fa-edit"></i> Редактировать OCR
+                            </button>
+                          {% endif %}
+                        {% endif %}
+                    </div>
+                    {% if material.manual_entry %}
+                      <div class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-edit mr-1"></i>Ручной ввод
+                      </div>
+                    {% else %}
+                      <div class="text-xs text-green-600 mt-1">
+                        <i class="fas fa-camera mr-1"></i>Сфотографировано
+                      </div>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+
+                      // OCR обработка
+                      document.querySelectorAll('.ocr-trigger').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                          const deliveryId = btn.getAttribute('data-delivery-id');
+                          btn.disabled = true;
+                          btn.textContent = 'Распознается...';
+                          fetch('/api/materials/ttn/upload/', {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': 'Bearer ' + (window.userToken || ''),
+                            },
+                            body: (() => {
+                              const form = new FormData();
+                              form.append('delivery_id', deliveryId);
+                              form.append('photo_type', 'ttn_main');
+                              // Файл уже загружен, API возьмет из модели
+                              return form;
+                            })(),
+                          })
+                          .then(r => r.json())
+                          .then(data => {
+                            if (data.success) {
+                              window.location.reload();
+                            } else {
+                              alert('Ошибка OCR: ' + (data.error || 'Не удалось распознать'));
+                              btn.disabled = false;
+                              btn.textContent = 'Распознать ТТН';
+                            }
+                          })
+                          .catch(() => {
+                            alert('Ошибка связи с сервером OCR');
+                            btn.disabled = false;
+                            btn.textContent = 'Распознать ТТН';
+                          });
+                        });
+                      });
+
+                      // Редактирование OCR-данных (простая форма)
+                      document.querySelectorAll('.ocr-edit-trigger').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                          const deliveryId = btn.getAttribute('data-delivery-id');
+                          const newNumber = prompt('Введите номер ТТН вручную:');
+                          if (!newNumber) return;
+                          fetch(`/api/materials/ttn/manual-edit/`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': 'Bearer ' + (window.userToken || ''),
+                            },
+                            body: JSON.stringify({
+                              delivery_id: deliveryId,
+                              document_number: newNumber
+                            })
+                          })
+                          .then(r => r.json())
+                          .then(data => {
+                            if (data.success) {
+                              window.location.reload();
+                            } else {
+                              alert('Ошибка сохранения: ' + (data.error || 'Не удалось сохранить'));
+                            }
+                          })
+                          .catch(() => {
+                            alert('Ошибка связи с сервером');
+                          });
+                        });
+                      });
+          </table>
+        </div>
+
+        <!-- Пагинация -->
+        {% if materials.has_other_pages %}
+          <div class="mt-6 flex items-center justify-between">
+            <div class="flex-1 flex justify-between">
+              {% if materials.has_previous %}
+                <a href="?page={{ materials.previous_page_number }}&project={{ current_project }}&status={{ current_status }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                  Предыдущая
+                </a>
+              {% endif %}
+              
+              <div class="flex items-center space-x-2">
+                <span class="text-sm text-gray-700">
+                  Страница {{ materials.number }} из {{ materials.paginator.num_pages }}
+                </span>
+              </div>
+              
+              {% if materials.has_next %}
+                <a href="?page={{ materials.next_page_number }}&project={{ current_project }}&status={{ current_status }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                  Следующая
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+      {% else %}
+        <div class="text-center py-12">
+          <i class="fas fa-inbox text-gray-400 text-4xl mb-4"></i>
+          <p class="text-gray-500 mb-4">Поставок материалов не найдено</p>
+          <a href="{% url 'foreman:add_material_delivery' %}" class="inline-flex items-center px-4 py-2 bg-primary-blue text-white text-sm font-medium rounded-md hover:bg-primary-blue/90">
+            <i class="fas fa-plus mr-2"></i>
+            Добавить первую поставку
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Materials control page loaded');
+    
+    // Автоотправка формы при изменении фильтров
+    const filterForm = document.querySelector('form');
+    const projectSelect = document.getElementById('project');
+    const statusSelect = document.getElementById('status');
+    
+    [projectSelect, statusSelect].forEach(select => {
+        if (select) {
+            select.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}OCR API Demo{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">API для распознавания текста</h1>
+    <p class="mt-2 text-gray-600">Попробуйте API для распознавания текста из изображений и PDF файлов</p>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-8">
+    <!-- Документация API -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-xl font-semibold mb-4">Документация API</h2>
+      
+      <div class="space-y-6">
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Загрузка файла</h3>
+          <div class="bg-gray-50 p-4 rounded">
+            <p class="text-sm font-mono mb-2">POST /api/ocr/process/</p>
+            <p class="text-sm text-gray-600 mb-2">Content-Type: multipart/form-data</p>
+            <p class="text-gray-700">Параметры:</p>
+            <ul class="list-disc list-inside text-sm text-gray-600 mt-1">
+              <li>file: Файл изображения (JPG, PNG) или PDF</li>
+            </ul>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Ответ</h3>
+          <div class="bg-gray-50 p-4 rounded">
+            <pre class="text-sm text-gray-600">{
+  "success": true,
+  "text": "Распознанный текст...",
+  "confidence": 0.95
+}</pre>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Поддерживаемые форматы</h3>
+          <ul class="list-disc list-inside text-gray-600">
+            <li>Изображения: JPG, PNG</li>
+            <li>Документы: PDF</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Код для интеграции</h3>
+          <div class="bg-gray-50 p-4 rounded">
+            <pre class="text-sm text-gray-600">// JavaScript
+async function processFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/api/ocr/process/', {
+    method: 'POST',
+    body: formData
+  });
+  
+  const data = await response.json();
+  if (data.success) {
+    console.log(data.text);
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Тестирование API -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h2 class="text-xl font-semibold mb-4">Тестирование API</h2>
+      
+      <!-- Загрузка файла -->
+      <div id="dropZone" 
+           class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8 cursor-pointer hover:border-primary-blue transition-colors">
+        <i class="fas fa-file-upload text-4xl text-primary-blue mb-2"></i>
+        <p class="text-gray-700 text-center mb-4">
+          Перетащите файл сюда<br>или нажмите для выбора
+        </p>
+        <input type="file" id="fileInput" class="hidden" accept=".pdf,image/*">
+        <button type="button" id="uploadBtn"
+                class="px-4 py-2 bg-primary-blue text-white rounded hover:bg-primary-blue/90 transition-colors">
+          Выбрать файл
+        </button>
+      </div>
+
+      <!-- Результаты -->
+      <div id="results" class="mt-6 hidden">
+        <div class="mb-4">
+          <h3 class="font-medium text-gray-900 mb-2">Загруженный файл:</h3>
+          <div id="filePreview" class="bg-gray-50 p-2 rounded"></div>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="font-medium text-gray-900">Результат распознавания:</h3>
+          <div id="loadingIndicator" class="text-center text-gray-600 hidden">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            Распознавание текста...
+          </div>
+          <pre id="resultText" class="bg-gray-50 p-4 rounded text-sm text-gray-700 whitespace-pre-wrap"></pre>
+        </div>
+
+        <div class="flex justify-end mt-4">
+          <button type="button" id="copyBtn"
+                  class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors mr-2">
+            <i class="fas fa-copy mr-1"></i>
+            Копировать
+          </button>
+          <button type="button" id="resetBtn"
+                  class="px-4 py-2 bg-primary-blue text-white rounded hover:bg-primary-blue/90 transition-colors">
+            <i class="fas fa-redo mr-1"></i>
+            Новый файл
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const results = document.getElementById('results');
+  const filePreview = document.getElementById('filePreview');
+  const loadingIndicator = document.getElementById('loadingIndicator');
+  const resultText = document.getElementById('resultText');
+  const copyBtn = document.getElementById('copyBtn');
+  const resetBtn = document.getElementById('resetBtn');
+
+  // Загрузка файла по кнопке
+  uploadBtn.addEventListener('click', () => fileInput.click());
+
+  // Drag & Drop события
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  // Визуальный фидбек при перетаскивании
+  dropZone.addEventListener('dragenter', () => {
+    dropZone.classList.add('border-primary-blue');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-primary-blue');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    dropZone.classList.remove('border-primary-blue');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      processFile(files[0]);
+    }
+  });
+
+  // Обработка выбора файла
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      processFile(e.target.files[0]);
+    }
+  });
+
+  // Обработка файла
+  async function processFile(file) {
+    // Показываем превью файла
+    results.classList.remove('hidden');
+    if (file.type.startsWith('image/')) {
+      filePreview.innerHTML = `<img src="${URL.createObjectURL(file)}" class="max-h-40 w-auto rounded">`;
+    } else {
+      filePreview.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-file-pdf text-4xl text-primary-blue"></i>
+          <span>${file.name}</span>
+        </div>`;
+    }
+
+    // Показываем индикатор загрузки
+    loadingIndicator.classList.remove('hidden');
+    resultText.textContent = '';
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/ocr/process/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      });
+
+      const data = await response.json();
+      
+      loadingIndicator.classList.add('hidden');
+      
+      if (data.success) {
+        resultText.textContent = data.text;
+      } else {
+        resultText.textContent = 'Ошибка: ' + (data.error || 'Не удалось распознать текст');
+      }
+    } catch (error) {
+      loadingIndicator.classList.add('hidden');
+      resultText.textContent = 'Произошла ошибка при обработке файла';
+      console.error('OCR Error:', error);
+    }
+  }
+
+  // Копирование текста
+  copyBtn.addEventListener('click', () => {
+    const text = resultText.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const notification = document.createElement('div');
+      notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg';
+      notification.textContent = 'Текст скопирован';
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 2000);
+    });
+  });
+
+  // Сброс для нового файла
+  resetBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    results.classList.add('hidden');
+    resultText.textContent = '';
+  });
+});
+</script>
+{% endblock %}

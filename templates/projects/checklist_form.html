@@ -1,0 +1,852 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Чек-лист активации - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li>
+                    <div>
+                        <a href="{% url 'projects:construction_control_dashboard' %}" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-home"></i>
+                            <span class="sr-only">Мои объекты</span>
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-400 mr-4"></i>
+                        <span class="text-sm font-medium text-gray-500">Активация проекта</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-400 mr-4"></i>
+                        <span class="text-sm font-medium text-gray-900">Чек-лист открытия строительных работ</span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Заголовок -->
+        <div class="mb-8">
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-clipboard-check text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Чек-лист открытия строительных работ</h1>
+                            <p class="text-gray-600">{{ activation.project.name }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Согласно СП 48.13330.2019. Изм. №1. Организация строительства</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Заполнение</div>
+                        <div class="text-2xl font-bold text-blue-600" id="completion-percentage">{{ checklist.completion_percentage }}%</div>
+                        <div class="w-20 bg-gray-200 rounded-full h-2 mt-1">
+                            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                 id="progress-bar" 
+                                 style="width: {{ checklist.completion_percentage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Уведомление о повторном заполнении -->
+        {% if is_refill_after_rejection %}
+        <div class="bg-orange-50 border-l-4 border-orange-400 p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-orange-400 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-orange-800">
+                        Повторное заполнение чек-листа
+                    </h3>
+                    <div class="mt-2 text-sm text-orange-700">
+                        <p>Проект был отклонен инспектором. Пожалуйста, учтите замечания и внесите необходимые исправления в чек-лист.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Информация о проекте -->
+        <div class="bg-white shadow-sm rounded-lg p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Информация о проекте</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <span class="font-medium text-gray-500">Назначенный прораб:</span>
+                    <div class="text-gray-900">{{ activation.assigned_foreman.get_full_name }}</div>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-500">Контракт:</span>
+                    <div class="text-gray-900">{{ activation.project.contract_number }}</div>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-500">Плановая дата:</span>
+                    <div class="text-gray-900">{{ activation.project.planned_start_date|date:"d.m.Y" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма чек-листа -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Секции чек-листа -->
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-6">Проверка готовности к открытию строительных работ</h2>
+                
+                <div class="space-y-8">
+                    <!-- 1. Наличие разрешительной, организационно-технологической, рабочей документации -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 5.3. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📋 Наличие разрешительной, организационно-технологической, рабочей документации
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="regulatory_documentation" value="yes" 
+                                       {% if checklist.regulatory_documentation == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="regulatory_documentation" value="no" 
+                                       {% if checklist.regulatory_documentation == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="regulatory_documentation" value="not_required" 
+                                       {% if checklist.regulatory_documentation == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="regulatory_documentation_notes" 
+                                      placeholder="Примечания по документации..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.regulatory_documentation_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 2. Наличие приказа на ответственное лицо, осуществляющего строительство -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 5.3. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📄 Наличие приказа на ответственное лицо, осуществляющего строительство (производство работ)
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_manager_order" value="yes" 
+                                       {% if checklist.construction_manager_order == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_manager_order" value="no" 
+                                       {% if checklist.construction_manager_order == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_manager_order" value="not_required" 
+                                       {% if checklist.construction_manager_order == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="construction_manager_order_notes" 
+                                      placeholder="Примечания по приказу на ответственного за строительство..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.construction_manager_order_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 3. Наличие приказа на ответственное лицо, осуществляющее строительный контроль -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 5.3. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            🏗️ Наличие приказа на ответственное лицо, осуществляющее строительный контроль<br>
+                            <span class="text-sm font-normal text-gray-600">(с указанием идентификационного номера в НРС в области строительства)</span>
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_control_order" value="yes" 
+                                       {% if checklist.construction_control_order == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_control_order" value="no" 
+                                       {% if checklist.construction_control_order == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_control_order" value="not_required" 
+                                       {% if checklist.construction_control_order == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="construction_control_order_notes" 
+                                      placeholder="Примечания по приказу на ответственного за строительный контроль..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.construction_control_order_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 4. Наличие приказа на ответственное лицо, осуществляющее подготовку проектной документации, авторский надзор -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 5.3. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📐 Наличие приказа на ответственное лицо, осуществляющее подготовку проектной документации, авторский надзор
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="project_supervision_order" value="yes" 
+                                       {% if checklist.project_supervision_order == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="project_supervision_order" value="no" 
+                                       {% if checklist.project_supervision_order == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="project_supervision_order" value="not_required" 
+                                       {% if checklist.project_supervision_order == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="project_supervision_order_notes" 
+                                      placeholder="Примечания по приказу на ответственного за проектную документацию..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.project_supervision_order_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 5. Наличие проектной документации со штампом «В производство работ» -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 5.5. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📋 Наличие проектной документации со штампом «В производство работ»
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="project_documentation_stamp" value="yes" 
+                                       {% if checklist.project_documentation_stamp == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="project_documentation_stamp" value="no" 
+                                       {% if checklist.project_documentation_stamp == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="project_documentation_stamp" value="not_required" 
+                                       {% if checklist.project_documentation_stamp == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="project_documentation_stamp_notes" 
+                                      placeholder="Примечания по проектной документации..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.project_documentation_stamp_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 6. Наличие проекта производства работ -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 6.4., п. 6.7., п. 6.9. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📊 Наличие проекта производства работ<br>
+                            <span class="text-sm font-normal text-gray-600">(утвержденного руководителем подрядной организации, согласованного Заказчиком, проектировщиком, эксплуатирующей организацией)</span>
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="work_production_project" value="yes" 
+                                       {% if checklist.work_production_project == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="work_production_project" value="no" 
+                                       {% if checklist.work_production_project == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="work_production_project" value="not_required" 
+                                       {% if checklist.work_production_project == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="work_production_project_notes" 
+                                      placeholder="Примечания по проекту производства работ..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.work_production_project_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 7. Инженерная подготовка строительной площадки -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 7.2. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            🏗️ Инженерная подготовка строительной площадки
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="engineering_site_preparation" value="yes" 
+                                       {% if checklist.engineering_site_preparation == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="engineering_site_preparation" value="no" 
+                                       {% if checklist.engineering_site_preparation == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="engineering_site_preparation" value="not_required" 
+                                       {% if checklist.engineering_site_preparation == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="engineering_site_preparation_notes" 
+                                      placeholder="Примечания по инженерной подготовке площадки..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.engineering_site_preparation_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 8. Наличие акта геодезической разбивочной основы -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 7.2. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📐 Наличие акта геодезической разбивочной основы, принятых знаков (реперов)
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="geodetic_breakdown_act" value="yes" 
+                                       {% if checklist.geodetic_breakdown_act == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="geodetic_breakdown_act" value="no" 
+                                       {% if checklist.geodetic_breakdown_act == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="geodetic_breakdown_act" value="not_required" 
+                                       {% if checklist.geodetic_breakdown_act == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="geodetic_breakdown_act_notes" 
+                                      placeholder="Примечания по геодезической разбивочной основе..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.geodetic_breakdown_act_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 9. Наличие генерального плана -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 7.6. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            🗺️ Наличие генерального плана (ситуационного плана)
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="general_plan" value="yes" 
+                                       {% if checklist.general_plan == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="general_plan" value="no" 
+                                       {% if checklist.general_plan == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="general_plan" value="not_required" 
+                                       {% if checklist.general_plan == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="general_plan_notes" 
+                                      placeholder="Примечания по генеральному плану..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.general_plan_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 10. Временная инфраструктура -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 7.10., п. 7.34. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            🏢 Фактическое размещение временной инженерной и бытовой инфраструктуры площадки<br>
+                            <span class="text-sm font-normal text-gray-600">(включая стоянку автотранспорта) согласно проекту организации. Соответствие размещённых временных инфраструктуры требованиям электробезопасности, пожарных, санитарно-эпидемиологических норм и правил</span>
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="temporary_infrastructure" value="yes" 
+                                       {% if checklist.temporary_infrastructure == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="temporary_infrastructure" value="no" 
+                                       {% if checklist.temporary_infrastructure == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="temporary_infrastructure" value="not_required" 
+                                       {% if checklist.temporary_infrastructure == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="temporary_infrastructure_notes" 
+                                      placeholder="Примечания по временной инфраструктуре..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.temporary_infrastructure_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 11. Пункты очистки транспорта -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 7.13. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            🚚 Наличие пунктов очистки или мойки колес транспортных средств на выездах со строительной площадки
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="vehicle_cleaning_points" value="yes" 
+                                       {% if checklist.vehicle_cleaning_points == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="vehicle_cleaning_points" value="no" 
+                                       {% if checklist.vehicle_cleaning_points == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="vehicle_cleaning_points" value="not_required" 
+                                       {% if checklist.vehicle_cleaning_points == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="vehicle_cleaning_points_notes" 
+                                      placeholder="Примечания по пунктам очистки транспорта..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.vehicle_cleaning_points_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 12. Контейнеры для мусора -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 7.13. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            🗑️ Наличие бункеров или контейнеров для сбора отдельно бытового и отдельно строительного мусора
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="waste_containers" value="yes" 
+                                       {% if checklist.waste_containers == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="waste_containers" value="no" 
+                                       {% if checklist.waste_containers == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="waste_containers" value="not_required" 
+                                       {% if checklist.waste_containers == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="waste_containers_notes" 
+                                      placeholder="Примечания по контейнерам для мусора..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.waste_containers_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 13. Информационные щиты -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 7.13. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📋 Наличие информационных щитов (знаков) с указанием:<br>
+                            <span class="text-sm font-normal text-gray-600">- наименование объекта; - наименование Застройщика (технического Заказчика); - наименование подрядной организации; - наименование проектной организации; - сроки строительства; - контактные телефоны ответственных по приказу лиц по организации</span>
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="information_boards" value="yes" 
+                                       {% if checklist.information_boards == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="information_boards" value="no" 
+                                       {% if checklist.information_boards == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="information_boards" value="not_required" 
+                                       {% if checklist.information_boards == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="information_boards_notes" 
+                                      placeholder="Примечания по информационным щитам..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.information_boards_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 14. Стенды пожарной безопасности -->
+                    <div class="checklist-item border border-gray-200 rounded-lg p-6">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700 font-medium">(п. 7.13. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            🚨 Наличие стендов пожарной безопасности с указанием на схеме мест источников воды, средств пожаротушения
+                        </h3>
+                        
+                        <div class="flex space-x-6 mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="fire_safety_stands" value="yes" 
+                                       {% if checklist.fire_safety_stands == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600 border-gray-300 focus:ring-green-500">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="fire_safety_stands" value="no" 
+                                       {% if checklist.fire_safety_stands == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="fire_safety_stands" value="not_required" 
+                                       {% if checklist.fire_safety_stands == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600 border-gray-300 focus:ring-gray-500">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <textarea name="fire_safety_stands_notes" 
+                                      placeholder="Примечания по стендам пожарной безопасности..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.fire_safety_stands_notes }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Общая оценка готовности -->
+                <div class="border-t pt-8 mt-8">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" 
+                                       name="overall_readiness"
+                                       id="overall_readiness"
+                                       class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                       {% if checklist.overall_readiness %}checked{% endif %}>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <label for="overall_readiness" class="text-base font-semibold text-green-800 cursor-pointer">
+                                    ✅ Объект готов к открытию строительных работ
+                                </label>
+                                <p class="text-sm text-green-700 mt-1">
+                                    Подтверждаю, что все необходимые проверки проведены и объект соответствует требованиям СП 48.13330.2019 для открытия строительных работ
+                                </p>
+                                <div class="mt-3">
+                                    <textarea name="additional_notes" 
+                                              placeholder="Дополнительные примечания..."
+                                              class="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-green-500 focus:border-green-500 text-sm"
+                                              rows="3">{{ checklist.additional_notes }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопки -->
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <a href="{% url 'projects:construction_control_dashboard' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Вернуться к проектам
+                    </a>
+                    
+                    <div class="flex space-x-3">
+                        <button type="submit" 
+                                name="save"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-save mr-2"></i>
+                            Сохранить черновик
+                        </button>
+                        
+                        <button type="submit" 
+                                name="submit_for_review"
+                                id="submit-for-review-btn"
+                                class="inline-flex items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                disabled>
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Отправить на проверку инспектору
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Помощь -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-blue-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">
+                        Как заполнять чек-лист?
+                    </h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Выберите соответствующий ответ для каждого пункта: ДА, НЕТ или Не требуется</li>
+                            <li>В примечаниях указывайте детали и особенности проверки</li>
+                            <li>Все пункты должны быть заполнены для отправки на проверку</li>
+                            <li>Итоговая готовность отмечается только после проверки всех пунктов</li>
+                            <li>После отправки чек-лист поступит инспектору для финального согласования</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const radioButtons = document.querySelectorAll('input[type="radio"]');
+    const overallReadinessCheckbox = document.getElementById('overall_readiness');
+    const submitButton = document.getElementById('submit-for-review-btn');
+    const completionPercentage = document.getElementById('completion-percentage');
+    const progressBar = document.getElementById('progress-bar');
+    
+    // Список всех полей чек-листа
+    const checklistFields = [
+        'regulatory_documentation',
+        'construction_manager_order', 
+        'construction_control_order',
+        'project_supervision_order',
+        'project_documentation_stamp',
+        'work_production_project',
+        'engineering_site_preparation',
+        'geodetic_breakdown_act',
+        'general_plan',
+        'temporary_infrastructure',
+        'vehicle_cleaning_points',
+        'waste_containers',
+        'information_boards',
+        'fire_safety_stands'
+    ];
+    
+    function updateProgress() {
+        let answeredCount = 0;
+        const totalFields = checklistFields.length;
+        
+        checklistFields.forEach(fieldName => {
+            const radios = document.querySelectorAll(`input[name="${fieldName}"]`);
+            const isAnswered = Array.from(radios).some(radio => radio.checked);
+            if (isAnswered) {
+                answeredCount++;
+            }
+        });
+        
+        const percentage = Math.round((answeredCount / totalFields) * 100);
+        
+        completionPercentage.textContent = percentage + '%';
+        progressBar.style.width = percentage + '%';
+        
+        // Обновляем цвет прогресс-бара
+        if (percentage === 100) {
+            progressBar.className = 'bg-green-500 h-2 rounded-full transition-all duration-300';
+        } else if (percentage >= 70) {
+            progressBar.className = 'bg-yellow-500 h-2 rounded-full transition-all duration-300';
+        } else {
+            progressBar.className = 'bg-red-500 h-2 rounded-full transition-all duration-300';
+        }
+        
+        // Проверяем возможность отправки на проверку
+        const allFieldsAnswered = (answeredCount === totalFields);
+        const overallChecked = overallReadinessCheckbox.checked;
+        
+        if (allFieldsAnswered && overallChecked) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+    
+    // Обработчики событий для радиокнопок
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Визуальная обратная связь для выбранного элемента
+            const checklistItem = this.closest('.checklist-item');
+            const allRadiosInGroup = checklistItem.querySelectorAll('input[type="radio"]');
+            
+            // Удаляем все классы состояния
+            checklistItem.classList.remove('border-green-500', 'border-red-500', 'border-gray-400', 'bg-green-50', 'bg-red-50', 'bg-gray-50');
+            
+            // Добавляем соответствующие классы
+            if (this.value === 'yes') {
+                checklistItem.classList.add('border-green-500', 'bg-green-50');
+            } else if (this.value === 'no') {
+                checklistItem.classList.add('border-red-500', 'bg-red-50');
+            } else if (this.value === 'not_required') {
+                checklistItem.classList.add('border-gray-400', 'bg-gray-50');
+            }
+            
+            updateProgress();
+        });
+        
+        // Применяем стили для уже выбранных элементов при загрузке
+        if (radio.checked) {
+            const checklistItem = radio.closest('.checklist-item');
+            if (radio.value === 'yes') {
+                checklistItem.classList.add('border-green-500', 'bg-green-50');
+            } else if (radio.value === 'no') {
+                checklistItem.classList.add('border-red-500', 'bg-red-50');
+            } else if (radio.value === 'not_required') {
+                checklistItem.classList.add('border-gray-400', 'bg-gray-50');
+            }
+        }
+    });
+    
+    overallReadinessCheckbox.addEventListener('change', updateProgress);
+    
+    // Инициальное обновление
+    updateProgress();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1925 @@
+[
+{
+  "model": "materials.materialtype",
+  "pk": 1,
+  "fields": {
+    "name": "Цемент портландский",
+    "code": "CEMENT",
+    "unit": "т",
+    "description": "",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialtype",
+  "pk": 2,
+  "fields": {
+    "name": "Песок строительный",
+    "code": "SAND",
+    "unit": "м³",
+    "description": "",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialtype",
+  "pk": 3,
+  "fields": {
+    "name": "Щебень фракция 5-20",
+    "code": "GRAVEL",
+    "unit": "м³",
+    "description": "",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialtype",
+  "pk": 4,
+  "fields": {
+    "name": "Кирпич керамический",
+    "code": "BRICK",
+    "unit": "шт",
+    "description": "",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialtype",
+  "pk": 5,
+  "fields": {
+    "name": "Бетон товарный М300",
+    "code": "CONCRETE",
+    "unit": "м³",
+    "description": "",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialtype",
+  "pk": 6,
+  "fields": {
+    "name": "Арматура А500С d12",
+    "code": "REBAR",
+    "unit": "т",
+    "description": "",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialtype",
+  "pk": 7,
+  "fields": {
+    "name": "Трубы канализационные ПВХ",
+    "code": "PIPES",
+    "unit": "м",
+    "description": "",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialtype",
+  "pk": 8,
+  "fields": {
+    "name": "Асфальтобетонная смесь",
+    "code": "ASPHALT",
+    "unit": "т",
+    "description": "",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialtype",
+  "pk": 9,
+  "fields": {
+    "name": "Неопределенный материал (Обрабатывается OCR)",
+    "code": "UNKNOWN",
+    "unit": "шт.",
+    "description": "Временный тип материала для OCR обработки",
+    "quality_requirements": ""
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 1,
+  "fields": {
+    "project": 4,
+    "material_type": 8,
+    "supplier": "РегионСтрой",
+    "quantity": "11.85",
+    "delivery_date": "2025-08-28T22:11:11.983Z",
+    "status": "delivered",
+    "ttn_number": "ТТН-20245839",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.985Z",
+    "updated_at": "2025-09-25T22:11:11.985Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 2,
+  "fields": {
+    "project": 5,
+    "material_type": 2,
+    "supplier": "РегионСтрой",
+    "quantity": "76.50",
+    "delivery_date": "2025-09-11T22:11:11.986Z",
+    "status": "accepted",
+    "ttn_number": "ТТН-20243134",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.987Z",
+    "updated_at": "2025-09-25T22:11:11.987Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 3,
+  "fields": {
+    "project": 5,
+    "material_type": 2,
+    "supplier": "БетонПлюс",
+    "quantity": "60.32",
+    "delivery_date": "2025-09-01T22:11:11.988Z",
+    "status": "delivered",
+    "ttn_number": "ТТН-20249763",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.988Z",
+    "updated_at": "2025-09-25T22:11:11.988Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 4,
+  "fields": {
+    "project": 1,
+    "material_type": 8,
+    "supplier": "ООО Стройматериалы",
+    "quantity": "90.64",
+    "delivery_date": "2025-09-11T22:11:11.989Z",
+    "status": "delivered",
+    "ttn_number": "ТТН-20249365",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.989Z",
+    "updated_at": "2025-09-25T22:11:11.989Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 5,
+  "fields": {
+    "project": 3,
+    "material_type": 1,
+    "supplier": "ООО Стройматериалы",
+    "quantity": "77.45",
+    "delivery_date": "2025-09-02T22:11:11.990Z",
+    "status": "delivered",
+    "ttn_number": "ТТН-20242184",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.990Z",
+    "updated_at": "2025-09-25T22:11:11.990Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 6,
+  "fields": {
+    "project": 1,
+    "material_type": 3,
+    "supplier": "МосСтрой",
+    "quantity": "44.24",
+    "delivery_date": "2025-09-01T22:11:11.991Z",
+    "status": "pending",
+    "ttn_number": "ТТН-20248541",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.992Z",
+    "updated_at": "2025-09-25T22:11:11.992Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 7,
+  "fields": {
+    "project": 5,
+    "material_type": 2,
+    "supplier": "СтройТорг",
+    "quantity": "40.38",
+    "delivery_date": "2025-09-23T22:11:11.992Z",
+    "status": "accepted",
+    "ttn_number": "ТТН-20246930",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.993Z",
+    "updated_at": "2025-09-25T22:11:11.993Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 8,
+  "fields": {
+    "project": 5,
+    "material_type": 5,
+    "supplier": "РегионСтрой",
+    "quantity": "57.11",
+    "delivery_date": "2025-09-10T22:11:11.994Z",
+    "status": "delivered",
+    "ttn_number": "ТТН-20241520",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.994Z",
+    "updated_at": "2025-09-25T22:11:11.994Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 9,
+  "fields": {
+    "project": 2,
+    "material_type": 4,
+    "supplier": "МосСтрой",
+    "quantity": "7.41",
+    "delivery_date": "2025-09-18T22:11:11.995Z",
+    "status": "pending",
+    "ttn_number": "ТТН-20248650",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.995Z",
+    "updated_at": "2025-09-25T22:11:11.995Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 10,
+  "fields": {
+    "project": 4,
+    "material_type": 3,
+    "supplier": "СтройТорг",
+    "quantity": "11.22",
+    "delivery_date": "2025-09-14T22:11:11.996Z",
+    "status": "pending",
+    "ttn_number": "ТТН-20243251",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T22:11:11.996Z",
+    "updated_at": "2025-09-25T22:11:11.996Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 11,
+  "fields": {
+    "project": 1,
+    "material_type": 6,
+    "supplier": "1",
+    "quantity": "1.00",
+    "delivery_date": "2025-09-25T23:17:00Z",
+    "status": "delivered",
+    "ttn_number": "1",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T23:17:37.652Z",
+    "updated_at": "2025-09-25T23:17:37.652Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 12,
+  "fields": {
+    "project": 1,
+    "material_type": 6,
+    "supplier": "1",
+    "quantity": "1.00",
+    "delivery_date": "2025-09-25T23:18:00Z",
+    "status": "delivered",
+    "ttn_number": "1",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-25T23:18:13.900Z",
+    "updated_at": "2025-09-25T23:18:13.900Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 13,
+  "fields": {
+    "project": 1,
+    "material_type": 8,
+    "supplier": "ООО \"Русский Цемент\"",
+    "quantity": "463.00",
+    "delivery_date": "2025-09-18T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Грунт плодородный сертифицированный",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-26T00:30:42.774Z",
+    "updated_at": "2025-09-26T00:30:42.774Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 14,
+  "fields": {
+    "project": 1,
+    "material_type": 9,
+    "supplier": "Обрабатывается...",
+    "quantity": "1.00",
+    "delivery_date": "2025-09-26T14:00:33.963Z",
+    "status": "pending",
+    "ttn_number": "OCR-20250926-140033",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "test_ocr_user"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-26T14:00:33.963Z",
+    "updated_at": "2025-09-26T14:00:33.963Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 15,
+  "fields": {
+    "project": 1,
+    "material_type": 9,
+    "supplier": "Обрабатывается...",
+    "quantity": "1.00",
+    "delivery_date": "2025-09-26T14:02:25.140Z",
+    "status": "pending",
+    "ttn_number": "OCR-20250926-140225",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "test_ocr_user"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-26T14:02:25.140Z",
+    "updated_at": "2025-09-26T14:02:25.140Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 16,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T21:29:15.755Z",
+    "updated_at": "2025-09-28T21:29:15.755Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 17,
+  "fields": {
+    "project": 5,
+    "material_type": 6,
+    "supplier": "1",
+    "quantity": "1.00",
+    "delivery_date": "2025-09-28T21:36:00Z",
+    "status": "delivered",
+    "ttn_number": "TTN-20250928-213639",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-28T21:36:39.779Z",
+    "updated_at": "2025-09-28T21:36:39.779Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 18,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T21:39:29.179Z",
+    "updated_at": "2025-09-28T21:39:29.179Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 19,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T21:46:08.964Z",
+    "updated_at": "2025-09-28T21:46:08.964Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 20,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:01:36.589Z",
+    "updated_at": "2025-09-28T22:01:36.589Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 21,
+  "fields": {
+    "project": 5,
+    "material_type": 8,
+    "supplier": "1",
+    "quantity": "1.00",
+    "delivery_date": "2025-09-28T22:02:00Z",
+    "status": "delivered",
+    "ttn_number": "1",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": true,
+    "created_at": "2025-09-28T22:02:36.823Z",
+    "updated_at": "2025-09-28T22:02:36.823Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 22,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:03:16.696Z",
+    "updated_at": "2025-09-28T22:03:16.696Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 23,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_2"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:07:05.435Z",
+    "updated_at": "2025-09-28T22:07:05.435Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 24,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:09:19.297Z",
+    "updated_at": "2025-09-28T22:09:19.297Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 25,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ООО API-Тест",
+    "quantity": "42.50",
+    "delivery_date": "2024-01-14T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "test_ocr_user"
+    ],
+    "notes": "OCR: Тест через API",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:12:29.680Z",
+    "updated_at": "2025-09-28T22:12:29.680Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 26,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:13:44.476Z",
+    "updated_at": "2025-09-28T22:13:44.476Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 27,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:13:45.630Z",
+    "updated_at": "2025-09-28T22:13:45.630Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 28,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "ООО Финальный Тест",
+    "quantity": "77.70",
+    "delivery_date": "2024-02-29T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "test_ocr_user"
+    ],
+    "notes": "OCR: Финальная проверка",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:13:59.007Z",
+    "updated_at": "2025-09-28T22:13:59.007Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 29,
+  "fields": {
+    "project": 2,
+    "material_type": 2,
+    "supplier": "ООО Тест с выбором проекта",
+    "quantity": "50.00",
+    "delivery_date": "2024-03-31T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "test_ocr_user"
+    ],
+    "notes": "OCR: Тест с выбранным проектом и материалом",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:17:23.595Z",
+    "updated_at": "2025-09-28T22:17:23.595Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 30,
+  "fields": {
+    "project": 2,
+    "material_type": 5,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:17:35.958Z",
+    "updated_at": "2025-09-28T22:17:35.958Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 31,
+  "fields": {
+    "project": 1,
+    "material_type": 2,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:19:17.018Z",
+    "updated_at": "2025-09-28T22:19:17.018Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 32,
+  "fields": {
+    "project": 1,
+    "material_type": 6,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:20:14.279Z",
+    "updated_at": "2025-09-28T22:20:14.279Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 33,
+  "fields": {
+    "project": 1,
+    "material_type": 6,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:25:00.370Z",
+    "updated_at": "2025-09-28T22:25:00.370Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 34,
+  "fields": {
+    "project": 1,
+    "material_type": 1,
+    "supplier": "Тест поставщик API",
+    "quantity": "100.00",
+    "delivery_date": "2024-12-28T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "test_ocr_user"
+    ],
+    "notes": "OCR: Тестовая поставка для диагностики",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:28:19.707Z",
+    "updated_at": "2025-09-28T22:28:19.707Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 35,
+  "fields": {
+    "project": 1,
+    "material_type": 6,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:31:44.475Z",
+    "updated_at": "2025-09-28T22:31:44.475Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 36,
+  "fields": {
+    "project": 2,
+    "material_type": 2,
+    "supplier": "ООО ТЕСТ OCR ДИАГНОСТИКА",
+    "quantity": "75.50",
+    "delivery_date": "2025-09-28T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "test_ocr_user"
+    ],
+    "notes": "OCR: Тест создания через OCR API для диагностики",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:34:30.483Z",
+    "updated_at": "2025-09-28T22:34:30.483Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 37,
+  "fields": {
+    "project": 1,
+    "material_type": 3,
+    "supplier": "ООО ИТОГОВЫЙ ТЕСТ ПОСЛЕ ИСПРАВЛЕНИЯ",
+    "quantity": "33.30",
+    "delivery_date": "2025-09-28T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "test_ocr_user"
+    ],
+    "notes": "OCR: Финальный тест после исправления API",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:38:29.314Z",
+    "updated_at": "2025-09-28T22:38:29.314Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 38,
+  "fields": {
+    "project": 1,
+    "material_type": 6,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:39:47.701Z",
+    "updated_at": "2025-09-28T22:39:47.701Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 39,
+  "fields": {
+    "project": 1,
+    "material_type": 6,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:41:08.689Z",
+    "updated_at": "2025-09-28T22:41:08.689Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 40,
+  "fields": {
+    "project": 5,
+    "material_type": 6,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2024-06-09T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:42:04.174Z",
+    "updated_at": "2025-09-28T22:42:04.174Z"
+  }
+},
+{
+  "model": "materials.materialdelivery",
+  "pk": 41,
+  "fields": {
+    "project": 3,
+    "material_type": 6,
+    "supplier": "ГБУ города Москвы Автомобильные дороги",
+    "quantity": "198.00",
+    "delivery_date": "2025-09-28T21:00:00Z",
+    "status": "pending",
+    "ttn_number": "",
+    "ttn_image": "",
+    "quality_certificate": "",
+    "quality_certificate_image": "",
+    "location": null,
+    "spec_row": null,
+    "received_by": [
+      "foreman_1"
+    ],
+    "notes": "OCR: Бортовой камень 1000х1300х1150, 198 шт",
+    "ocr_recognized_data": null,
+    "ocr_confidence": null,
+    "manual_entry": false,
+    "created_at": "2025-09-28T22:43:31.504Z",
+    "updated_at": "2025-09-28T22:43:31.504Z"
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 1,
+  "fields": {
+    "delivery": 13,
+    "project": null,
+    "document_number": "ТТН-2025-257475",
+    "document_date": "2025-09-19",
+    "sender_name": "ООО \"Русский Цемент\"",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "A253TK77",
+    "driver_name": "Козлов Дмитрий Викторович",
+    "driver_license_number": "",
+    "cargo_description": "Грунт плодородный сертифицированный",
+    "cargo_weight": "555600.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-26T00:30:42.775Z",
+    "updated_at": "2025-09-26T00:30:42.776Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 2,
+  "fields": {
+    "delivery": 14,
+    "project": null,
+    "document_number": "Обрабатывается",
+    "document_date": "2025-09-26",
+    "sender_name": "Обрабатывается",
+    "sender_address": "Обрабатывается",
+    "sender_inn": "",
+    "receiver_name": "Обрабатывается",
+    "receiver_address": "Обрабатывается",
+    "receiver_inn": "",
+    "vehicle_number": "",
+    "driver_name": "",
+    "driver_license_number": "",
+    "cargo_description": "Обрабатывается",
+    "cargo_weight": null,
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-26T14:00:33.966Z",
+    "updated_at": "2025-09-26T14:00:33.966Z",
+    "processed_by": [
+      "test_ocr_user"
+    ]
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 3,
+  "fields": {
+    "delivery": 15,
+    "project": null,
+    "document_number": "Обрабатывается",
+    "document_date": "2025-09-26",
+    "sender_name": "Обрабатывается",
+    "sender_address": "Обрабатывается",
+    "sender_inn": "",
+    "receiver_name": "Обрабатывается",
+    "receiver_address": "Обрабатывается",
+    "receiver_inn": "",
+    "vehicle_number": "",
+    "driver_name": "",
+    "driver_license_number": "",
+    "cargo_description": "Обрабатывается",
+    "cargo_weight": null,
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-26T14:02:25.142Z",
+    "updated_at": "2025-09-26T14:02:25.142Z",
+    "processed_by": [
+      "test_ocr_user"
+    ]
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 4,
+  "fields": {
+    "delivery": 16,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T21:29:15.756Z",
+    "updated_at": "2025-09-28T21:29:15.757Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 5,
+  "fields": {
+    "delivery": 18,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T21:39:29.182Z",
+    "updated_at": "2025-09-28T21:39:29.183Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 6,
+  "fields": {
+    "delivery": 19,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T21:46:08.966Z",
+    "updated_at": "2025-09-28T21:46:08.967Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 7,
+  "fields": {
+    "delivery": 20,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:01:36.591Z",
+    "updated_at": "2025-09-28T22:01:36.592Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 8,
+  "fields": {
+    "delivery": 22,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:03:16.697Z",
+    "updated_at": "2025-09-28T22:03:16.698Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 9,
+  "fields": {
+    "delivery": 23,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:07:05.436Z",
+    "updated_at": "2025-09-28T22:07:05.437Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 10,
+  "fields": {
+    "delivery": 24,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:09:19.298Z",
+    "updated_at": "2025-09-28T22:09:19.298Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 11,
+  "fields": {
+    "delivery": 26,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:13:44.478Z",
+    "updated_at": "2025-09-28T22:13:44.480Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 12,
+  "fields": {
+    "delivery": 27,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:13:45.631Z",
+    "updated_at": "2025-09-28T22:13:45.633Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 13,
+  "fields": {
+    "delivery": 30,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Каргопольская 18",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:17:35.959Z",
+    "updated_at": "2025-09-28T22:17:35.959Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 14,
+  "fields": {
+    "delivery": 31,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:19:17.019Z",
+    "updated_at": "2025-09-28T22:19:17.020Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 15,
+  "fields": {
+    "delivery": 32,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:20:14.281Z",
+    "updated_at": "2025-09-28T22:20:14.282Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 16,
+  "fields": {
+    "delivery": 33,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:25:00.371Z",
+    "updated_at": "2025-09-28T22:25:00.372Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 17,
+  "fields": {
+    "delivery": 35,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:31:44.476Z",
+    "updated_at": "2025-09-28T22:31:44.477Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 18,
+  "fields": {
+    "delivery": 36,
+    "project": null,
+    "document_number": "TEST-OCR-2025",
+    "document_date": "2025-09-29",
+    "sender_name": "ООО ТЕСТ OCR ДИАГНОСТИКА",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Каргопольская 18",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "А123БВ123",
+    "driver_name": "Тестовый Водитель",
+    "driver_license_number": "",
+    "cargo_description": "Тест создания через OCR API для диагностики",
+    "cargo_weight": "75500.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:34:30.484Z",
+    "updated_at": "2025-09-28T22:34:30.484Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 19,
+  "fields": {
+    "delivery": 37,
+    "project": null,
+    "document_number": "FIXED-2025-001",
+    "document_date": "2025-09-29",
+    "sender_name": "ООО ИТОГОВЫЙ ТЕСТ ПОСЛЕ ИСПРАВЛЕНИЯ",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "Не указано",
+    "driver_name": "Не указано",
+    "driver_license_number": "",
+    "cargo_description": "Финальный тест после исправления API",
+    "cargo_weight": null,
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:38:29.315Z",
+    "updated_at": "2025-09-28T22:38:29.315Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 20,
+  "fields": {
+    "delivery": 38,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:39:47.702Z",
+    "updated_at": "2025-09-28T22:39:47.702Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 21,
+  "fields": {
+    "delivery": 39,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Бестужевых 27",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:41:08.690Z",
+    "updated_at": "2025-09-28T22:41:08.690Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 22,
+  "fields": {
+    "delivery": 40,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2024-06-10",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Флотская 54,58к1",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:42:04.175Z",
+    "updated_at": "2025-09-28T22:42:04.176Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.transportdocument",
+  "pk": 23,
+  "fields": {
+    "delivery": 41,
+    "project": null,
+    "document_number": "18674/Е",
+    "document_date": "2025-09-29",
+    "sender_name": "ГБУ города Москвы Автомобильные дороги",
+    "sender_address": "",
+    "sender_inn": "",
+    "receiver_name": "Проект благоустройства: Проспект Мира 194",
+    "receiver_address": "",
+    "receiver_inn": "",
+    "vehicle_number": "М777ММ177",
+    "driver_name": "Иванов Иван Иванович",
+    "driver_license_number": "",
+    "cargo_description": "Бортовой камень 1000х1300х1150, 198 шт",
+    "cargo_weight": "19463.00",
+    "cargo_volume": null,
+    "packages_count": null,
+    "processing_status": "uploaded",
+    "ocr_confidence": null,
+    "manual_verification_required": false,
+    "created_at": "2025-09-28T22:43:31.505Z",
+    "updated_at": "2025-09-28T22:43:31.505Z",
+    "processed_by": null
+  }
+},
+{
+  "model": "materials.documentphoto",
+  "pk": 1,
+  "fields": {
+    "transport_document": 2,
+    "photo_type": "ttn_main",
+    "image": "transport_documents/2025/09/26/test_enhanced_ttn.png",
+    "file_size": 37081,
+    "image_width": 900,
+    "image_height": 500,
+    "file_type": "image",
+    "pages_count": 1,
+    "ocr_text": "",
+    "ocr_confidence": null,
+    "processing_status": "error",
+    "processing_error": "API запрос неуспешен: статус 403",
+    "uploaded_at": "2025-09-26T14:00:33.978Z",
+    "processed_at": null,
+    "uploaded_by": [
+      "test_ocr_user"
+    ]
+  }
+},
+{
+  "model": "materials.documentphoto",
+  "pk": 2,
+  "fields": {
+    "transport_document": 3,
+    "photo_type": "ttn_main",
+    "image": "transport_documents/2025/09/26/test_enhanced_ttn_vapqaJV.png",
+    "file_size": 37081,
+    "image_width": 900,
+    "image_height": 500,
+    "file_type": "image",
+    "pages_count": 1,
+    "ocr_text": "",
+    "ocr_confidence": null,
+    "processing_status": "error",
+    "processing_error": "API запрос неуспешен: статус 403",
+    "uploaded_at": "2025-09-26T14:02:25.143Z",
+    "processed_at": null,
+    "uploaded_by": [
+      "test_ocr_user"
+    ]
+  }
+}
+]

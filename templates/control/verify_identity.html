@@ -1,0 +1,726 @@
+{% extends 'base.html' %}
+
+{% block title %}Подтверждение идентификации - Строительный контроль{% endblock %}
+
+{% block content %}
+<style>
+    .scanner-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 400px;
+    }
+    .verification-result {
+        transition: all 0.5s ease;
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    .verification-result.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    .token-input {
+        font-family: 'Courier New', monospace;
+    }
+    
+    /* Стили для QR-сканера */
+    .qr-reader-container {
+        background: #f8f9fa;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    #qr-reader {
+        width: 100%;
+        border: none;
+    }
+    
+    #qr-reader__dashboard_section_csr {
+        display: none !important;
+    }
+    
+    #qr-reader__scan_region {
+        border-radius: 12px;
+    }
+    
+    .mode-btn.active {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+    
+    .qr-scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 200px;
+        height: 200px;
+        border: 2px solid #3b82f6;
+        border-radius: 12px;
+        pointer-events: none;
+        z-index: 10;
+    }
+    
+    .qr-scanner-overlay::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        background: linear-gradient(45deg, #3b82f6, #1d4ed8, #3b82f6);
+        background-size: 200% 200%;
+        animation: qr-scan-animation 2s linear infinite;
+        z-index: -1;
+    }
+    
+    @keyframes qr-scan-animation {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+    
+    .scan-line {
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+        animation: scan-line 2s linear infinite;
+    }
+    
+    @keyframes scan-line {
+        0% {
+            top: 0;
+        }
+        100% {
+            top: calc(100% - 2px);
+        }
+    }
+    
+    .scan-success {
+        animation: scan-success 0.5s ease-in-out;
+    }
+    
+    @keyframes scan-success {
+        0% { border-color: #3b82f6; }
+        50% { border-color: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); }
+        100% { border-color: #3b82f6; }
+    }
+</style>
+
+<!-- Подключение библиотеки для QR-сканирования -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<!-- Заголовок -->
+<div class="mb-8">
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-xl">
+        <div class="px-6 py-8 text-white">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                        <i class="fas fa-shield-alt text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2">Подтверждение идентификации</h1>
+                        <p class="text-blue-100">{{ user.get_full_name|default:user.username }}</p>
+                        <p class="text-sm text-blue-200 mt-1">Проверка присутствия прорабов на объектах</p>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <i class="fas fa-shield-alt text-6xl text-blue-200 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-check-circle text-blue-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">Всего проверок</h4>
+                <p class="text-2xl font-bold text-blue-600">{{ stats.total_verifications }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-calendar-day text-indigo-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="ml-4">
+                <h4 class="text-lg font-semibold text-gray-800">Сегодня проверок</h4>
+                <p class="text-2xl font-bold text-indigo-600">{{ stats.today_verifications }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Сканер QR-кодов -->
+<div class="bg-white rounded-lg shadow-md p-8 mb-6">
+    <div class="text-center">
+        <div class="mb-6">
+            <i class="fas fa-qrcode text-green-600 text-6xl mb-4"></i>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Сканирование QR-кода</h2>
+            <p class="text-gray-600">Отсканируйте QR-код прораба или введите токен вручную</p>
+        </div>
+
+        <!-- Переключатель режимов -->
+        <div class="mb-6">
+            <div class="flex justify-center space-x-4">
+                <button id="scanModeBtn" class="mode-btn active px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold transition-all duration-300 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-camera mr-2"></i>
+                    Сканировать камерой
+                </button>
+                <button id="inputModeBtn" class="mode-btn px-6 py-3 rounded-lg bg-gray-200 text-gray-700 font-semibold transition-all duration-300 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    <i class="fas fa-keyboard mr-2"></i>
+                    Ввести вручную
+                </button>
+            </div>
+        </div>
+
+        <!-- Режим сканирования -->
+        <div id="scanMode" class="scan-mode">
+            <div class="max-w-sm mx-auto mb-6">
+                <div id="qr-reader" class="qr-reader-container border-4 border-dashed border-gray-300 rounded-lg p-4" style="min-height: 300px;">
+                    <div class="text-center py-12">
+                        <i class="fas fa-camera text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500 mb-4">Нажмите "Запустить камеру" для начала сканирования</p>
+                        <button id="startScanBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300">
+                            <i class="fas fa-play mr-2"></i>
+                            Запустить камеру
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-center space-x-4">
+                <button id="stopScanBtn" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300">
+                    <i class="fas fa-stop mr-2"></i>
+                    Остановить камеру
+                </button>
+                <button id="switchCameraBtn" class="hidden bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300">
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    Переключить камеру
+                </button>
+            </div>
+        </div>
+
+        <!-- Режим ввода -->
+        <div id="inputMode" class="input-mode hidden">
+            <div class="max-w-md mx-auto">
+                <div class="mb-4">
+                    <input 
+                        type="text" 
+                        id="tokenInput" 
+                        class="token-input w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-center" 
+                        placeholder="Введите токен из QR-кода"
+                        maxlength="44"
+                    >
+                </div>
+
+                <button 
+                    id="verifyBtn" 
+                    class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    onclick="verifyToken()"
+                    disabled
+                >
+                    <i class="fas fa-shield-alt mr-2"></i>
+                    Подтвердить присутствие
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-6 text-sm text-gray-500">
+            <i class="fas fa-info-circle mr-1"></i>
+            QR-коды действительны только <span class="font-bold text-red-600">15 секунд</span> с момента создания
+        </div>
+    </div>
+</div>
+
+<!-- Результат верификации -->
+<div id="verificationResult" class="verification-result hidden">
+    <!-- Здесь будет отображаться результат -->
+</div>
+
+<!-- Последние проверки -->
+<div class="bg-white rounded-lg shadow-md">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">
+            <i class="fas fa-history text-gray-600 mr-2"></i>
+            Последние проверки
+        </h3>
+    </div>
+    <div class="divide-y divide-gray-200">
+        {% if recent_verifications %}
+            {% for verification in recent_verifications %}
+                <div class="p-6 hover:bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-user-hard-hat text-orange-600"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-medium text-gray-900 truncate">
+                                        {{ verification.created_by.get_full_name|default:verification.created_by.username }}
+                                    </h4>
+                                    <p class="text-sm text-gray-600">
+                                        <i class="fas fa-building text-gray-400 mr-1"></i>
+                                        {{ verification.project.name }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex items-center space-x-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Подтверждено
+                                </span>
+                                <span class="text-xs text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    {{ verification.verified_at|date:"d.m.Y H:i" }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="ml-4 text-right">
+                            <p class="text-sm text-gray-600">Токен:</p>
+                            <p class="text-xs font-mono text-gray-500">{{ verification.token|slice:":16" }}...</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="p-6 text-center text-gray-500">
+                <i class="fas fa-inbox text-4xl mb-4"></i>
+                <p>Пока нет проведенных проверок</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Глобальные переменные для QR-сканера
+    let html5QrcodeScanner = null;
+    let isScanning = false;
+    let currentCameraId = null;
+    let availableCameras = [];
+    let currentCameraIndex = 0;
+    
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeModeButtons();
+        initializeQRScanner();
+        initializeTokenInput();
+    });
+    
+    // Инициализация кнопок переключения режимов
+    function initializeModeButtons() {
+        const scanModeBtn = document.getElementById('scanModeBtn');
+        const inputModeBtn = document.getElementById('inputModeBtn');
+        const scanMode = document.getElementById('scanMode');
+        const inputMode = document.getElementById('inputMode');
+        
+        scanModeBtn.addEventListener('click', function() {
+            // Переключаем на режим сканирования
+            scanModeBtn.classList.add('active', 'bg-blue-600', 'text-white');
+            scanModeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            inputModeBtn.classList.remove('active', 'bg-blue-600', 'text-white');
+            inputModeBtn.classList.add('bg-gray-200', 'text-gray-700');
+            
+            scanMode.classList.remove('hidden');
+            inputMode.classList.add('hidden');
+        });
+        
+        inputModeBtn.addEventListener('click', function() {
+            // Переключаем на режим ввода
+            inputModeBtn.classList.add('active', 'bg-blue-600', 'text-white');
+            inputModeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            scanModeBtn.classList.remove('active', 'bg-blue-600', 'text-white');
+            scanModeBtn.classList.add('bg-gray-200', 'text-gray-700');
+            
+            inputMode.classList.remove('hidden');
+            scanMode.classList.add('hidden');
+            
+            // Останавливаем сканер и фокус на поле ввода
+            if (isScanning) {
+                stopQRScanning();
+            }
+            document.getElementById('tokenInput').focus();
+        });
+    }
+    
+    // Инициализация QR-сканера
+    function initializeQRScanner() {
+        const startScanBtn = document.getElementById('startScanBtn');
+        const stopScanBtn = document.getElementById('stopScanBtn');
+        const switchCameraBtn = document.getElementById('switchCameraBtn');
+        
+        startScanBtn.addEventListener('click', startQRScanning);
+        stopScanBtn.addEventListener('click', stopQRScanning);
+        switchCameraBtn.addEventListener('click', switchCamera);
+        
+        // Получаем список доступных камер
+        Html5Qrcode.getCameras().then(cameras => {
+            availableCameras = cameras;
+            if (cameras.length > 1) {
+                switchCameraBtn.classList.remove('hidden');
+            }
+        }).catch(err => {
+            console.log('Ошибка получения камер:', err);
+        });
+    }
+    
+    // Инициализация поля ввода токена
+    function initializeTokenInput() {
+        const tokenInput = document.getElementById('tokenInput');
+        const verifyBtn = document.getElementById('verifyBtn');
+        
+        // Активируем кнопку при вводе токена
+        tokenInput.addEventListener('input', function() {
+            verifyBtn.disabled = this.value.length < 20; // Минимальная длина токена
+        });
+
+        // Обработка Enter в поле ввода
+        tokenInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !verifyBtn.disabled) {
+                verifyToken();
+            }
+        });
+    }
+    
+    // Запуск QR-сканирования
+    async function startQRScanning() {
+        if (isScanning) return;
+        
+        try {
+            const qrReaderElement = document.getElementById('qr-reader');
+            
+            // Очищаем контейнер
+            qrReaderElement.innerHTML = '';
+            
+            html5QrcodeScanner = new Html5Qrcode('qr-reader');
+            
+            // Настройки сканирования
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+                disableFlip: false
+            };
+            
+            // Определяем камеру для использования
+            let cameraId = availableCameras.length > 0 ? availableCameras[currentCameraIndex].id : undefined;
+            currentCameraId = cameraId;
+            
+            await html5QrcodeScanner.start(
+                cameraId,
+                config,
+                onScanSuccess,
+                onScanError
+            );
+            
+            isScanning = true;
+            document.getElementById('startScanBtn').classList.add('hidden');
+            document.getElementById('stopScanBtn').classList.remove('hidden');
+            
+            // Добавляем визуальные эффекты
+            addScanningEffects();
+            
+        } catch (err) {
+            console.error('Ошибка запуска QR-сканера:', err);
+            alert('Ошибка доступа к камере. Пожалуйста, разрешите доступ к камере.');
+        }
+    }
+    
+    // Остановка QR-сканирования
+    async function stopQRScanning() {
+        if (!isScanning) return;
+        
+        try {
+            await html5QrcodeScanner.stop();
+            html5QrcodeScanner = null;
+            isScanning = false;
+            
+            document.getElementById('stopScanBtn').classList.add('hidden');
+            document.getElementById('startScanBtn').classList.remove('hidden');
+            
+            // Восстанавливаем первоначальный вид
+            resetQRReader();
+            
+        } catch (err) {
+            console.error('Ошибка остановки QR-сканера:', err);
+        }
+    }
+    
+    // Переключение между камерами
+    async function switchCamera() {
+        if (!isScanning || availableCameras.length <= 1) return;
+        
+        currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+        
+        await stopQRScanning();
+        await startQRScanning();
+    }
+    
+    // Обработчик успешного сканирования
+    function onScanSuccess(decodedText, decodedResult) {
+        console.log(`QR-код отсканирован: ${decodedText}`);
+        
+        // Останавливаем сканирование
+        stopQRScanning();
+        
+        // Показываем эффект успешного сканирования
+        showScanSuccess();
+        
+        // Автоматически проверяем токен
+        setTimeout(() => {
+            verifyTokenFromQR(decodedText);
+        }, 1000);
+    }
+    
+    // Обработчик ошибок сканирования
+    function onScanError(error) {
+        // Не логируем ошибки, т.к. они очень частые при поиске QR-кода
+    }
+    
+    // Добавление визуальных эффектов сканирования
+    function addScanningEffects() {
+        const qrReader = document.getElementById('qr-reader');
+        qrReader.classList.add('scanning-active');
+    }
+    
+    // Эффект успешного сканирования
+    function showScanSuccess() {
+        const qrReader = document.getElementById('qr-reader');
+        qrReader.classList.add('scan-success');
+        
+        setTimeout(() => {
+            qrReader.classList.remove('scan-success');
+        }, 1000);
+    }
+    
+    // Сброс QR-сканера
+    function resetQRReader() {
+        const qrReader = document.getElementById('qr-reader');
+        qrReader.innerHTML = `
+            <div class="text-center py-12">
+                <i class="fas fa-camera text-gray-400 text-4xl mb-4"></i>
+                <p class="text-gray-500 mb-4">Нажмите "Запустить камеру" для начала сканирования</p>
+                <button id="startScanBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300">
+                    <i class="fas fa-play mr-2"></i>
+                    Запустить камеру
+                </button>
+            </div>
+        `;
+        
+        // Перепривязываем обработчик
+        document.getElementById('startScanBtn').addEventListener('click', startQRScanning);
+    }
+
+    // Верификация токена из QR-кода
+    async function verifyTokenFromQR(token) {
+        // Показываем уведомление о сканировании
+        showScanNotification(token);
+        
+        // Проверяем токен
+        await performTokenVerification(token);
+    }
+    
+    // Уведомление о сканировании
+    function showScanNotification(token) {
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-qrcode mr-3 text-xl"></i>
+                <div>
+                    <div class="font-bold">QR-код отсканирован!</div>
+                    <div class="text-sm opacity-90">Токен: ${token.substring(0, 8)}...</div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full');
+        }, 100);
+        
+        setTimeout(() => {
+            notification.classList.add('translate-x-full');
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }
+    
+    // Получение CSRF токена из cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Функция верификации токена из поля ввода
+    async function verifyToken() {
+        const tokenInput = document.getElementById('tokenInput');
+        const token = tokenInput.value.trim();
+        
+        if (!token) {
+            alert('Пожалуйста, введите токен');
+            return;
+        }
+
+        const btn = document.getElementById('verifyBtn');
+        const originalText = btn.innerHTML;
+        
+        // Показываем индикатор загрузки
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Проверка...';
+        btn.disabled = true;
+
+        try {
+            await performTokenVerification(token);
+            // Очищаем поле ввода при успешной проверке
+            tokenInput.value = '';
+        } finally {
+            // Восстанавливаем кнопку
+            btn.innerHTML = originalText;
+            btn.disabled = true; // Кнопка будет активирована при вводе
+        }
+    }
+    
+    // Общая функция выполнения верификации токена
+    async function performTokenVerification(token) {
+        try {
+            const response = await fetch('/control/verify-qr/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    token: token
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showVerificationResult(data, 'success');
+            } else {
+                showVerificationResult(data, 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            showVerificationResult({error: 'Ошибка связи с сервером'}, 'error');
+        }
+    }
+
+    // Функция отображения результата верификации
+    function showVerificationResult(data, type) {
+        const resultContainer = document.getElementById('verificationResult');
+        
+        let html = '';
+        if (type === 'success') {
+            html = `
+                <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+                    <div class="text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                            <i class="fas fa-check text-green-600 text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">✅ Присутствие подтверждено!</h3>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                            <div class="text-sm text-green-800">
+                                <p><strong>Прораб:</strong> ${data.foreman_name}</p>
+                                <p><strong>Проект:</strong> ${data.project_name}</p>
+                                <p><strong>Время подтверждения:</strong> ${new Date(data.verified_at).toLocaleString('ru-RU')}</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600">${data.message}</p>
+                    </div>
+                </div>
+            `;
+        } else {
+            const isExpired = data.expired;
+            const isAlreadyVerified = data.already_verified;
+            
+            let errorMessage = data.error;
+            let additionalInfo = '';
+            
+            if (isExpired) {
+                additionalInfo = '<p class="text-sm text-red-600 mt-2"><i class="fas fa-clock mr-1"></i>QR-код истек. Попросите прораба сгенерировать новый код.</p>';
+            } else if (isAlreadyVerified) {
+                additionalInfo = `
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Проверено: ${data.verified_by}<br>
+                            Время: ${new Date(data.verified_at).toLocaleString('ru-RU')}
+                        </p>
+                    </div>
+                `;
+            }
+            
+            html = `
+                <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+                    <div class="text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                            <i class="fas fa-times text-red-600 text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">❌ Ошибка проверки</h3>
+                        <p class="text-sm text-red-600">${errorMessage}</p>
+                        ${additionalInfo}
+                    </div>
+                </div>
+            `;
+        }
+        
+        resultContainer.innerHTML = html;
+        resultContainer.classList.remove('hidden');
+        resultContainer.classList.add('show');
+        
+        // Прокручиваем к результату
+        resultContainer.scrollIntoView({ behavior: 'smooth' });
+        
+        // Автоматически скрываем результат через 10 секунд
+        setTimeout(() => {
+            resultContainer.classList.remove('show');
+            setTimeout(() => {
+                resultContainer.classList.add('hidden');
+            }, 500);
+        }, 10000);
+    }
+
+    // Фокус на поле ввода при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('tokenInput').focus();
+    });
+</script>
+
+{% endblock %}

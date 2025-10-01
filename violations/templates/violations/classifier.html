@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Классификатор нарушений - Система управления благоустройством</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-2xl font-bold text-blue-700">📋 Классификатор нарушений производства работ</h1>
+                <a href="/violations/" class="text-blue-600 hover:underline">← К нарушениям</a>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Категория</label>
+                    <select id="filter-category" class="w-full border rounded px-3 py-2">
+                        <option value="">Все категории</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Вид</label>
+                    <select id="filter-kind" class="w-full border rounded px-3 py-2">
+                        <option value="">Все виды</option>
+                        {% for kind in kinds %}
+                        <option value="{{ kind }}">{{ kind }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">Тип</label>
+                    <select id="filter-type" class="w-full border rounded px-3 py-2">
+                        <option value="">Все типы</option>
+                        {% for type in types %}
+                        <option value="{{ type }}">{{ type }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="md:col-span-3">
+                    <label class="block text-sm text-gray-700 mb-1">Поиск в названии</label>
+                    <input id="filter-search" type="text" placeholder="Введите текст для поиска..." 
+                           class="w-full border rounded px-3 py-2">
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ total_count }}</div>
+                    <div class="text-sm text-gray-600">Всего записей</div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-green-600">{{ categories|length }}</div>
+                    <div class="text-sm text-gray-600">Категорий</div>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-orange-600">{{ kinds|length }}</div>
+                    <div class="text-sm text-gray-600">Видов</div>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg text-center">
+                    <div class="text-2xl font-bold text-purple-600">{{ types|length }}</div>
+                    <div class="text-sm text-gray-600">Типов</div>
+                </div>
+            </div>
+
+            <!-- Таблица данных -->
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse border border-gray-300">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Категория</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Вид</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Тип</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left">Наименование</th>
+                            <th class="border border-gray-300 px-4 py-2 text-center">Срок устранения</th>
+                        </tr>
+                    </thead>
+                    <tbody id="classifier-table">
+                        {% for item in classifiers %}
+                        <tr class="classifier-row hover:bg-gray-50" 
+                            data-category="{{ item.category }}"
+                            data-kind="{{ item.kind }}"
+                            data-type="{{ item.type_name }}">
+                            <td class="border border-gray-300 px-4 py-2">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                    {{ item.category }}
+                                </span>
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                                    {{ item.kind }}
+                                </span>
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs">
+                                    {{ item.type_name }}
+                                </span>
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <div class="max-w-md">{{ item.name }}</div>
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2 text-center">
+                                {% if item.regulatory_deadline_days %}
+                                    <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
+                                        {{ item.get_deadline_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-gray-500 text-xs">Не установлен</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                                Классификатор пуст. Загрузите данные с помощью команды:
+                                <code class="bg-gray-100 px-2 py-1 rounded">python manage.py load_violation_classifier файл.xlsx</code>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Фильтрация таблицы
+        function filterTable() {
+            const category = document.getElementById('filter-category').value.toLowerCase();
+            const kind = document.getElementById('filter-kind').value.toLowerCase();
+            const type = document.getElementById('filter-type').value.toLowerCase();
+            const search = document.getElementById('filter-search').value.toLowerCase();
+            
+            const rows = document.querySelectorAll('.classifier-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const rowCategory = row.dataset.category.toLowerCase();
+                const rowKind = row.dataset.kind.toLowerCase();
+                const rowType = row.dataset.type.toLowerCase();
+                const rowText = row.textContent.toLowerCase();
+                
+                const matches = 
+                    (category === '' || rowCategory.includes(category)) &&
+                    (kind === '' || rowKind.includes(kind)) &&
+                    (type === '' || rowType.includes(type)) &&
+                    (search === '' || rowText.includes(search));
+                
+                if (matches) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Показываем количество найденных записей
+            console.log(`Показано записей: ${visibleCount} из ${rows.length}`);
+        }
+        
+        // Добавляем обработчики событий
+        document.getElementById('filter-category').addEventListener('change', filterTable);
+        document.getElementById('filter-kind').addEventListener('change', filterTable);
+        document.getElementById('filter-type').addEventListener('change', filterTable);
+        document.getElementById('filter-search').addEventListener('input', filterTable);
+    </script>
+</body>
+</html>

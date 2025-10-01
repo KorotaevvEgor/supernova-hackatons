@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Верификация работ - Система управления благоустройством{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'moscow-blue': '#003366',
+                    'moscow-red': '#DC143C', 
+                    'moscow-gold': '#FFD700',
+                    'moscow-green': '#228B22',
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Заголовок -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 mb-6 text-white shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold mb-1">Верификация работ</h1>
+                    <p class="text-blue-200">Проверка и подтверждение выполненных работ</p>
+                </div>
+            </div>
+            <div>
+                <a href="{% url 'projects:project_list' %}" class="inline-flex items-center px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 font-medium shadow-lg hover:shadow-xl border border-blue-200">
+                    <i class="fas fa-arrow-left mr-2"></i>К проектам
+                </a>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl text-center shadow-lg border border-blue-100">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-building text-blue-600"></i>
+                </div>
+                <div class="text-2xl font-bold text-blue-600">{{ projects_count }}</div>
+                <div class="text-sm text-blue-600 font-medium">Активных проектов</div>
+            </div>
+            <div class="bg-gradient-to-br from-white to-yellow-50 p-6 rounded-xl text-center shadow-lg border border-yellow-100">
+                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-tasks text-yellow-600"></i>
+                </div>
+                <div class="text-2xl font-bold text-yellow-600">{{ total_works }}</div>
+                <div class="text-sm text-yellow-600 font-medium">Работ к верификации</div>
+            </div>
+            <div class="bg-gradient-to-br from-white to-green-50 p-6 rounded-xl text-center shadow-lg border border-green-100">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-check-circle text-green-600"></i>
+                </div>
+                <div class="text-2xl font-bold text-green-600" id="verifiedCount">0</div>
+                <div class="text-sm text-green-600 font-medium">Верифицировано сегодня</div>
+            </div>
+        </div>
+    </div>
+
+    {% if works_to_verify %}
+    <!-- Инструкции -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 mb-6 shadow-lg">
+        <div class="flex items-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                <i class="fas fa-info-circle text-blue-600 text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-blue-900 mb-2">Инструкция по верификации</h3>
+                <p class="text-blue-700">
+                    Для верификации работ необходимо находиться на объекте. 
+                    Ваше местоположение будет автоматически проверено при подтверждении выполнения работы.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список работ -->
+    <div class="space-y-4">
+        {% for item in works_to_verify %}
+        <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <h3 class="text-xl font-semibold text-gray-900">{{ item.work.name }}</h3>
+                        
+                        <!-- Приоритет -->
+                        {% if item.priority == 'high' %}
+                        <span class="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium">
+                            🔴 Высокий приоритет
+                        </span>
+                        {% endif %}
+                        
+                        <!-- Дни с момента отчета -->
+                        {% if item.days_since_reported > 2 %}
+                        <span class="px-2 py-1 bg-orange-100 text-orange-600 rounded text-xs font-medium">
+                            ⏰ {{ item.days_since_reported }} дн. назад
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p class="text-sm text-gray-600"><strong>Проект:</strong> 
+                                <a href="{% url 'projects:project_detail' item.project.id %}" 
+                                   class="text-moscow-blue hover:underline">
+                                    {{ item.project.name }}
+                                </a>
+                            </p>
+                            <p class="text-sm text-gray-600"><strong>Тип работ:</strong> {{ item.work.work_type.name }}</p>
+                            <p class="text-sm text-gray-600"><strong>Объем:</strong> {{ item.work.volume }} {{ item.work.unit }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600"><strong>Плановое окончание:</strong> 
+                                <span class="{% if item.work.is_delayed %}text-red-600 font-medium{% endif %}">
+                                    {{ item.work.planned_end_date|date:"d.m.Y" }}
+                                </span>
+                            </p>
+                            <p class="text-sm text-gray-600"><strong>Прораб:</strong> 
+                                {{ item.project.foreman.get_full_name|default:"Не назначен" }}
+                            </p>
+                            <p class="text-sm text-gray-600"><strong>Отчет получен:</strong> {{ item.work.updated_at|date:"d.m.Y H:i" }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Описание работы -->
+                    {% if item.work.description %}
+                    <div class="bg-gray-50 p-3 rounded mb-3">
+                        <p class="text-sm text-gray-700">{{ item.work.description }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Действия -->
+                <div class="ml-6 flex flex-col space-y-3">
+                    <a href="{% url 'verification:project_verification' item.project.id %}" 
+                       class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl text-sm text-center">
+                        <i class="fas fa-map-marker-alt mr-2"></i>Перейти к верификации
+                    </a>
+                    
+                    <button onclick="quickVerifyWork({{ item.work.id }})" 
+                            class="verification-button inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl text-sm">
+                        <i class="fas fa-check mr-2"></i>Быстрая верификация
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Пустое состояние -->
+    <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg p-12 text-center border border-gray-100">
+        <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center">
+            <i class="fas fa-clipboard-check text-green-600 text-3xl"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 mb-3">Все работы верифицированы!</h3>
+        <p class="text-gray-600 text-lg max-w-md mx-auto leading-relaxed mb-8">
+            Отличная работа! В данный момент нет работ, требующих верификации.
+        </p>
+        <div class="flex justify-center space-x-4">
+            <a href="{% url 'projects:project_list' %}" 
+               class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl">
+                <i class="fas fa-building mr-2"></i>Перейти к проектам
+            </a>
+            <a href="{% url 'projects:work_schedule' %}" 
+               class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl">
+                <i class="fas fa-project-diagram mr-2"></i>Сетевой график
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+let currentLocation = null;
+
+// Быстрая верификация работы
+async function quickVerifyWork(workId) {
+    if (!confirm('Подтвердить выполнение работы?\n\nВаше местоположение будет проверено автоматически.')) {
+        return;
+    }
+    
+    // Получаем текущую геолокацию
+    if (!navigator.geolocation) {
+        alert('Геолокация недоступна в вашем браузере');
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            try {
+                const response = await fetch(`{% url "verification:verify_work" 0 %}`.replace('0', workId), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        notes: 'Быстрая верификация'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ ' + result.message);
+                    // Перезагружаем страницу для обновления списка
+                    window.location.reload();
+                } else {
+                    alert('❌ Ошибка: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Error verifying work:', error);
+                alert('Произошла ошибка при верификации работы');
+            }
+        },
+        (error) => {
+            let errorMessage = 'Не удалось определить местоположение';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Доступ к геолокации запрещен. Разрешите доступ в настройках браузера.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Местоположение недоступно';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Превышено время ожидания определения местоположения';
+                    break;
+            }
+            
+            alert('❌ ' + errorMessage);
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
+}
+
+// Обновляем счетчик верифицированных работ
+document.addEventListener('DOMContentLoaded', function() {
+    // Здесь можно добавить AJAX запрос для получения актуального счетчика
+    // Пока что оставляем статический счетчик
+});
+</script>
+{% endblock %}

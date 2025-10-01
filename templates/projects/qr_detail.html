@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}QR-код {{ qr_code.name }} - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6 space-y-8">
+    <!-- Заголовок -->
+    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-qrcode text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">{{ qr_code.name }}</h1>
+                    <p class="text-purple-100 mt-1">{{ project.name }}</p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="printQR()" 
+                        class="inline-flex items-center px-4 py-2 bg-white bg-opacity-20 rounded-lg text-white hover:bg-opacity-30 transition-colors">
+                    <i class="fas fa-print mr-2"></i>
+                    Печать
+                </button>
+                <a href="{% url 'projects:generate_qr_code' project.id %}" 
+                   class="inline-flex items-center px-4 py-2 bg-white bg-opacity-20 rounded-lg text-white hover:bg-opacity-30 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Назад
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR-код и информация -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- QR-код -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden" id="qr-print-area">
+            <div class="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-qrcode text-gray-500 mr-2"></i>
+                    Идентификатор объекта
+                </h2>
+            </div>
+            <div class="p-8 text-center">
+                <div class="inline-block p-4 bg-white border-2 border-dashed border-gray-300 rounded-xl">
+                    <img src="{{ qr_image }}" alt="QR-код" class="mx-auto" style="width: 200px; height: 200px;">
+                </div>
+                <div class="mt-4 space-y-2">
+                    <h3 class="text-lg font-semibold text-gray-900">{{ qr_code.name }}</h3>
+                    <p class="text-sm text-gray-600">{{ project.name }}</p>
+                    {% if qr_code.location_description %}
+                        <p class="text-xs text-gray-500">{{ qr_code.location_description }}</p>
+                    {% endif %}
+                    <p class="text-xs text-gray-400 mt-4">
+                        Для подтверждения нахождения на объекте<br>
+                        отсканируйте этот код при фиксации нарушения
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация о коде -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                        Информация о коде
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Статус</dt>
+                            <dd class="mt-1">
+                                <span class="px-2 py-1 text-xs rounded-full {% if qr_code.is_expired %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                    {% if qr_code.is_expired %}Истек{% else %}Активен{% endif %}
+                                </span>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Использований</dt>
+                            <dd class="mt-1 text-sm font-semibold text-gray-900">{{ verifications|length }}</dd>
+                        </div>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Создан</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ qr_code.created_at|date:"d.m.Y в H:i" }} пользователем {{ qr_code.created_by.get_full_name }}</dd>
+                    </div>
+                    {% if qr_code.expires_at %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Истекает</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ qr_code.expires_at|date:"d.m.Y в H:i" }}</dd>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">ID кода</dt>
+                        <dd class="mt-1 text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">{{ qr_code.code }}</dd>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Инструкция для инспекторов -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-lightbulb text-yellow-400 text-lg"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-yellow-800">Инструкция для инспекторов</h3>
+                        <div class="mt-2 text-sm text-yellow-700">
+                            <ol class="list-decimal list-inside space-y-1">
+                                <li>Найдите QR-код на объекте в указанном месте</li>
+                                <li>При создании нарушения нажмите "Сканировать QR-код"</li>
+                                <li>Наведите камеру на код для сканирования</li>
+                                <li>Дождитесь подтверждения верификации</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- История использования -->
+    {% if verifications %}
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-history text-green-500 mr-2"></i>
+                История использования
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Пользователь</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата и время</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP-адрес</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for verification in verifications %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-8 w-8">
+                                    <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                        <span class="text-xs font-medium text-white">
+                                            {{ verification.user.get_full_name|first|upper }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ verification.user.get_full_name }}
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ verification.user.get_user_type_display }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ verification.verified_at|date:"d.m.Y H:i:s" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ verification.ip_address|default:"Не определен" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function printQR() {
+    const printContent = document.getElementById('qr-print-area').innerHTML;
+    const originalContent = document.body.innerHTML;
+    
+    document.body.innerHTML = `
+        <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
+            ${printContent}
+        </div>
+    `;
+    
+    window.print();
+    document.body.innerHTML = originalContent;
+    window.location.reload(); // Перезагружаем страницу для восстановления функциональности
+}
+</script>
+
+{% endblock %}

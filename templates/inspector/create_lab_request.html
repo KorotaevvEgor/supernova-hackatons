@@ -1,0 +1,358 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать заявку на лабораторную пробу - Инспектор{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8">
+  <!-- Заголовок -->
+  <div class="bg-gradient-to-r from-purple-600 to-violet-700 rounded-xl p-6 text-white">
+    <div class="flex items-center">
+      <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+        <i class="fas fa-vial text-2xl"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold">Создать заявку на лабораторную пробу</h1>
+        <p class="text-purple-100 mt-1">Заполните форму для отправки материала в лабораторию</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Форма -->
+  <form method="post" id="lab-request-form" class="space-y-8">
+    {% csrf_token %}
+    
+    <!-- Основная информация -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+          Основная информация
+        </h2>
+      </div>
+      <div class="p-6 space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Проект -->
+          <div>
+            <label for="project_id" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-building text-blue-500 mr-1"></i>
+              Проект <span class="text-red-500">*</span>
+            </label>
+            <select id="project_id" name="project_id" required
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm">
+              <option value="">Выберите проект</option>
+              {% for project in projects %}
+                <option value="{{ project.id }}">{{ project.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Тип материала -->
+          <div>
+            <label for="material_type_id" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-layer-group text-orange-500 mr-1"></i>
+              Тип материала <span class="text-red-500">*</span>
+            </label>
+            <select id="material_type_id" name="material_type_id" required
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm">
+              <option value="">Выберите тип материала</option>
+              {% for material_type in material_types %}
+                <option value="{{ material_type.id }}">{{ material_type.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Срочность -->
+          <div>
+            <label for="urgency" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-clock text-yellow-500 mr-1"></i>
+              Срочность
+            </label>
+            <select id="urgency" name="urgency" 
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm">
+              {% for urgency_value, urgency_label in urgency_levels %}
+                <option value="{{ urgency_value }}" {% if urgency_value == 'normal' %}selected{% endif %}>
+                  {{ urgency_label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Ожидаемая дата результатов -->
+          <div>
+            <label for="expected_results_date" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-calendar-alt text-green-500 mr-1"></i>
+              Ожидаемая дата результатов
+            </label>
+            <input type="date" id="expected_results_date" name="expected_results_date"
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Детали заявки -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-clipboard-list text-green-500 mr-2"></i>
+          Детали заявки
+        </h2>
+      </div>
+      <div class="p-6 space-y-6">
+        <!-- Обоснование -->
+        <div>
+          <label for="reason" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-question-circle text-blue-500 mr-1"></i>
+            Обоснование необходимости <span class="text-red-500">*</span>
+          </label>
+          <textarea id="reason" name="reason" rows="4" required
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm resize-vertical"
+                    placeholder="Опишите причину необходимости проведения лабораторного анализа..."></textarea>
+          <p class="text-xs text-gray-500 mt-1">Например: подозрение на несоответствие качества, плановая проверка, жалобы</p>
+        </div>
+
+        <!-- Требуемые анализы -->
+        <div>
+          <label for="required_tests" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-microscope text-purple-500 mr-1"></i>
+            Требуемые анализы <span class="text-red-500">*</span>
+          </label>
+          <textarea id="required_tests" name="required_tests" rows="3" required
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm resize-vertical"
+                    placeholder="Укажите какие именно анализы необходимо провести..."></textarea>
+          <p class="text-xs text-gray-500 mt-1">Например: прочность на сжатие, морозостойкость, химический состав</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Количество образцов -->
+          <div>
+            <label for="sample_quantity" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-weight text-orange-500 mr-1"></i>
+              Количество образцов <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="sample_quantity" name="sample_quantity" required
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
+                   placeholder="Например: 3 образца по 1кг">
+            <p class="text-xs text-gray-500 mt-1">Укажите количество и вес/объем образцов</p>
+          </div>
+
+          <!-- Место отбора -->
+          <div>
+            <label for="sampling_location_description" class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-map-marker-alt text-red-500 mr-1"></i>
+              Место отбора пробы <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="sampling_location_description" name="sampling_location_description" required
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
+                   placeholder="Укажите конкретное место на объекте">
+            <p class="text-xs text-gray-500 mt-1">Например: участок 1, секция А, глубина 2м</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Дополнительная информация -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="bg-gradient-to-r from-yellow-50 to-amber-50 px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-sticky-note text-yellow-500 mr-2"></i>
+          Дополнительная информация
+        </h2>
+      </div>
+      <div class="p-6">
+        <!-- Примечания инспектора -->
+        <div>
+          <label for="inspector_notes" class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-comment-alt text-indigo-500 mr-1"></i>
+            Примечания и особые требования
+          </label>
+          <textarea id="inspector_notes" name="inspector_notes" rows="3"
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm resize-vertical"
+                    placeholder="Укажите дополнительные требования к отбору проб или анализу..."></textarea>
+          <p class="text-xs text-gray-500 mt-1">Дополнительные требования или важные замечания</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Кнопки управления -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+      <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <div class="flex items-center text-sm text-gray-600">
+          <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+          Поля отмеченные <span class="text-red-500 font-semibold">*</span> обязательны для заполнения
+        </div>
+        <div class="flex space-x-4">
+          <a href="{% url 'inspector:lab_requests' %}" 
+             class="inline-flex items-center px-6 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-all duration-200 shadow-sm">
+            <i class="fas fa-times mr-2"></i>
+            Отмена
+          </a>
+          <button type="submit" id="submit-btn"
+                  class="inline-flex items-center px-8 py-3 border border-transparent rounded-lg text-white bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+            <i class="fas fa-paper-plane mr-2"></i>
+            <span id="submit-text">Создать заявку</span>
+            <div id="loading-spinner" class="hidden ml-2">
+              <i class="fas fa-spinner fa-spin"></i>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Установка минимальной даты
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('expected_results_date').setAttribute('min', tomorrow.toISOString().split('T')[0]);
+    
+    // Улучшенная анимация формы
+    const form = document.getElementById('lab-request-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    
+    // Валидация в реальном времени
+    const requiredFields = ['project_id', 'material_type_id', 'reason', 'required_tests', 'sample_quantity', 'sampling_location_description'];
+    
+    function validateForm() {
+        let isValid = true;
+        requiredFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('border-red-300', 'ring-red-500');
+                field.classList.remove('border-gray-300');
+            } else {
+                field.classList.remove('border-red-300', 'ring-red-500');
+                field.classList.add('border-gray-300');
+            }
+        });
+        
+        // Обновление состояния кнопки
+        if (isValid) {
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            submitBtn.disabled = true;
+        }
+        
+        return isValid;
+    }
+    
+    // Добавляем слушатели событий для валидации
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        field.addEventListener('input', validateForm);
+        field.addEventListener('blur', validateForm);
+    });
+    
+    // Начальная валидация
+    validateForm();
+    
+    // Обработка отправки формы
+    form.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+            
+            // Прокрутка к первому невалидному полю
+            const firstInvalidField = document.querySelector('.border-red-300');
+            if (firstInvalidField) {
+                firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstInvalidField.focus();
+            }
+            
+            // Показ уведомления
+            showNotification('Пожалуйста, заполните все обязательные поля', 'error');
+            return;
+        }
+        
+        // Анимация загрузки
+        submitText.textContent = 'Создаем заявку...';
+        loadingSpinner.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-75');
+    });
+    
+    // Автозаполнение при выборе проекта
+    document.getElementById('project_id').addEventListener('change', function() {
+        const projectName = this.options[this.selectedIndex].text;
+        const locationField = document.getElementById('sampling_location_description');
+        
+        if (this.value && !locationField.value) {
+            locationField.placeholder = `Укажите место на объекте: ${projectName}`;
+        }
+    });
+    
+    // Автоподстановка анализов по типу материала
+    document.getElementById('material_type_id').addEventListener('change', function() {
+        const materialType = this.options[this.selectedIndex].text.toLowerCase();
+        const testsField = document.getElementById('required_tests');
+        
+        if (this.value && !testsField.value) {
+            let suggestedTests = '';
+            
+            if (materialType.includes('бетон')) {
+                suggestedTests = 'Прочность на сжатие, морозостойкость, водонепроницаемость';
+            } else if (materialType.includes('асфальт')) {
+                suggestedTests = 'Прочность при сжатии, устойчивость к колееобразованию';
+            } else if (materialType.includes('грунт')) {
+                suggestedTests = 'Плотность, влажность, коэффициент фильтрации';
+            } else if (materialType.includes('сталь')) {
+                suggestedTests = 'Предел прочности, предел текучести, химический состав';
+            }
+            
+            if (suggestedTests) {
+                testsField.value = suggestedTests;
+                testsField.dispatchEvent(new Event('input'));
+            }
+        }
+    });
+    
+    // Функция показа уведомлений
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transform transition-all duration-300 translate-x-full`;
+        
+        if (type === 'error') {
+            notification.classList.add('bg-red-500');
+        } else if (type === 'success') {
+            notification.classList.add('bg-green-500');
+        } else {
+            notification.classList.add('bg-blue-500');
+        }
+        
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Анимация появления
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full');
+        }, 100);
+        
+        // Автоматическое скрытие
+        setTimeout(() => {
+            notification.classList.add('translate-x-full');
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 5000);
+    }
+    
+    console.log('🧪 Lab request form initialized');
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for development
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: urban_system_dev
+      POSTGRES_USER: urban_user
+      POSTGRES_PASSWORD: urban_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # Django Web Application for development
+  web:
+    build: .
+    restart: always
+    environment:
+      - SECRET_KEY=your-dev-secret-key-here
+      - DEBUG=True
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://urban_user:urban_password@db:5432/urban_system_dev
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+      - TESSERACT_CMD=/usr/bin/tesseract
+    volumes:
+      - .:/app
+      - static_dev_volume:/app/staticfiles
+      - media_dev_volume:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  postgres_dev_data:
+  static_dev_volume:
+  media_dev_volume:

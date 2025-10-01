@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+
+{% block title %}Заявка #{{ lab_request.id }} - Лабораторная проба - Инспектор{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-8">
+  <!-- Заголовок и навигация -->
+  <div class="bg-gradient-to-r from-purple-600 to-violet-700 rounded-xl p-6 text-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center">
+        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+          <i class="fas fa-vial text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">Заявка на лабораторную пробу #{{ lab_request.id }}</h1>
+          <p class="text-purple-100 mt-1">{{ lab_request.project.name }}</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <!-- Статус -->
+        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
+          {% if lab_request.status == 'requested' %}bg-yellow-100 text-yellow-800
+          {% elif lab_request.status == 'scheduled' %}bg-blue-100 text-blue-800
+          {% elif lab_request.status == 'sampling' %}bg-orange-100 text-orange-800
+          {% elif lab_request.status == 'testing' %}bg-purple-100 text-purple-800
+          {% elif lab_request.status == 'completed' %}bg-green-100 text-green-800
+          {% elif lab_request.status == 'cancelled' %}bg-red-100 text-red-800
+          {% endif %}">
+          <i class="fas fa-circle text-xs mr-2"></i>
+          {{ lab_request.get_status_display }}
+        </span>
+        
+        <!-- Кнопка возврата -->
+        <a href="{% url 'inspector:lab_requests' %}" 
+           class="inline-flex items-center px-4 py-2 bg-white bg-opacity-20 rounded-lg text-white hover:bg-opacity-30 transition-colors">
+          <i class="fas fa-arrow-left mr-2"></i>
+          К списку
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Основная информация -->
+    <div class="lg:col-span-2 space-y-8">
+      <!-- Детали заявки -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+            Детали заявки
+          </h2>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-semibold text-gray-600">Проект</label>
+              <p class="text-gray-900 mt-1">{{ lab_request.project.name }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-600">Тип материала</label>
+              <p class="text-gray-900 mt-1">{{ lab_request.material_type.name }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-600">Срочность</label>
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-1
+                {% if lab_request.urgency == 'normal' %}bg-green-100 text-green-800
+                {% elif lab_request.urgency == 'urgent' %}bg-yellow-100 text-yellow-800
+                {% elif lab_request.urgency == 'critical' %}bg-red-100 text-red-800
+                {% endif %}">
+                {{ lab_request.get_urgency_display }}
+              </span>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-600">Дата создания</label>
+              <p class="text-gray-900 mt-1">{{ lab_request.created_at|date:"d.m.Y H:i" }}</p>
+            </div>
+            {% if lab_request.expected_results_date %}
+            <div>
+              <label class="block text-sm font-semibold text-gray-600">Ожидаемая дата результатов</label>
+              <p class="text-gray-900 mt-1">{{ lab_request.expected_results_date|date:"d.m.Y" }}</p>
+            </div>
+            {% endif %}
+            <div>
+              <label class="block text-sm font-semibold text-gray-600">Заявитель</label>
+              <p class="text-gray-900 mt-1">{{ lab_request.requested_by.get_full_name|default:lab_request.requested_by.username }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Обоснование и анализы -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <i class="fas fa-clipboard-list text-green-500 mr-2"></i>
+            Обоснование и анализы
+          </h2>
+        </div>
+        <div class="p-6 space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Обоснование необходимости</label>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <p class="text-gray-900 whitespace-pre-wrap">{{ lab_request.reason }}</p>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Требуемые анализы</label>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <p class="text-gray-900 whitespace-pre-wrap">{{ lab_request.required_tests }}</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-600">Количество образцов</label>
+              <p class="text-gray-900 mt-1">{{ lab_request.sample_quantity }}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-600">Место отбора</label>
+              <p class="text-gray-900 mt-1">{{ lab_request.sampling_location_description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Результаты анализа -->
+      {% if lab_request.results_summary or lab_request.status == 'completed' %}
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-purple-50 to-violet-50 px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <i class="fas fa-chart-line text-purple-500 mr-2"></i>
+            Результаты анализа
+          </h2>
+        </div>
+        <div class="p-6">
+          {% if lab_request.results_summary %}
+            <div class="mb-4">
+              <label class="block text-sm font-semibold text-gray-600 mb-2">Краткая сводка результатов</label>
+              <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-gray-900 whitespace-pre-wrap">{{ lab_request.results_summary }}</p>
+              </div>
+            </div>
+            
+            {% if lab_request.compliance_status %}
+            <div class="flex items-center">
+              <label class="block text-sm font-semibold text-gray-600 mr-3">Статус соответствия:</label>
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                {% if 'соответствует' in lab_request.compliance_status.lower %}bg-green-100 text-green-800
+                {% elif 'не соответствует' in lab_request.compliance_status.lower %}bg-red-100 text-red-800
+                {% else %}bg-yellow-100 text-yellow-800
+                {% endif %}">
+                {{ lab_request.compliance_status }}
+              </span>
+            </div>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-flask text-4xl mb-3 text-gray-300"></i>
+              <p class="text-sm font-medium">Результаты анализа еще не готовы</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Примечания -->
+      {% if lab_request.inspector_notes or lab_request.lab_notes %}
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-yellow-50 to-amber-50 px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <i class="fas fa-sticky-note text-yellow-500 mr-2"></i>
+            Примечания
+          </h2>
+        </div>
+        <div class="p-6 space-y-4">
+          {% if lab_request.inspector_notes %}
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Примечания инспектора</label>
+            <div class="bg-blue-50 rounded-lg p-4">
+              <p class="text-gray-900 whitespace-pre-wrap">{{ lab_request.inspector_notes }}</p>
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if lab_request.lab_notes %}
+          <div>
+            <label class="block text-sm font-semibold text-gray-600 mb-2">Примечания лаборатории</label>
+            <div class="bg-purple-50 rounded-lg p-4">
+              <p class="text-gray-900 whitespace-pre-wrap">{{ lab_request.lab_notes }}</p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Боковая панель -->
+    <div class="space-y-8">
+      <!-- Статистика -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <i class="fas fa-chart-bar text-indigo-500 mr-2"></i>
+            Статистика
+          </h2>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">Дней с момента создания</span>
+            <span class="text-sm font-semibold text-gray-900">
+              {{ lab_request.created_at|timesince }}
+            </span>
+          </div>
+          
+          {% if lab_request.expected_results_date %}
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">До ожидаемой даты</span>
+            <span class="text-sm font-semibold 
+              {% if lab_request.expected_results_date < today %}text-red-600
+              {% elif lab_request.expected_results_date == today %}text-yellow-600
+              {% else %}text-green-600
+              {% endif %}">
+              {% if lab_request.expected_results_date < today %}
+                Просрочено
+              {% elif lab_request.expected_results_date == today %}
+                Сегодня
+              {% else %}
+                {{ lab_request.expected_results_date|timeuntil }}
+              {% endif %}
+            </span>
+          </div>
+          {% endif %}
+          
+          {% if lab_request.is_overdue %}
+          <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div class="flex items-center">
+              <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+              <span class="text-red-800 text-sm font-medium">Заявка просрочена</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Временная линия -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <i class="fas fa-history text-orange-500 mr-2"></i>
+            Временная линия
+          </h2>
+        </div>
+        <div class="p-6">
+          <div class="relative">
+            <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+            
+            <!-- Создание заявки -->
+            <div class="relative flex items-start mb-4">
+              <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs">
+                <i class="fas fa-plus"></i>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-semibold text-gray-900">Заявка создана</p>
+                <p class="text-xs text-gray-500">{{ lab_request.created_at|date:"d.m.Y H:i" }}</p>
+              </div>
+            </div>
+            
+            {% if lab_request.scheduled_sampling_date %}
+            <!-- Планирование -->
+            <div class="relative flex items-start mb-4">
+              <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs">
+                <i class="fas fa-calendar"></i>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-semibold text-gray-900">Запланирован отбор проб</p>
+                <p class="text-xs text-gray-500">{{ lab_request.scheduled_sampling_date|date:"d.m.Y H:i" }}</p>
+              </div>
+            </div>
+            {% endif %}
+            
+            {% if lab_request.actual_sampling_date %}
+            <!-- Отбор проб -->
+            <div class="relative flex items-start mb-4">
+              <div class="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs">
+                <i class="fas fa-vial"></i>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-semibold text-gray-900">Пробы отобраны</p>
+                <p class="text-xs text-gray-500">{{ lab_request.actual_sampling_date|date:"d.m.Y H:i" }}</p>
+              </div>
+            </div>
+            {% endif %}
+            
+            {% if lab_request.status == 'completed' %}
+            <!-- Завершение -->
+            <div class="relative flex items-start">
+              <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-xs">
+                <i class="fas fa-check"></i>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-semibold text-gray-900">Анализ завершен</p>
+                <p class="text-xs text-gray-500">{{ lab_request.updated_at|date:"d.m.Y H:i" }}</p>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Контакты лаборатории -->
+      {% if lab_request.lab_organization or lab_request.lab_contact %}
+      <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-teal-50 to-cyan-50 px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <i class="fas fa-building text-teal-500 mr-2"></i>
+            Лаборатория
+          </h2>
+        </div>
+        <div class="p-6 space-y-3">
+          {% if lab_request.lab_organization %}
+          <div>
+            <label class="block text-sm font-semibold text-gray-600">Организация</label>
+            <p class="text-gray-900 mt-1">{{ lab_request.lab_organization }}</p>
+          </div>
+          {% endif %}
+          
+          {% if lab_request.lab_contact %}
+          <div>
+            <label class="block text-sm font-semibold text-gray-600">Контакт</label>
+            <p class="text-gray-900 mt-1">{{ lab_request.lab_contact }}</p>
+          </div>
+          {% endif %}
+          
+          {% if lab_request.sampling_specialist %}
+          <div>
+            <label class="block text-sm font-semibold text-gray-600">Специалист по отбору</label>
+            <p class="text-gray-900 mt-1">{{ lab_request.sampling_specialist }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Кнопки действий -->
+  <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+    <div class="flex flex-wrap items-center justify-between space-y-2 sm:space-y-0">
+      <div class="text-sm text-gray-600">
+        <i class="fas fa-clock mr-1"></i>
+        Последнее обновление: {{ lab_request.updated_at|date:"d.m.Y H:i" }}
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <a href="{% url 'inspector:lab_requests' %}" 
+           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm">
+          <i class="fas fa-list mr-2"></i>
+          Все заявки
+        </a>
+        
+        {% if lab_request.status != 'completed' and lab_request.status != 'cancelled' %}
+        <button onclick="showStatusModal()" 
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+          <i class="fas fa-edit mr-2"></i>
+          Обновить статус
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно обновления статуса -->
+<div id="statusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Обновить статус заявки</h3>
+          <button onclick="hideStatusModal()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="update_status" value="1">
+          
+          <div class="mb-4">
+            <label for="status" class="block text-sm font-semibold text-gray-700 mb-2">Новый статус</label>
+            <select name="status" id="status" required
+                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              {% for status_value, status_label in status_choices %}
+                <option value="{{ status_value }}" {% if status_value == lab_request.status %}selected{% endif %}>
+                  {{ status_label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="flex justify-end space-x-3">
+            <button type="button" onclick="hideStatusModal()" 
+                    class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+              Отмена
+            </button>
+            <button type="submit" 
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              Обновить
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showStatusModal() {
+    document.getElementById('statusModal').classList.remove('hidden');
+}
+
+function hideStatusModal() {
+    document.getElementById('statusModal').classList.add('hidden');
+}
+
+// Закрытие модального окна по клику вне его
+document.getElementById('statusModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideStatusModal();
+    }
+});
+
+// Закрытие по Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        hideStatusModal();
+    }
+});
+
+console.log('🧪 Lab request detail page initialized');
+</script>
+
+{% endblock %}

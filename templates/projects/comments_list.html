@@ -1,0 +1,950 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Нарушения - Система управления благоустройством{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'moscow-blue': '#003366',
+                    'moscow-red': '#DC143C', 
+                    'moscow-gold': '#FFD700',
+                    'moscow-green': '#228B22',
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+    <!-- Заголовок -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl sm:rounded-2xl p-4 sm:p-8 text-white mb-6 sm:mb-8 shadow-xl">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div class="flex items-center">
+                <div class="w-12 h-12 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-xl sm:rounded-2xl flex items-center justify-center mr-4 sm:mr-6">
+                    <i class="fas fa-exclamation-triangle text-xl sm:text-3xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">Нарушения и замечания</h1>
+                    <p class="text-blue-100 text-sm sm:text-lg">Контроль качества и соответствия стандартам</p>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full lg:w-auto">
+                <a href="{% url 'projects:project_list' %}" 
+                   class="btn-mobile inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-white bg-opacity-20 rounded-xl text-white hover:bg-opacity-30 transition-all duration-200 backdrop-blur-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    К проектам
+                </a>
+                {% if user.user_type == 'construction_control' %}
+                <button onclick="showCreateCommentModal()" 
+                        class="btn-mobile inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition-all duration-200 font-medium shadow-lg">
+                    <i class="fas fa-plus mr-2"></i>
+                    Новое замечание
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистические карточки -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-list-alt text-gray-600 text-lg sm:text-xl"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold text-gray-900">{{ stats.total }}</div>
+                    <div class="text-xs sm:text-sm text-gray-600 font-medium">Всего</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-hourglass-half text-yellow-600 text-lg sm:text-xl"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold text-yellow-800">{{ stats.pending }}</div>
+                    <div class="text-xs sm:text-sm text-yellow-600 font-medium">На рассмотрении</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-tasks text-blue-600 text-lg sm:text-xl"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold text-blue-800">{{ stats.accepted }}</div>
+                    <div class="text-xs sm:text-sm text-blue-600 font-medium">В работе</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-check-circle text-green-600 text-lg sm:text-xl"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold text-green-800">{{ stats.resolved }}</div>
+                    <div class="text-xs sm:text-sm text-green-600 font-medium">Устранено</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 {% if stats.overdue > 0 %}ring-2 ring-red-200 animate-pulse{% endif %}">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-clock text-red-600 text-lg sm:text-xl{% if stats.overdue > 0 %} animate-pulse{% endif %}"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold {% if stats.overdue > 0 %}text-red-800{% else %}text-gray-800{% endif %}">{{ stats.overdue }}</div>
+                    <div class="text-xs sm:text-sm text-red-600 font-medium">Просрочено</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Панель фильтров -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+        <div class="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-filter text-blue-600 mr-2"></i>
+                Фильтры
+            </h3>
+        </div>
+        <div class="p-6">
+
+            <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        <i class="fas fa-tasks mr-1 text-blue-600"></i>Статус
+                    </label>
+                    <select name="status" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="">Все статусы</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>На рассмотрении</option>
+                        <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>Принято</option>
+                        <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Устранено</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Отклонено</option>
+                    </select>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        <i class="fas fa-flag mr-1 text-blue-600"></i>Приоритет
+                    </label>
+                    <select name="priority" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="">Все приоритеты</option>
+                        <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Низкий</option>
+                        <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Средний</option>
+                        <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>Высокий</option>
+                        <option value="critical" {% if priority_filter == 'critical' %}selected{% endif %}>Критический</option>
+                    </select>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        <i class="fas fa-building mr-1 text-blue-600"></i>Проект
+                    </label>
+                    <select name="project" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        <option value="">Все проекты</option>
+                        {% for project in all_projects %}
+                        <option value="{{ project.id }}" {% if project_filter == project.id|stringformat:"s" %}selected{% endif %}>{{ project.name|truncatechars:30 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="space-y-2 sm:col-span-2 lg:col-span-1">
+                    <label class="block text-sm font-medium text-gray-700 opacity-0">.Действия</label>
+                    <div class="flex space-x-3">
+                        <button type="submit" 
+                                class="btn-mobile flex-1 inline-flex justify-center items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-lg">
+                            <i class="fas fa-search mr-2"></i>
+                            <span class="hidden sm:inline">Применить</span>
+                            <span class="sm:hidden">Прим.</span>
+                        </button>
+                        
+                        <a href="{% url 'projects:comments_list' %}" 
+                           class="btn-mobile inline-flex items-center justify-center px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200">
+                            <i class="fas fa-undo"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Список нарушений и замечаний -->
+    <div class="space-y-6">
+        {% for comment in comments %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+            <div class="p-8">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <!-- Тип нарушения/замечания -->
+                            {% if comment.item_type == 'violation' %}
+                            <div class="flex items-center px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 rounded-xl font-medium">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                Нарушение
+                            </div>
+                            {% else %}
+                            <div class="flex items-center px-4 py-2 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 rounded-xl font-medium">
+                                <i class="fas fa-clipboard-list mr-2"></i>
+                                Замечание
+                            </div>
+                            {% endif %}
+                        
+                            <!-- Статус -->
+                            <div class="inline-flex items-center px-3 py-2 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105
+                                {% if comment.item_type == 'violation' %}
+                                    {% if comment.status == 'detected' or comment.status == 'notified' %}
+                                    bg-gradient-to-r from-orange-200 to-red-300 text-red-800 shadow-lg
+                                    {% elif comment.status == 'in_correction' %}
+                                    bg-gradient-to-r from-blue-200 to-indigo-300 text-blue-800 shadow-lg
+                                    {% elif comment.status == 'corrected' or comment.status == 'verified' or comment.status == 'closed' %}
+                                    bg-gradient-to-r from-green-200 to-emerald-300 text-green-800 shadow-lg
+                                    {% else %}
+                                    bg-gradient-to-r from-gray-200 to-slate-300 text-gray-800 shadow-lg
+                                    {% endif %}
+                                {% else %}
+                                    {% if comment.status == 'pending' %}
+                                    bg-gradient-to-r from-yellow-200 to-orange-300 text-yellow-800 shadow-lg
+                                    {% elif comment.status == 'accepted' %}
+                                    bg-gradient-to-r from-blue-200 to-indigo-300 text-blue-800 shadow-lg
+                                    {% elif comment.status == 'resolved' %}
+                                    bg-gradient-to-r from-green-200 to-emerald-300 text-green-800 shadow-lg
+                                    {% elif comment.status == 'rejected' %}
+                                    bg-gradient-to-r from-gray-200 to-slate-300 text-gray-800 shadow-lg
+                                    {% endif %}
+                                {% endif %}">
+                                <div class="w-2 h-2 rounded-full mr-2
+                                    {% if comment.item_type == 'violation' %}
+                                        {% if comment.status == 'detected' or comment.status == 'notified' %}
+                                        bg-red-600 animate-pulse
+                                        {% elif comment.status == 'in_correction' %}
+                                        bg-blue-600
+                                        {% elif comment.status == 'corrected' or comment.status == 'verified' or comment.status == 'closed' %}
+                                        bg-green-600
+                                        {% else %}
+                                        bg-gray-600
+                                        {% endif %}
+                                    {% else %}
+                                        {% if comment.status == 'pending' %}
+                                        bg-yellow-600 animate-pulse
+                                        {% elif comment.status == 'accepted' %}
+                                        bg-blue-600
+                                        {% elif comment.status == 'resolved' %}
+                                        bg-green-600
+                                        {% elif comment.status == 'rejected' %}
+                                        bg-gray-600
+                                        {% endif %}
+                                    {% endif %}"></div>
+                                {{ comment.get_status_display }}
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold text-gray-900 mb-3 leading-tight">
+                            {% if comment.item_type == 'violation' %}
+                            <a href="{% url 'inspector:violation_detail' comment.id %}" class="text-gray-900 hover:text-blue-600 transition-colors">
+                                {{ comment.title }}
+                            </a>
+                            {% else %}
+                            <a href="{% url 'projects:comment_detail' comment.id %}" class="text-gray-900 hover:text-blue-600 transition-colors">
+                                {{ comment.title }}
+                            </a>
+                            {% endif %}
+                        </h3>
+                        
+                        <div class="flex flex-wrap items-center gap-2 mb-4">
+                            <!-- Приоритет -->
+                            <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold
+                                {% if comment.priority == 'low' %}
+                                bg-gray-100 text-gray-700
+                                {% elif comment.priority == 'medium' %}
+                                bg-blue-100 text-blue-700
+                                {% elif comment.priority == 'high' %}
+                                bg-orange-100 text-orange-700
+                                {% elif comment.priority == 'critical' %}
+                                bg-red-100 text-red-700
+                                {% endif %}">
+                                {% if comment.priority == 'low' %}
+                                <i class="fas fa-arrow-down mr-1"></i>
+                                {% elif comment.priority == 'medium' %}
+                                <i class="fas fa-minus mr-1"></i>
+                                {% elif comment.priority == 'high' %}
+                                <i class="fas fa-arrow-up mr-1"></i>
+                                {% elif comment.priority == 'critical' %}
+                                <i class="fas fa-exclamation mr-1"></i>
+                                {% endif %}
+                                {{ comment.get_priority_display }}
+                            </div>
+
+                            <!-- Дополнительные теги -->
+                            {% if comment.is_overdue %}
+                            <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 animate-pulse">
+                                <i class="fas fa-clock mr-1"></i>
+                                Просрочено
+                            </div>
+                            {% endif %}
+
+                            {% if comment.created_at_location %}
+                            <div class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700">
+                                <i class="fas fa-map-marker-alt mr-1"></i>
+                                На объекте
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <p class="text-gray-600 mb-6 leading-relaxed text-base">{{ comment.description|truncatechars:200 }}</p>
+
+                        <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-building text-blue-600"></i>
+                                    <span><strong class="text-gray-900">Проект:</strong></span>
+                                    <a href="{% url 'projects:project_detail' comment.project.id %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                                        {{ comment.project.name }}
+                                    </a>
+                                </div>
+                                {% if comment.work %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-tasks text-blue-600"></i>
+                                    <span><strong class="text-gray-900">Работа:</strong> {{ comment.work.name }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Информация о создании -->
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-user-plus text-blue-600"></i>
+                                    <span><strong class="text-gray-900">Создано:</strong></span> 
+                                    {% if comment.item_type == 'violation' %}
+                                        <span>{{ comment.inspector.get_full_name }} • {{ comment.detected_at|date:"d.m.Y H:i" }}</span>
+                                    {% else %}
+                                        <span>{{ comment.created_by.get_full_name }} • {{ comment.created_at|date:"d.m.Y H:i" }}</span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if comment.assigned_to %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-user-check text-blue-600"></i>
+                                    <span><strong class="text-gray-900">Ответственный:</strong> {{ comment.assigned_to.get_full_name }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Срок устранения -->
+                                {% if comment.item_type == 'violation' and comment.deadline %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-calendar-alt text-blue-600"></i>
+                                    <span><strong class="text-gray-900">Срок устранения:</strong> {{ comment.deadline|date:"d.m.Y" }}</span>
+                                </div>
+                                {% elif comment.due_date %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-calendar-alt text-blue-600"></i>
+                                    <span><strong class="text-gray-900">Срок устранения:</strong> {{ comment.due_date|date:"d.m.Y" }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Дата устранения -->
+                                {% if comment.item_type == 'violation' and comment.corrected_at %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-check-circle text-green-600"></i>
+                                    <span><strong class="text-gray-900">Устранено:</strong> {{ comment.corrected_at|date:"d.m.Y H:i" }}</span>
+                                </div>
+                            {% elif comment.resolved_at %}
+                            <div>
+                                <strong class="text-gray-900">Устранено:</strong> {{ comment.resolved_at|date:"d.m.Y H:i" }}
+                            </div>
+                            {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кнопки действий -->
+                    <div class="mt-6">
+                        <div class="flex flex-wrap gap-3">
+                            <!-- Кнопка подробностей -->
+                            {% if comment.item_type == 'violation' %}
+                            <a href="{% url 'inspector:violation_detail' comment.id %}" 
+                               class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm">
+                                <i class="fas fa-eye mr-2 text-sm"></i>
+                                Подробнее
+                            </a>
+                            {% else %}
+                            <a href="{% url 'projects:comment_detail' comment.id %}" 
+                               class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm">
+                                <i class="fas fa-eye mr-2 text-sm"></i>
+                                Подробнее
+                            </a>
+                            {% endif %}
+                            
+                            <!-- Дополнительные действия -->
+                            {% if comment.item_type == 'violation' %}
+                                <!-- Кнопка исправления нарушения -->
+                                {% if comment.status == 'detected' or comment.status == 'notified' or comment.status == 'in_correction' %}
+                                    {% if user.user_type == 'foreman' or comment.assigned_to == user %}
+                                        <button onclick="showCorrectViolationModal({{ comment.id }}, '{{ comment.title|escapejs }}')" 
+                                                class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm">
+                                            <i class="fas fa-tools mr-2 text-sm"></i>
+                                            Отметить исправленным
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                                <!-- Кнопки для замечаний -->
+                                {% if comment.status == 'pending' and user.user_type in 'construction_control,foreman' %}
+                                    <button onclick="acceptComment({{ comment.id }})" 
+                                            class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm">
+                                        <i class="fas fa-check mr-2 text-sm"></i>
+                                        Принять
+                                    </button>
+                                    <button onclick="rejectComment({{ comment.id }})" 
+                                            class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm">
+                                        <i class="fas fa-times mr-2 text-sm"></i>
+                                        Отклонить
+                                    </button>
+                                {% elif comment.status == 'accepted' and comment.assigned_to == user %}
+                                    <button onclick="resolveComment({{ comment.id }})" 
+                                            class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm">
+                                        <i class="fas fa-check-circle mr-2 text-sm"></i>
+                                        Отметить устраненным
+                                    </button>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg p-12 text-center border border-gray-100">
+            <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                <i class="fas fa-clipboard-check text-gray-500 text-3xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-3">Нарушений не найдено</h3>
+            <p class="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">
+                {% if user.user_type == 'construction_control' %}
+                Отлично! В текущих проектах нет открытых нарушений. Можете создать новое замечание при необходимости.
+                {% else %}
+                Отлично! У вас нет нарушений, требующих внимания. Продолжайте качественную работу!
+                {% endif %}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Модальное окно для создания замечания -->
+{% if user.user_type == 'construction_control' %}
+<div id="createCommentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 class="text-lg font-semibold mb-4">Создание замечания</h3>
+        
+        <form id="createCommentForm">
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Проект</label>
+                <select id="project_select" class="w-full border rounded px-3 py-2" required>
+                    <option value="">Выберите проект</option>
+                    {% for project in all_projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Заголовок</label>
+                <input type="text" id="comment_title" class="w-full border rounded px-3 py-2" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Описание</label>
+                <textarea id="comment_description" class="w-full border rounded px-3 py-2" rows="4" required></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Приоритет</label>
+                <select id="comment_priority" class="w-full border rounded px-3 py-2">
+                    <option value="medium">Средний</option>
+                    <option value="low">Низкий</option>
+                    <option value="high">Высокий</option>
+                    <option value="critical">Критический</option>
+                </select>
+            </div>
+
+            <div class="mb-4 text-sm text-gray-600">
+                <p>📍 Для создания замечания необходимо находиться на объекте</p>
+                <div id="locationStatus" class="mt-2"></div>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="hideCreateCommentModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    Отмена
+                </button>
+                <button type="submit" class="px-4 py-2 bg-moscow-red text-white rounded hover:bg-red-700">
+                    Создать
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Модальное окно для исправления нарушения -->
+<div id="correctViolationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 w-full max-w-2xl mx-4 shadow-2xl">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 flex items-center">
+                <i class="fas fa-tools text-green-600 mr-3"></i>
+                Отметить нарушение как исправленное
+            </h3>
+            <button onclick="hideCorrectViolationModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="violationTitle" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div class="flex items-center text-red-700">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span class="font-medium" id="violationTitleText">Нарушение</span>
+            </div>
+        </div>
+        
+        <form id="correctViolationForm" enctype="multipart/form-data">
+            <div class="space-y-6">
+                <!-- Описание исправления -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-comment text-blue-500 mr-1"></i>
+                        Описание выполненных работ по исправлению *
+                    </label>
+                    <textarea id="correction_comment" 
+                              name="comment" 
+                              rows="4" 
+                              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all resize-none" 
+                              placeholder="Опишите какие работы были выполнены для устранения нарушения..."
+                              required></textarea>
+                </div>
+                
+                <!-- Загрузка фотографий -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-camera text-green-500 mr-1"></i>
+                        Фотографии исправления *
+                        <span class="text-gray-500 text-xs">(PDF, документы тоже поддерживаются)</span>
+                    </label>
+                    
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-400 transition-colors cursor-pointer" 
+                         id="photoDropZone" 
+                         onclick="document.getElementById('correction_photos').click()">
+                        <div class="space-y-2">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
+                            <div class="text-gray-600">
+                                <p class="font-medium">Нажмите для выбора файлов</p>
+                                <p class="text-sm text-gray-500">или перетащите сюда</p>
+                            </div>
+                        </div>
+                        
+                        <input type="file" 
+                               id="correction_photos" 
+                               name="photos" 
+                               multiple 
+                               accept="image/*,application/pdf,.doc,.docx" 
+                               class="hidden" 
+                               onchange="handleFileSelect(this)">
+                    </div>
+                    
+                    <!-- Превью выбранных файлов -->
+                    <div id="selectedFiles" class="mt-4 space-y-2"></div>
+                </div>
+                
+                <!-- Геолокация -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div class="flex items-center text-blue-700 mb-2">
+                        <i class="fas fa-map-marker-alt mr-2"></i>
+                        <span class="font-medium">Местоположение</span>
+                    </div>
+                    <p class="text-sm text-blue-600">Мы автоматически определим ваше местонахождение при отправке</p>
+                    <div id="correctionLocationStatus" class="mt-2"></div>
+                </div>
+            </div>
+            
+            <!-- Кнопки действий -->
+            <div class="flex justify-end space-x-4 mt-8 pt-6 border-t border-gray-200">
+                <button type="button" 
+                        onclick="hideCorrectViolationModal()" 
+                        class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium">
+                    <i class="fas fa-times mr-2"></i>
+                    Отмена
+                </button>
+                
+                <button type="submit" 
+                        class="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all font-medium shadow-lg hover:shadow-xl">
+                    <i class="fas fa-check mr-2"></i>
+                    Отметить исправленным
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Геолокация и создание замечания
+let currentLocation = null;
+
+{% if user.user_type == 'construction_control' %}
+function showCreateCommentModal() {
+    document.getElementById('createCommentModal').classList.remove('hidden');
+    getCurrentLocation();
+}
+
+function hideCreateCommentModal() {
+    document.getElementById('createCommentModal').classList.add('hidden');
+    document.getElementById('createCommentForm').reset();
+    currentLocation = null;
+}
+
+function getCurrentLocation() {
+    const statusEl = document.getElementById('locationStatus');
+    statusEl.innerHTML = '<div class="text-yellow-600">📍 Определение местоположения...</div>';
+    
+    if (!navigator.geolocation) {
+        statusEl.innerHTML = '<div class="text-red-600">❌ Геолокация недоступна</div>';
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            currentLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            statusEl.innerHTML = '<div class="text-green-600">✅ Местоположение определено</div>';
+        },
+        (error) => {
+            statusEl.innerHTML = '<div class="text-red-600">❌ Ошибка геолокации: ' + error.message + '</div>';
+        }
+    );
+}
+
+document.getElementById('createCommentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (!currentLocation) {
+        alert('Необходимо определить местоположение');
+        return;
+    }
+    
+    const data = {
+        project_id: document.getElementById('project_select').value,
+        title: document.getElementById('comment_title').value,
+        description: document.getElementById('comment_description').value,
+        priority: document.getElementById('comment_priority').value,
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude
+    };
+    
+    try {
+        const response = await fetch('{% url "projects:api_comments_list_create" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Замечание успешно создано');
+            location.reload();
+        } else {
+            alert('Ошибка: ' + result.error);
+        }
+    } catch (error) {
+        alert('Ошибка при создании замечания');
+    }
+});
+{% endif %}
+
+// Быстрые действия с замечаниями
+async function acceptComment(commentId) {
+    if (confirm('Принять замечание к исполнению?')) {
+        try {
+            const response = await fetch(`{% url "projects:api_accept_comment" 0 %}`.replace('0', commentId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({})
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert('Замечание принято к исполнению');
+                location.reload();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch (error) {
+            alert('Ошибка при обработке запроса');
+        }
+    }
+}
+
+async function rejectComment(commentId) {
+    const reason = prompt('Укажите причину отклонения замечания:');
+    if (reason !== null) {
+        try {
+            const response = await fetch(`{% url "projects:api_reject_comment" 0 %}`.replace('0', commentId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ reason: reason })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert('Замечание отклонено');
+                location.reload();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch (error) {
+            alert('Ошибка при обработке запроса');
+        }
+    }
+}
+
+async function resolveComment(commentId) {
+    const comment = prompt('Комментарий к устранению замечания (необязательно):');
+    if (comment !== null) {
+        try {
+            const response = await fetch(`{% url "projects:api_resolve_comment" 0 %}`.replace('0', commentId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ comment: comment })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert('Замечание отмечено как устраненное');
+                location.reload();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch (error) {
+            alert('Ошибка при обработке запроса');
+        }
+    }
+}
+
+// Функции для работы с модальным окном исправления нарушений
+let currentViolationId = null;
+
+function showCorrectViolationModal(violationId, violationTitle) {
+    currentViolationId = violationId;
+    document.getElementById('violationTitleText').textContent = violationTitle;
+    document.getElementById('correctViolationModal').classList.remove('hidden');
+    
+    // Очищаем форму
+    document.getElementById('correctViolationForm').reset();
+    document.getElementById('selectedFiles').innerHTML = '';
+    
+    // Определяем местоположение
+    getCorrectionLocation();
+}
+
+function hideCorrectViolationModal() {
+    document.getElementById('correctViolationModal').classList.add('hidden');
+    currentViolationId = null;
+}
+
+// Геолокация для исправления
+let correctionLocation = null;
+
+function getCorrectionLocation() {
+    const statusEl = document.getElementById('correctionLocationStatus');
+    statusEl.innerHTML = '<div class="text-yellow-600"><i class="fas fa-spinner fa-spin mr-2"></i>Определение местоположения...</div>';
+    
+    if (!navigator.geolocation) {
+        statusEl.innerHTML = '<div class="text-red-600"><i class="fas fa-exclamation-triangle mr-2"></i>Геолокация недоступна</div>';
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            correctionLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+            statusEl.innerHTML = '<div class="text-green-600"><i class="fas fa-check-circle mr-2"></i>Местоположение определено</div>';
+        },
+        (error) => {
+            statusEl.innerHTML = '<div class="text-red-600"><i class="fas fa-exclamation-triangle mr-2"></i>Ошибка геолокации: ' + error.message + '</div>';
+        }
+    );
+}
+
+// Обработка выбора файлов
+function handleFileSelect(input) {
+    const files = Array.from(input.files);
+    const selectedFilesContainer = document.getElementById('selectedFiles');
+    
+    selectedFilesContainer.innerHTML = '';
+    
+    files.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border';
+        
+        const fileIcon = getFileIcon(file.type);
+        
+        fileItem.innerHTML = `
+            <div class="flex items-center space-x-3">
+                <i class="${fileIcon} text-lg text-gray-600"></i>
+                <div>
+                    <div class="font-medium text-gray-900">${file.name}</div>
+                    <div class="text-sm text-gray-500">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+            <button type="button" onclick="removeFile(${index})" class="text-red-500 hover:text-red-700">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        selectedFilesContainer.appendChild(fileItem);
+    });
+}
+
+function getFileIcon(mimeType) {
+    if (mimeType.startsWith('image/')) {
+        return 'fas fa-image';
+    } else if (mimeType === 'application/pdf') {
+        return 'fas fa-file-pdf';
+    } else if (mimeType.includes('document') || mimeType.includes('word')) {
+        return 'fas fa-file-word';
+    } else {
+        return 'fas fa-file';
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 байт';
+    const k = 1024;
+    const sizes = ['байт', 'КБ', 'МБ', 'ГБ'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function removeFile(index) {
+    const input = document.getElementById('correction_photos');
+    const dt = new DataTransfer();
+    const files = Array.from(input.files);
+    
+    files.forEach((file, i) => {
+        if (i !== index) {
+            dt.items.add(file);
+        }
+    });
+    
+    input.files = dt.files;
+    handleFileSelect(input);
+}
+
+// Обработка отправки формы исправления
+document.getElementById('correctViolationForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (!currentViolationId) {
+        alert('Ошибка: не выбрано нарушение');
+        return;
+    }
+    
+    if (!correctionLocation) {
+        alert('Необходимо определить местоположение');
+        return;
+    }
+    
+    const comment = document.getElementById('correction_comment').value;
+    const photos = document.getElementById('correction_photos').files;
+    
+    if (!comment.trim()) {
+        alert('Описание работ обязательно');
+        return;
+    }
+    
+    if (photos.length === 0) {
+        if (!confirm('Вы не загрузили ни одной фотографии. Продолжить?')) {
+            return;
+        }
+    }
+    
+    // Показываем индикатор загрузки
+    const submitButton = document.querySelector('#correctViolationForm button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Отправка...';
+    submitButton.disabled = true;
+    
+    try {
+        const formData = new FormData();
+        formData.append('comment', comment);
+        formData.append('latitude', correctionLocation.latitude);
+        formData.append('longitude', correctionLocation.longitude);
+        
+        // Добавляем файлы
+        Array.from(photos).forEach((photo, index) => {
+            formData.append(`photo_${index}`, photo);
+        });
+        
+        const response = await fetch(`{% url 'projects:mark_violation_corrected' 0 %}`.replace('0', currentViolationId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert('Нарушение успешно отмечено как исправленное!');
+            hideCorrectViolationModal();
+            location.reload();
+        } else {
+            const errorData = await response.text();
+            alert('Ошибка при отправке: ' + errorData);
+        }
+    } catch (error) {
+        alert('Ошибка при отправке данных: ' + error.message);
+    } finally {
+        // Возвращаем кнопку в исходное состояние
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+    }
+});
+
+// Закрытие модальных окон по клику вне области
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('fixed')) {
+        hideCreateCommentModal();
+        hideCorrectViolationModal();
+    }
+});
+</script>
+{% endblock %}

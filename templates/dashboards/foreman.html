@@ -1,0 +1,492 @@
+{% extends 'base.html' %}
+{% block title %}Дашборд прораба — СУ благоустройства{% endblock %}
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Заголовок -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">⚒️ Дашборд прораба</h1>
+                    <p class="mt-2 text-sm text-gray-600">Управление работами и материалами</p>
+                </div>
+                <div class="text-right">
+                    <div class="inline-flex items-center px-4 py-2 rounded-lg bg-primary-blue/10 text-primary-blue">
+                        <i class="fas fa-user-tie mr-2"></i>
+                        {{ user.get_full_name|default:user.username }}
+                    </div>
+                    {% if assigned_projects %}
+                    <p class="text-sm text-gray-600 mt-1">Назначен на {{ assigned_projects|length }} объект{{ assigned_projects|length|pluralize:",,ов" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-hammer text-2xl text-primary-blue"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Активные объекты</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.active_projects }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-boxes text-2xl text-accent-peach"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Материалов к проверке</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.pending_materials }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock text-2xl text-green-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Работы сегодня</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.today_tasks }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clipboard-check text-2xl text-accent-red"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Активные замечания</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.open_violations }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Сегодняшние задачи -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-tasks text-primary-blue mr-2"></i>
+                        Задачи на сегодня
+                    </h3>
+                    <button onclick="showTaskModal()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-blue hover:bg-primary-blue/90">
+                        <i class="fas fa-plus mr-2"></i>
+                        Отметить работу
+                    </button>
+                </div>
+                <div class="p-6">
+                    {% if today_tasks %}
+                        <div class="space-y-3">
+                            {% for task in today_tasks %}
+                            <div class="border border-gray-200 rounded-lg p-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-medium text-gray-900">{{ task.project.name }}</h4>
+                                        <p class="text-xs text-gray-600">{{ task.task_type }} - {{ task.description }}</p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-1 text-xs rounded-full {% if task.status == 'completed' %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                            {{ task.get_status_display }}
+                                        </span>
+                                        {% if task.status != 'completed' %}
+                                        <button onclick="completeTask({{ task.id }})" class="text-primary-blue hover:text-primary-blue/80">
+                                            <i class="fas fa-check-circle"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-check-double text-3xl mb-2"></i>
+                            <p>Все задачи на сегодня выполнены!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- OCR сканирование материалов -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-camera text-accent-peach mr-2"></i>
+                        Входной контроль материалов
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <div id="camera-container" style="display: none;">
+                                <video id="camera-stream" class="w-full rounded-lg mb-4" autoplay playsinline></video>
+                                <div class="space-x-3">
+                                    <button onclick="capturePhoto()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-blue hover:bg-primary-blue/90">
+                                        <i class="fas fa-camera mr-2"></i>
+                                        Сфотографировать
+                                    </button>
+                                    <button onclick="stopCamera()" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50">
+                                        <i class="fas fa-times mr-2"></i>
+                                        Отменить
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="upload-area" class="space-y-4">
+                                <i class="fas fa-camera text-6xl text-gray-400"></i>
+                                <div>
+                                    <button onclick="startCamera()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-blue hover:bg-primary-blue/90 mr-3">
+                                        <i class="fas fa-camera mr-2"></i>
+                                        Камера
+                                    </button>
+                                    <label class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer">
+                                        <i class="fas fa-upload mr-2"></i>
+                                        Загрузить фото
+                                        <input type="file" id="material-photo" accept="image/*" class="sr-only" onchange="processMaterialPhoto(this.files[0])">
+                                    </label>
+                                </div>
+                                <p class="text-sm text-gray-500">Сфотографируйте этикетку или сертификат материала для автоматического распознавания</p>
+                            </div>
+                        </div>
+
+                        <!-- Результаты OCR -->
+                        <div id="ocr-results" style="display: none;" class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-medium text-gray-900 mb-3">Распознанная информация:</h4>
+                            <div id="ocr-data" class="space-y-2 text-sm"></div>
+                            <div class="mt-4 flex space-x-3">
+                                <button onclick="confirmMaterial()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                                    <i class="fas fa-check mr-2"></i>
+                                    Подтвердить
+                                </button>
+                                <button onclick="editMaterial()" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-edit mr-2"></i>
+                                    Изменить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Мои объекты -->
+        {% if assigned_projects %}
+        <div class="bg-white shadow rounded-lg mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-building text-primary-blue mr-2"></i>
+                    Мои объекты
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for project in assigned_projects %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h4 class="text-lg font-medium text-gray-900">{{ project.name }}</h4>
+                                <p class="text-sm text-gray-600">{{ project.address }}</p>
+                                <div class="mt-2">
+                                    <span class="px-2 py-1 text-xs rounded-full {% if project.status == 'active' %}bg-blue-100 text-blue-800{% elif project.status == 'completed' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ project.get_status_display }}
+                                    </span>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-gray-600">Готовность:</span>
+                                        <span class="font-medium">{{ project.completion }}%</span>
+                                    </div>
+                                    <div class="mt-1 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary-blue rounded-full h-2" style="width: {{ project.completion }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex space-x-2">
+                            <a href="/projects/{{ project.id }}/" class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-eye mr-2"></i>
+                                Детали
+                            </a>
+                            {% if project.status == 'active' %}
+                            <button onclick="reportProgress({{ project.id }})" class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-blue hover:bg-primary-blue/90">
+                                <i class="fas fa-plus mr-2"></i>
+                                Отчет
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Нарушения для устранения -->
+        {% if violations_to_fix %}
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-exclamation-triangle text-accent-red mr-2"></i>
+                    Замечания к устранению
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    {% for violation in violations_to_fix %}
+                    <div class="border border-red-200 rounded-lg p-4 bg-red-50">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <h4 class="text-sm font-medium text-gray-900">{{ violation.project.name }}</h4>
+                                <p class="text-sm text-red-600 mt-1">{{ violation.description }}</p>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Создано: {{ violation.created_at|date:"d.m.Y H:i" }}
+                                    {% if violation.deadline %}
+                                    | Срок устранения: {{ violation.deadline|date:"d.m.Y" }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                                    {{ violation.get_severity_display }}
+                                </span>
+                                <button onclick="fixViolation({{ violation.id }})" class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-check-circle text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальные окна -->
+{% include 'modals/task_modal.html' %}
+{% include 'modals/material_modal.html' %}
+{% include 'modals/progress_modal.html' %}
+
+<script>
+// Работа с камерой для OCR
+let stream = null;
+let currentMaterialData = null;
+
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } 
+        });
+        document.getElementById('camera-stream').srcObject = stream;
+        document.getElementById('upload-area').style.display = 'none';
+        document.getElementById('camera-container').style.display = 'block';
+    } catch (error) {
+        alert('Ошибка доступа к камере: ' + error.message);
+    }
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    document.getElementById('camera-container').style.display = 'none';
+    document.getElementById('upload-area').style.display = 'block';
+}
+
+async function capturePhoto() {
+    const video = document.getElementById('camera-stream');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    canvas.toBlob(async (blob) => {
+        stopCamera();
+        await processMaterialPhoto(blob);
+    }, 'image/jpeg', 0.8);
+}
+
+async function processMaterialPhoto(file) {
+    if (!file) return;
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.innerHTML = `
+        <div class="text-center py-4">
+            <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-blue mb-2"></div>
+            <p class="text-sm text-gray-600">Распознавание текста...</p>
+        </div>
+    `;
+    document.getElementById('upload-area').appendChild(loadingDiv);
+    
+    try {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const response = await fetch('/api/materials/ocr/', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            currentMaterialData = data;
+            displayOCRResults(data);
+        } else {
+            alert('Ошибка распознавания: ' + (data.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка обработки изображения: ' + error.message);
+    } finally {
+        loadingDiv.remove();
+    }
+}
+
+function displayOCRResults(data) {
+    const resultsDiv = document.getElementById('ocr-results');
+    const dataDiv = document.getElementById('ocr-data');
+    
+    dataDiv.innerHTML = `
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs text-gray-500">Название материала:</label>
+                <p class="font-medium">${data.material_name || 'Не распознано'}</p>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500">Производитель:</label>
+                <p class="font-medium">${data.manufacturer || 'Не распознано'}</p>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500">Серия/Партия:</label>
+                <p class="font-medium">${data.batch_number || 'Не распознано'}</p>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500">Дата производства:</label>
+                <p class="font-medium">${data.production_date || 'Не распознано'}</p>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500">Сертификат:</label>
+                <p class="font-medium">${data.certificate_number || 'Не распознано'}</p>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500">Количество:</label>
+                <p class="font-medium">${data.quantity || 'Не распознано'}</p>
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.style.display = 'block';
+}
+
+async function confirmMaterial() {
+    if (!currentMaterialData) return;
+    
+    try {
+        const response = await fetch('/api/materials/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...currentMaterialData,
+                status: 'verified',
+                verified_by: '{{ user.id }}'
+            })
+        });
+        
+        if (response.ok) {
+            alert('Материал успешно добавлен в систему!');
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка сохранения: ' + (error.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Отметка выполнения задачи
+async function completeTask(taskId) {
+    try {
+        const response = await fetch(`/api/tasks/${taskId}/complete/`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            alert('Задача отмечена как выполненная!');
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка: ' + (error.detail || 'Не удалось завершить задачу'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Устранение нарушения
+async function fixViolation(violationId) {
+    if (!confirm('Отметить замечание как устраненное?')) return;
+    
+    try {
+        const response = await fetch(`/api/violations/${violationId}/fix/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                resolution_comment: 'Устранено прорабом',
+                fixed_by: '{{ user.id }}'
+            })
+        });
+        
+        if (response.ok) {
+            alert('Замечание отмечено как устраненное!');
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка: ' + (error.detail || 'Не удалось отметить как устраненное'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Модальные окна
+function showTaskModal() {
+    document.getElementById('taskModal').classList.remove('hidden');
+}
+
+function reportProgress(projectId) {
+    document.getElementById('progressModal').classList.remove('hidden');
+    document.getElementById('progress-project-id').value = projectId;
+}
+</script>
+{% endblock %}

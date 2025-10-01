@@ -1,0 +1,1547 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ violation.title }} - Детали нарушения{% endblock %}
+
+{% block extra_head %}
+<!-- Российская картографическая система -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
+<script src="{% url 'static' 'js/russian-map.js' %}" defer></script>
+
+<style>
+/* Стили для карты */
+#violationMap {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Стили для popup */
+.ol-popup {
+    position: absolute;
+    background-color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    bottom: 12px;
+    left: -50px;
+    min-width: 280px;
+}
+
+.ol-popup:after, .ol-popup:before {
+    top: 100%;
+    border: solid transparent;
+    content: " ";
+    height: 0;
+    width: 0;
+    position: absolute;
+    pointer-events: none;
+}
+
+.ol-popup:after {
+    border-top-color: white;
+    border-width: 10px;
+    left: 48px;
+    margin-left: -10px;
+}
+
+.ol-popup:before {
+    border-top-color: #cccccc;
+    border-width: 11px;
+    left: 48px;
+    margin-left: -11px;
+}
+
+.ol-popup-closer {
+    text-decoration: none;
+    position: absolute;
+    top: 2px;
+    right: 8px;
+    color: #666;
+}
+
+.ol-popup-closer:after {
+    content: "✖";
+}
+
+/* Убираем атрибуцию OpenLayers */
+.ol-attribution {
+    display: none !important;
+}
+
+/* Улучшаем стиль контролов */
+.ol-zoom {
+    top: 10px;
+    left: 10px;
+}
+
+.ol-zoom button {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    color: #333;
+    font-size: 16px;
+    font-weight: bold;
+    height: 30px;
+    width: 30px;
+    margin: 1px;
+    text-decoration: none;
+    text-align: center;
+    line-height: 28px;
+}
+
+.ol-zoom button:hover {
+    background-color: rgba(255, 255, 255, 1);
+    color: #000;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header -->
+  <div class="bg-white shadow-sm rounded-lg p-6 mb-8">
+    <div class="flex items-start justify-between">
+      <div class="flex-1">
+        <div class="flex items-center space-x-3 mb-2">
+          <h1 class="text-3xl font-bold text-gray-900">{{ violation.title }}</h1>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+            {% if violation.status == 'detected' %}bg-orange-100 text-orange-800
+            {% elif violation.status == 'notified' %}bg-yellow-100 text-yellow-800
+            {% elif violation.status == 'in_correction' %}bg-blue-100 text-blue-800
+            {% elif violation.status == 'corrected' %}bg-purple-100 text-purple-800
+            {% elif violation.status == 'verified' %}bg-green-100 text-green-800
+            {% elif violation.status == 'closed' %}bg-gray-100 text-gray-800
+            {% else %}bg-gray-100 text-gray-800
+            {% endif %}">
+            <i class="fas fa-circle text-xs mr-2"></i>
+            {{ violation.get_status_display }}
+          </span>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+            {% if violation.priority == 'critical' %}bg-red-100 text-red-800
+            {% elif violation.priority == 'high' %}bg-orange-100 text-orange-800
+            {% elif violation.priority == 'medium' %}bg-yellow-100 text-yellow-800
+            {% else %}bg-green-100 text-green-800
+            {% endif %}">
+            <i class="fas fa-flag text-xs mr-2"></i>
+            {{ violation.get_priority_display }} приоритет
+          </span>
+        </div>
+        
+        <div class="flex items-center space-x-6 text-sm text-gray-600">
+          <div class="flex items-center">
+            <i class="fas fa-building text-blue-500 mr-2"></i>
+            <span class="font-medium">{{ violation.project.name }}</span>
+          </div>
+          <div class="flex items-center">
+            <i class="fas fa-calendar text-green-500 mr-2"></i>
+            <span>Обнаружено: {{ violation.detected_at|date:"d.m.Y в H:i" }}</span>
+          </div>
+          {% if violation.is_overdue %}
+          <div class="flex items-center text-red-600">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <span class="font-medium">Просрочено</span>
+          </div>
+          {% else %}
+          <div class="flex items-center text-blue-600">
+            <i class="fas fa-clock mr-2"></i>
+            <span>Осталось: {{ violation.days_remaining }} дней</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="flex space-x-2 ml-6">
+        <a href="{% url 'inspector:violations_list' %}" 
+           class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">
+          <i class="fas fa-arrow-left mr-2"></i>
+          Назад к списку
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+    <!-- Main Content -->
+    <div class="xl:col-span-2 space-y-8">
+      <!-- Описание нарушения -->
+      <div class="bg-white shadow-sm rounded-lg p-6">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-file-alt text-blue-500 text-lg mr-3"></i>
+          <h2 class="text-xl font-semibold text-gray-900">Описание нарушения</h2>
+        </div>
+        <div class="prose max-w-none">
+          <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">{{ violation.description }}</p>
+        </div>
+      </div>
+
+      <!-- Классификация нарушения -->
+      {% if violation.violation_classifier %}
+      <div class="bg-white shadow-sm rounded-lg p-6">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-tags text-purple-500 text-lg mr-3"></i>
+          <h2 class="text-xl font-semibold text-gray-900">Классификация нарушения</h2>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <span class="text-sm font-medium text-purple-600">Категория:</span>
+              <p class="text-gray-900 font-medium">{{ violation.violation_classifier.get_category_display }}</p>
+            </div>
+            <div>
+              <span class="text-sm font-medium text-purple-600">Тип:</span>
+              <p class="text-gray-900 font-medium">{{ violation.violation_classifier.get_violation_type_display }}</p>
+            </div>
+            <div class="md:col-span-2">
+              <span class="text-sm font-medium text-purple-600">Название:</span>
+              <p class="text-gray-900">{{ violation.violation_classifier.name }}</p>
+            </div>
+            {% if violation.violation_classifier.regulatory_deadline_days %}
+            <div>
+              <span class="text-sm font-medium text-purple-600">Нормативный срок устранения:</span>
+              <p class="text-gray-900 font-medium">{{ violation.violation_classifier.regulatory_deadline_days }} дней</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Комментарии -->
+      <div class="bg-white shadow-sm rounded-lg p-6">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-comments text-purple-500 text-lg mr-3"></i>
+          <h2 class="text-xl font-semibold text-gray-900">Комментарии</h2>
+        </div>
+        
+        <!-- Комментарии пользователей -->
+        {% if comments.count > 0 %}
+        <div class="space-y-4 mb-6">
+          <div class="flex items-center mb-4">
+            <i class="fas fa-history text-indigo-500 mr-2"></i>
+            <h4 class="text-md font-medium text-gray-800">История комментариев ({{ comments.count }})</h4>
+          </div>
+          
+          {% for comment in comments %}
+          <div class="relative bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <!-- Линия времени -->
+            {% if not forloop.last %}
+            <div class="absolute left-6 top-12 w-0.5 h-8 bg-gray-200"></div>
+            {% endif %}
+            
+            <div class="flex items-start space-x-3">
+              <!-- Аватар -->
+              <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-semibold shadow-md">
+                {{ comment.author.get_full_name.0|default:comment.author.username.0|upper }}
+              </div>
+              
+              <!-- Контент -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-sm font-semibold text-gray-900">
+                      {{ comment.author.get_full_name|default:comment.author.username }}
+                    </span>
+                    {% if comment.get_author_role_display %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200">
+                      <i class="fas fa-user-tag mr-1"></i>
+                      {{ comment.get_author_role_display }}
+                    </span>
+                    {% endif %}
+                  </div>
+                  <div class="flex items-center text-xs text-gray-500">
+                    <i class="fas fa-clock mr-1"></i>
+                    <time datetime="{{ comment.created_at|date:'c' }}" title="{{ comment.created_at|date:'д F Y г. в H:i' }}">
+                      {{ comment.created_at|timesince }} назад
+                    </time>
+                  </div>
+                </div>
+                
+                <!-- Текст комментария -->
+                <div class="bg-gray-50 border border-gray-100 rounded-lg p-3 mt-2">
+                  <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ comment.comment }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-500">
+          <i class="fas fa-comment-slash text-4xl mb-3 text-gray-300"></i>
+          <p class="text-sm font-medium">Комментариев пока нет</p>
+          <p class="text-xs text-gray-400 mt-1">Станьте первым, кто оставит комментарий!</p>
+        </div>
+        {% endif %}
+        
+        <!-- Форма добавления комментария - ПРОСТАЯ ВЕРСИЯ -->
+        <div class="border-t border-gray-200 pt-6">
+          <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+              <i class="fas fa-comment-dots text-blue-500 mr-2"></i>
+              Добавить комментарий
+            </h3>
+            
+            <form method="post" id="comment-form" class="space-y-4">
+              {% csrf_token %}
+              
+              <div>
+                <label for="id_comment" class="block text-sm font-medium text-gray-700 mb-2">
+                  Ваш комментарий
+                </label>
+                <textarea 
+                  name="comment" 
+                  id="id_comment" 
+                  rows="4" 
+                  maxlength="1000"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" 
+                  placeholder="Напишите ваш комментарий..."
+                  required></textarea>
+                
+                {% if comment_form.comment.errors %}
+                  <div class="mt-1 text-sm text-red-600">
+                    {% for error in comment_form.comment.errors %}
+                      <div>{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              
+              <div class="flex justify-end space-x-3">
+                <button type="button" onclick="clearCommentForm()" 
+                        class="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  Очистить
+                </button>
+                <button type="submit" 
+                        name="add_comment"
+                        id="submit-comment-btn"
+                        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled>
+                  <i class="fas fa-paper-plane mr-2"></i>
+                  Опубликовать
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        
+        <!-- Комментарии из старой системы -->
+        {% if violation.correction_comment %}
+        <div class="mt-6 border-t border-gray-200 pt-4">
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Комментарии из системы</h3>
+          <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-center mb-2">
+              <i class="fas fa-tools text-blue-500 mr-2"></i>
+              <span class="text-sm font-medium text-blue-800">Комментарий об устранении</span>
+            </div>
+            <p class="text-sm text-blue-900">{{ violation.correction_comment }}</p>
+          </div>
+        </div>
+        {% endif %}
+        
+        {% if violation.inspector_comment %}
+        <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center mb-2">
+            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+            <span class="text-sm font-medium text-green-800">Комментарий инспектора</span>
+          </div>
+          <p class="text-sm text-green-900">{{ violation.inspector_comment }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Фотографии -->
+      {% if all_photos %}
+      <div class="bg-white shadow-sm rounded-lg p-6">
+        <div class="flex items-center mb-6">
+          <i class="fas fa-camera text-green-500 text-lg mr-3"></i>
+          <h2 class="text-xl font-semibold text-gray-900">Фотографии ({{ all_photos.count }})</h2>
+        </div>
+        
+        <!-- Фотографии нарушения -->
+        {% if photos_by_type.violation %}
+        <div class="mb-8">
+          <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+            Фотографии нарушения ({{ photos_by_type.violation.count }})
+          </h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for photo in photos_by_type.violation %}
+            <div class="relative group">
+              <div class="aspect-w-4 aspect-h-3">
+                <img src="{{ photo.photo.url }}" 
+                     alt="Фото нарушения" 
+                     class="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity shadow-md"
+                     onclick="openPhotoModal('{{ photo.photo.url }}', '{{ photo.description|default:'' }}', 'Фото нарушения', '{{ photo.taken_by.get_full_name|default:photo.taken_by.username }}', '{{ photo.taken_at|date:"d.m.Y H:i" }}')">
+              </div>
+              {% if photo.description %}
+              <div class="absolute bottom-2 left-2 right-2 bg-black bg-opacity-75 text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                {{ photo.description|truncatechars:50 }}
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- Фотографии устранения -->
+        {% if photos_by_type.correction %}
+        <div class="mb-8">
+          <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-tools text-blue-500 mr-2"></i>
+            Фотографии устранения ({{ photos_by_type.correction.count }})
+          </h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for photo in photos_by_type.correction %}
+            <div class="relative group">
+              <div class="aspect-w-4 aspect-h-3">
+                <img src="{{ photo.photo.url }}" 
+                     alt="Фото устранения" 
+                     class="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity shadow-md"
+                     onclick="openPhotoModal('{{ photo.photo.url }}', '{{ photo.description|default:'' }}', 'Фото устранения', '{{ photo.taken_by.get_full_name|default:photo.taken_by.username }}', '{{ photo.taken_at|date:"d.m.Y H:i" }}')">
+              </div>
+              {% if photo.description %}
+              <div class="absolute bottom-2 left-2 right-2 bg-black bg-opacity-75 text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                {{ photo.description|truncatechars:50 }}
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- Фотографии проверки -->
+        {% if photos_by_type.verification %}
+        <div class="mb-4">
+          <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+            Фотографии проверки ({{ photos_by_type.verification.count }})
+          </h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for photo in photos_by_type.verification %}
+            <div class="relative group">
+              <div class="aspect-w-4 aspect-h-3">
+                <img src="{{ photo.photo.url }}" 
+                     alt="Фото проверки" 
+                     class="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity shadow-md"
+                     onclick="openPhotoModal('{{ photo.photo.url }}', '{{ photo.description|default:'' }}', 'Фото проверки', '{{ photo.taken_by.get_full_name|default:photo.taken_by.username }}', '{{ photo.taken_at|date:"d.m.Y H:i" }}')">
+              </div>
+              {% if photo.description %}
+              <div class="absolute bottom-2 left-2 right-2 bg-black bg-opacity-75 text-white text-xs p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                {{ photo.description|truncatechars:50 }}
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+      <!-- Основная информация -->
+      <div class="bg-white shadow-sm rounded-lg p-6">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-info-circle text-blue-500 text-lg mr-3"></i>
+          <h2 class="text-lg font-semibold text-gray-900">Основная информация</h2>
+        </div>
+        <dl class="space-y-4">
+          <div class="border-b border-gray-100 pb-3">
+            <dt class="text-sm font-medium text-gray-500 mb-1">Инспектор</dt>
+            <dd class="text-sm text-gray-900 flex items-center">
+              <i class="fas fa-user text-blue-400 mr-2"></i>
+              {{ violation.inspector.get_full_name|default:violation.inspector.username }}
+            </dd>
+          </div>
+          
+          {% if violation.violation_type %}
+          <div class="border-b border-gray-100 pb-3">
+            <dt class="text-sm font-medium text-gray-500 mb-1">Тип нарушения</dt>
+            <dd class="text-sm text-gray-900">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                {% if violation.violation_type.severity == 'critical' %}bg-red-100 text-red-800
+                {% elif violation.violation_type.severity == 'high' %}bg-orange-100 text-orange-800
+                {% elif violation.violation_type.severity == 'medium' %}bg-yellow-100 text-yellow-800
+                {% else %}bg-green-100 text-green-800
+                {% endif %}">
+                {{ violation.violation_type.name }}
+              </span>
+            </dd>
+          </div>
+          {% endif %}
+          
+          <div class="border-b border-gray-100 pb-3">
+            <dt class="text-sm font-medium text-gray-500 mb-1">Дата обнаружения</dt>
+            <dd class="text-sm text-gray-900 flex items-center">
+              <i class="fas fa-calendar text-green-400 mr-2"></i>
+              {{ violation.detected_at|date:"d.m.Y в H:i" }}
+            </dd>
+          </div>
+          
+          <div class="border-b border-gray-100 pb-3">
+            <dt class="text-sm font-medium text-gray-500 mb-1">Срок устранения</dt>
+            <dd class="text-sm flex items-center
+              {% if violation.is_overdue %}text-red-600
+              {% elif violation.days_remaining <= 3 %}text-orange-600
+              {% else %}text-gray-900
+              {% endif %}">
+              <i class="fas fa-clock mr-2"></i>
+              {{ violation.deadline|date:"d.m.Y" }}
+              {% if violation.is_overdue %}
+                <span class="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Просрочено</span>
+              {% else %}
+                <span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">{{ violation.days_remaining }} дн.</span>
+              {% endif %}
+            </dd>
+          </div>
+          
+          {% if violation.assigned_to %}
+          <div class="border-b border-gray-100 pb-3">
+            <dt class="text-sm font-medium text-gray-500 mb-1">Ответственный за устранение</dt>
+            <dd class="text-sm text-gray-900 flex items-center">
+              <i class="fas fa-hard-hat text-orange-400 mr-2"></i>
+              {{ violation.assigned_to.get_full_name|default:violation.assigned_to.username }}
+            </dd>
+          </div>
+          {% endif %}
+        </dl>
+      </div>
+      
+      <!-- Местоположение -->
+      <div class="bg-white shadow-sm rounded-lg p-6">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-map-marker-alt text-red-500 text-lg mr-3"></i>
+          <h2 class="text-lg font-semibold text-gray-900">Местоположение нарушения</h2>
+        </div>
+        
+        <!-- Описание местоположения -->
+        {% if violation.location_description %}
+        <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <div class="flex items-center mb-2">
+            <i class="fas fa-map-pin text-orange-500 mr-2"></i>
+            <span class="text-sm font-medium text-orange-800">Описание места</span>
+          </div>
+          <p class="text-sm text-orange-900">{{ violation.location_description }}</p>
+        </div>
+        {% endif %}
+        
+        <!-- Карта проекта -->
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700">Карта проекта</span>
+            <div class="flex space-x-2">
+              <select id="map-provider" class="text-sm border border-gray-300 rounded px-3 py-1 bg-white">
+                <option value="osm" selected>🗺️ Стандартная карта</option>
+                <option value="satellite">🛰️ Спутниковая</option>
+              </select>
+            </div>
+          </div>
+          <div id="map-loading" class="flex items-center justify-center h-[500px] bg-gray-50 rounded-lg">
+            <div class="text-center">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-blue mb-2"></div>
+              <p class="text-sm text-gray-600">Загрузка карты...</p>
+            </div>
+          </div>
+          <div id="map" class="h-[500px] rounded-lg" style="display: none;"></div>
+        </div>
+        
+        <!-- Координаты и информация -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Координаты нарушения -->
+          {% if violation.location_lat and violation.location_lng %}
+          <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex items-center mb-2">
+              <i class="fas fa-crosshairs text-red-500 mr-2"></i>
+              <span class="text-sm font-medium text-red-800">Место нарушения</span>
+            </div>
+            <div class="text-xs text-red-700 space-y-1">
+              <div>Широта: {{ violation.location_lat|floatformat:6 }}</div>
+              <div>Долгота: {{ violation.location_lng|floatformat:6 }}</div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Информация о проекте -->
+          <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-center mb-2">
+              <i class="fas fa-building text-blue-500 mr-2"></i>
+              <span class="text-sm font-medium text-blue-800">Проект</span>
+            </div>
+            <div class="text-xs text-blue-700 space-y-1">
+              <div class="font-medium">{{ violation.project.name }}</div>
+              {% if violation.project.address %}
+              <div>Адрес: {{ violation.project.address }}</div>
+              {% endif %}
+              {% if violation.project.foreman %}
+              <div>Прораб: {{ violation.project.foreman.get_full_name|default:violation.project.foreman.username }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Временная линия -->
+      <div class="bg-white shadow-sm rounded-lg p-6">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-history text-indigo-500 text-lg mr-3"></i>
+          <h2 class="text-lg font-semibold text-gray-900">Хронология</h2>
+        </div>
+        
+        <div class="space-y-3">
+          <div class="flex items-start">
+            <div class="flex-shrink-0 w-2 h-2 mt-2 bg-orange-400 rounded-full"></div>
+            <div class="ml-4">
+              <div class="text-sm font-medium text-gray-900">Обнаружено</div>
+              <div class="text-xs text-gray-500">{{ violation.detected_at|date:"d.m.Y H:i" }}</div>
+            </div>
+          </div>
+          
+          {% if violation.corrected_at %}
+          <div class="flex items-start">
+            <div class="flex-shrink-0 w-2 h-2 mt-2 bg-blue-400 rounded-full"></div>
+            <div class="ml-4">
+              <div class="text-sm font-medium text-gray-900">Устранено</div>
+              <div class="text-xs text-gray-500">{{ violation.corrected_at|date:"d.m.Y H:i" }}</div>
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if violation.verified_at %}
+          <div class="flex items-start">
+            <div class="flex-shrink-0 w-2 h-2 mt-2 bg-green-400 rounded-full"></div>
+            <div class="ml-4">
+              <div class="text-sm font-medium text-gray-900">Проверено</div>
+              <div class="text-xs text-gray-500">{{ violation.verified_at|date:"d.m.Y H:i" }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Действия для прорабов -->
+      {% if can_mark_corrected %}
+      <div class="bg-white shadow-sm rounded-lg p-6 border-l-4 border-l-blue-500">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-tools text-blue-500 text-lg mr-3"></i>
+          <h2 class="text-lg font-semibold text-gray-900">Отметить как устраненное</h2>
+        </div>
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <p class="text-blue-800 text-sm">
+            <i class="fas fa-info-circle mr-2"></i>
+            После отметки об устранении, нарушение будет направлено инспектору на проверку.
+          </p>
+        </div>
+        
+        <form method="post">
+          {% csrf_token %}
+          <div class="space-y-4">
+            <div>
+              <label for="correction_comment" class="block text-sm font-medium text-gray-700 mb-2">
+                Комментарий об устранении (необязательно)
+              </label>
+              <textarea name="correction_comment" id="correction_comment" 
+                        rows="3" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Опишите как было устранено нарушение..."></textarea>
+            </div>
+            
+            <button type="submit" 
+                    name="mark_corrected"
+                    class="w-full inline-flex justify-center items-center px-6 py-3 bg-blue-600 text-white text-base font-medium rounded-lg hover:bg-blue-700 transition-colors">
+              <i class="fas fa-check-circle mr-2"></i>
+              Отметить как устраненное
+            </button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+      
+      <!-- Действия для инспекторов -->
+      {% if violation.status == 'corrected' and can_verify %}
+      <div class="bg-white shadow-sm rounded-lg p-6 border-l-4 border-l-green-500">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-check-double text-green-500 text-lg mr-3"></i>
+          <h2 class="text-lg font-semibold text-gray-900">Проверка устранения</h2>
+        </div>
+        
+        <form method="post">
+          {% csrf_token %}
+          <div class="space-y-4">
+            <div>
+              <label for="inspector_comment" class="block text-sm font-medium text-gray-700 mb-2">
+                Комментарий инспектора
+              </label>
+              <textarea name="inspector_comment" id="inspector_comment" 
+                        rows="3" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Введите комментарий...">{{ violation.inspector_comment }}</textarea>
+            </div>
+            
+            <div class="flex space-x-3">
+              <button type="submit" 
+                      name="verify_correction" 
+                      value="approve"
+                      onclick="document.querySelector('input[name=verification_action]').value='approve'"
+                      class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                <i class="fas fa-check mr-2"></i>
+                Подтвердить
+              </button>
+              
+              <button type="submit" 
+                      name="verify_correction" 
+                      value="reject"
+                      onclick="document.querySelector('input[name=verification_action]').value='reject'"
+                      class="flex-1 inline-flex justify-center items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                <i class="fas fa-times mr-2"></i>
+                Отклонить
+              </button>
+            </div>
+            
+            <input type="hidden" name="verification_action" value="">
+          </div>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Photo Modal -->
+<div id="photoModal" class="fixed inset-0 bg-black bg-opacity-90 hidden z-50 flex items-center justify-center p-4">
+  <div class="relative max-w-6xl max-h-full bg-white rounded-lg overflow-hidden shadow-2xl">
+    <!-- Modal Header -->
+    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <i id="modalIcon" class="fas fa-camera text-blue-500 text-lg"></i>
+          <h3 id="modalTitle" class="text-lg font-semibold text-gray-900">Фотография</h3>
+        </div>
+        <button onclick="closePhotoModal()" 
+                class="text-gray-400 hover:text-gray-600 transition-colors">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Modal Body -->
+    <div class="flex">
+      <!-- Image -->
+      <div class="flex-1 flex items-center justify-center bg-gray-100 p-6">
+        <img id="modalImage" src="" alt="" 
+             class="max-w-full max-h-96 object-contain rounded-lg shadow-lg">
+      </div>
+      
+      <!-- Info Panel -->
+      <div class="w-80 bg-white p-6 border-l border-gray-200">
+        <div class="space-y-4">
+          <div id="modalDescription" class="hidden">
+            <h4 class="text-sm font-medium text-gray-900 mb-2">Описание</h4>
+            <p id="modalDescriptionText" class="text-sm text-gray-600"></p>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-medium text-gray-900 mb-2">Детали</h4>
+            <dl class="space-y-2">
+              <div>
+                <dt class="text-xs font-medium text-gray-500">Автор</dt>
+                <dd id="modalAuthor" class="text-sm text-gray-900"></dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-500">Дата съёмки</dt>
+                <dd id="modalDate" class="text-sm text-gray-900"></dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 🌍 ГЛОБАЛЬНЫЕ ФУНКЦИИ - ОБЯЗАТЕЛЬНО В НАЧАЛЕ!
+function openPhotoModal(imageUrl, description, type, author, date) {
+    console.log('📸 GLOBAL: Opening photo modal:', { imageUrl, description, type, author, date });
+    
+    try {
+        // Set image
+        const modalImage = document.getElementById('modalImage');
+        if (modalImage) {
+            modalImage.src = imageUrl;
+        } else {
+            console.error('⚠️ Modal image element not found');
+            return;
+        }
+        
+        // Set title and icon based on type
+        const titleEl = document.getElementById('modalTitle');
+        const iconEl = document.getElementById('modalIcon');
+        
+        if (titleEl) titleEl.textContent = type || 'Фотография';
+        
+        if (iconEl) {
+            if (type && type.includes('нарушения')) {
+                iconEl.className = 'fas fa-exclamation-triangle text-red-500 text-lg';
+            } else if (type && type.includes('устранения')) {
+                iconEl.className = 'fas fa-tools text-blue-500 text-lg';
+            } else if (type && type.includes('проверки')) {
+                iconEl.className = 'fas fa-check-circle text-green-500 text-lg';
+            } else {
+                iconEl.className = 'fas fa-camera text-blue-500 text-lg';
+            }
+        }
+        
+        // Set description
+        const descEl = document.getElementById('modalDescription');
+        const descTextEl = document.getElementById('modalDescriptionText');
+        if (descEl && descTextEl) {
+            if (description && description.trim()) {
+                descTextEl.textContent = description;
+                descEl.classList.remove('hidden');
+            } else {
+                descEl.classList.add('hidden');
+            }
+        }
+        
+        // Set metadata
+        const authorEl = document.getElementById('modalAuthor');
+        const dateEl = document.getElementById('modalDate');
+        if (authorEl) authorEl.textContent = author || 'Не указан';
+        if (dateEl) dateEl.textContent = date || 'Не указана';
+        
+        // Show modal
+        const photoModal = document.getElementById('photoModal');
+        if (photoModal) {
+            photoModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            console.log('✅ Photo modal opened successfully');
+        } else {
+            console.error('⚠️ Photo modal element not found');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error opening photo modal:', error);
+    }
+}
+
+function closePhotoModal() {
+    console.log('❌ GLOBAL: Closing photo modal');
+    const photoModal = document.getElementById('photoModal');
+    if (photoModal) {
+        photoModal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Также добавляем в window для гарантии
+window.openPhotoModal = openPhotoModal;
+window.closePhotoModal = closePhotoModal;
+
+console.log('🎆 Photo modal functions declared globally!');
+console.log('Functions check:', {
+    openPhotoModal: typeof openPhotoModal,
+    closePhotoModal: typeof closePhotoModal,
+    windowOpenPhotoModal: typeof window.openPhotoModal,
+    windowClosePhotoModal: typeof window.closePhotoModal
+});
+
+// Обработчики будут добавлены в DOMContentLoaded
+
+// 🇺🇷 Инициализация российской картографической системы для нарушения
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🗺️ Инициализация карты нарушения...');
+    
+    let map = null;
+    
+    try {
+        // Данные проекта для привязанного нарушения (безопасно обработанные)
+        console.log('🔍 DEBUG: Проверка координат проекта...');
+        console.log('🔍 DEBUG: project_coordinates_json существует:', {{ project_coordinates_json|yesno:"true,false,unknown" }});
+        {% if project_coordinates_json %}
+        console.log('🔍 DEBUG: Координаты проекта переданы в JSON');
+        {% endif %}
+        
+        // Простая инициализация данных проекта
+        let projectData = {
+            id: {{ violation.project.id|default:0 }},
+            name: '{{ violation.project.name|escapejs }}',
+            address: '{{ violation.project.address|default:"Адрес не указан"|escapejs }}',
+            status: '{{ violation.project.status|default:"active" }}',
+            completion: {{ violation.project.completion_percentage|default:0 }},
+            {% if project_coordinates_json %}
+            hasCoordinates: true,
+            coordinates: null  // Будем парсить отдельно
+            {% else %}
+            hasCoordinates: false,
+            coordinates: null
+            {% endif %}
+        };
+        
+        console.log('📊 Первичные данные проекта:', projectData);
+        
+        // Парсим координаты отдельно
+        {% if project_coordinates_json %}
+        try {
+            console.log('🔍 Парсим координаты проекта...');
+            const coordsData = {{ project_coordinates_json|safe }};
+            console.log('🗺️ Координаты успешно получены:', coordsData.type, coordsData.coordinates[0].length, 'точек');
+            
+            // Отладочная информация о координатах
+            const coords = coordsData.coordinates[0];
+            const firstCoord = coords[0];
+            const lastCoord = coords[coords.length - 1];
+            console.log(`📍 Первая точка: [${firstCoord[0]}, ${firstCoord[1]}]`);
+            console.log(`📍 Последняя точка: [${lastCoord[0]}, ${lastCoord[1]}]`);
+            
+            // Вычисляем границы для отладки
+            const debugMinLng = Math.min(...coords.map(c => c[0]));
+            const debugMaxLng = Math.max(...coords.map(c => c[0]));
+            const debugMinLat = Math.min(...coords.map(c => c[1]));
+            const debugMaxLat = Math.max(...coords.map(c => c[1]));
+            console.log(`🗺️ Границы: lng ${debugMinLng.toFixed(6)} - ${debugMaxLng.toFixed(6)}, lat ${debugMinLat.toFixed(6)} - ${debugMaxLat.toFixed(6)}`);
+            
+            const debugCenterLng = coords.reduce((sum, coord) => sum + coord[0], 0) / coords.length;
+            const debugCenterLat = coords.reduce((sum, coord) => sum + coord[1], 0) / coords.length;
+            const debugBoundsCenter = [(debugMinLng + debugMaxLng) / 2, (debugMinLat + debugMaxLat) / 2];
+            console.log(`🎯 Центр (арифм.): [${debugCenterLng.toFixed(6)}, ${debugCenterLat.toFixed(6)}]`);
+            console.log(`🎯 Центр (границы): [${debugBoundsCenter[0].toFixed(6)}, ${debugBoundsCenter[1].toFixed(6)}]`);
+            
+            // Используем координаты первого полигона
+            projectData.coordinates = coordsData.coordinates[0];
+            
+        } catch (coordsError) {
+            console.error('❌ Ошибка парсинга координат проекта:', coordsError);
+            projectData.hasCoordinates = false;
+            projectData.coordinates = null;
+        }
+        {% else %}
+        console.warn('⚠️ Координаты проекта не переданы');
+        {% endif %}
+        
+        // Данные нарушения (упрощенная схема)
+        const violationData = {
+            id: {{ violation.id|default:0 }},
+            title: '{{ violation.title|escapejs }}',
+            status: '{{ violation.status|default:"detected" }}',
+            priority: '{{ violation.priority|default:"medium" }}',
+            detected_at: '{{ violation.detected_at|date:"d.m.Y H:i" }}',
+            deadline: '{{ violation.deadline|date:"d.m.Y" }}',
+            {% if violation.location_lat and violation.location_lng %}
+            hasLocation: true,
+            lat: parseFloat('{{ violation.location_lat|floatformat:6 }}') || 0,
+            lng: parseFloat('{{ violation.location_lng|floatformat:6 }}') || 0,
+            {% else %}
+            hasLocation: false,
+            lat: 0,
+            lng: 0,
+            {% endif %}
+            locationDescription: '{{ violation.location_description|default:""|escapejs }}'
+        };
+        
+        console.log('📊 Данные проекта:', projectData);
+        console.log('⚠️ Данные нарушения:', violationData);
+        
+        // Обработчик готовности карты
+        window.onMapReady = function(mapInstance) {
+            console.log('✅ Карта нарушения готова!');
+            console.log('🔍 Объект карты:', mapInstance);
+            console.log('🔍 Доступные методы:', Object.getOwnPropertyNames(Object.getPrototypeOf(mapInstance)));
+            map = mapInstance;
+            
+            // Показываем карту и скрываем loader
+            const mapElement = document.getElementById('map');
+            const loaderElement = document.getElementById('map-loading');
+            if (mapElement && loaderElement) {
+                loaderElement.style.display = 'none';
+                mapElement.style.display = 'block';
+                console.log('✅ Карта отображена');
+            }
+            
+            let mapCentered = false;
+            
+            // Добавляем полигон проекта если есть координаты
+            if (projectData.hasCoordinates && projectData.coordinates) {
+                console.log('🏢 Добавляем полигон проекта на карту');
+                
+                try {
+                    // Определяем цвет по статусу проекта
+                    let projectColor = '#2563EB'; // синий по умолчанию
+                    if (projectData.status === 'active') projectColor = '#059669'; // зеленый
+                    else if (projectData.status === 'completed') projectColor = '#10B981'; // салатовый
+                    else if (projectData.status === 'suspended') projectColor = '#DC2626'; // красный
+                    else if (projectData.status === 'planned') projectColor = '#6B7280'; // серый
+                    
+                    // Вычисляем центр и границы полигона проекта
+                    const coords = projectData.coordinates;
+                    const centerLng = coords.reduce((sum, coord) => sum + coord[0], 0) / coords.length;
+                    const centerLat = coords.reduce((sum, coord) => sum + coord[1], 0) / coords.length;
+                    
+                    // Вычисляем границы полигона для оптимального зума
+                    let minLng = Infinity, maxLng = -Infinity;
+                    let minLat = Infinity, maxLat = -Infinity;
+                    coords.forEach(coord => {
+                        minLng = Math.min(minLng, coord[0]);
+                        maxLng = Math.max(maxLng, coord[0]);
+                        minLat = Math.min(minLat, coord[1]);
+                        maxLat = Math.max(maxLat, coord[1]);
+                    });
+                    
+                    const lngSpan = maxLng - minLng;
+                    const latSpan = maxLat - minLat;
+                    const maxSpan = Math.max(lngSpan, latSpan);
+                    
+                    // Выбираем оптимальный зум
+                    let optimalZoom = 18;
+                    if (maxSpan > 0.001) optimalZoom = 16;
+                    else if (maxSpan > 0.005) optimalZoom = 15;
+                    else if (maxSpan > 0.01) optimalZoom = 14;
+                    else if (maxSpan > 0.02) optimalZoom = 13;
+                    
+                    console.log(`🎯 Центр проекта: [${centerLng.toFixed(6)}, ${centerLat.toFixed(6)}], зум: ${optimalZoom}`);
+                    
+                    // Добавляем полигон проекта с улучшенным стилем
+                    map.addPolygon(coords, {
+                        title: `Проект: ${projectData.name}`,
+                        strokeColor: projectColor,
+                        fillColor: projectColor + '4D', // Увеличиваем прозрачность
+                        strokeWidth: 3, // Увеличиваем толщину границы
+                        strokeOpacity: 0.8,
+                        fillOpacity: 0.3,
+                        data: {
+                            type: 'project',
+                            ...projectData
+                        }
+                    });
+                    
+                    console.log('✅ Полигон проекта добавлен');
+                    
+                    // Центрируем карту на проекте если нет координат нарушения
+                    if (!violationData.hasLocation) {
+                        console.log(`🎯 Центрируем карту на проекте: [${centerLng}, ${centerLat}], зум: ${optimalZoom}`);
+                        
+                        // Пробуем сначала использовать fitToExtent для полного охвата полигона
+                        try {
+                            console.log(`🎯 Пробуем fitToExtent для полигона...`);
+                            console.log(`   Количество точек: ${coords.length}`);
+                            console.log(`   Границы: lng ${minLng.toFixed(6)} - ${maxLng.toFixed(6)}, lat ${minLat.toFixed(6)} - ${maxLat.toFixed(6)}`);
+                            
+                            // Используем fitToExtent с всеми точками полигона
+                            if (map.fitToExtent && typeof map.fitToExtent === 'function') {
+                                console.log('🎯 Используем fitToExtent...');
+                                map.fitToExtent(coords, 100); // 100px паддинг
+                                mapCentered = true;
+                                console.log('✅ fitToExtent выполнен успешно');
+                            } else {
+                                // Откат к стандартному центрированию
+                                console.log('⚠️ fitToExtent не доступен, используем setCenter');
+                                const boundsCenter = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+                                console.log(`   Центр по границам: [${boundsCenter[0]}, ${boundsCenter[1]}]`);
+                                
+                                map.setCenter([boundsCenter[0], boundsCenter[1]], optimalZoom);
+                                mapCentered = true;
+                            }
+                            
+                            // Добавляем маркер в центре полигона (по границам)
+                            const markerCenter = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+                            map.addMarker([markerCenter[0], markerCenter[1]], {
+                                title: projectData.name,
+                                color: projectColor,
+                                popup: `
+                                    <div class="p-4 min-w-64">
+                                        <h3 class="font-bold text-blue-900 mb-2">🏢 ${projectData.name}</h3>
+                                        <p class="text-sm text-gray-700 mb-1">📍 ${projectData.address || 'Адрес не указан'}</p>
+                                        <p class="text-xs text-gray-600 mb-1">Статус: ${projectData.status}</p>
+                                        <p class="text-xs text-gray-600 mb-2">Готовность: ${projectData.completion}%</p>
+                                        <div class="border-t border-gray-200 pt-2 mt-2">
+                                            <p class="text-xs text-blue-600">📍 Центр: [${markerCenter[0].toFixed(6)}, ${markerCenter[1].toFixed(6)}]</p>
+                                            <p class="text-xs text-green-600">🗺️ Размер: ${lngSpan.toFixed(6)} × ${latSpan.toFixed(6)}</p>
+                                            <p class="text-xs text-purple-600">🎯 Точек: ${coords.length}</p>
+                                        </div>
+                                    </div>
+                                `,
+                                data: projectData
+                            });
+                            
+            console.log('✅ Карта успешно настроена для полигона');
+                            
+                            // Принудительное обновление размеров карты (может помочь с центрированием)
+                            setTimeout(() => {
+                                try {
+                                    if (map.map && map.map.updateSize) {
+                                        map.map.updateSize();
+                                        console.log('🔄 Размеры карты обновлены');
+                                        
+                                        // Повторное центрирование после обновления размеров
+                                        if (map.fitToExtent && typeof map.fitToExtent === 'function') {
+                                            map.fitToExtent(coords, 50);
+                                            console.log('🔄 Повторное fitToExtent после updateSize');
+                                        }
+                                    }
+                                } catch (updateError) {
+                                    console.warn('⚠️ Не удалось обновить размеры карты:', updateError);
+                                }
+                            }, 1000);
+                            
+                        } catch (centerError) {
+                            console.error('❌ Ошибка настройки карты, откат к стандартному методу:', centerError);
+                            // Последний резерв - стандартное центрирование
+                            const fallbackCenter = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
+                            map.setCenter([fallbackCenter[0], fallbackCenter[1]], 16);
+                            mapCentered = true;
+                            console.log('🔄 Используем резервное центрирование');
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Ошибка добавления полигона проекта:', error);
+                }
+            } else {
+                console.warn('⚠️ Нет координат проекта');
+            }
+            
+            // Добавляем маркер нарушения если есть координаты
+            if (violationData.hasLocation) {
+                console.log('🚨 Добавляем маркер нарушения');
+                
+                try {
+                    // Определяем цвет маркера по приоритету
+                    let violationColor = '#DC2626'; // красный по умолчанию
+                    if (violationData.priority === 'critical') violationColor = '#991B1B'; // темно-красный
+                    else if (violationData.priority === 'high') violationColor = '#DC2626'; // красный
+                    else if (violationData.priority === 'medium') violationColor = '#F59E0B'; // оранжевый
+                    else if (violationData.priority === 'low') violationColor = '#FBBF24'; // желтый
+                    
+                    // Центрируем карту на нарушении - приоритет над проектом
+                    if (!mapCentered) {
+                        console.log(`🚑 Центрируем карту на месте нарушения: [${violationData.lng}, ${violationData.lat}]`);
+                        map.setCenter([violationData.lng, violationData.lat], 18);
+                        mapCentered = true;
+                    }
+                    
+                    // Добавляем маркер нарушения
+                    map.addMarker([violationData.lng, violationData.lat], {
+                        title: `Нарушение: ${violationData.title}`,
+                        color: violationColor,
+                        popup: `
+                            <div class="p-3">
+                                <h3 class="font-bold text-red-900 mb-2">⚠️ ${violationData.title}</h3>
+                                <p class="text-sm text-gray-600 mb-1">📅 Обнаружено: ${violationData.detected_at}</p>
+                                <p class="text-sm text-gray-600 mb-1">🕰️ Срок устранения: ${violationData.deadline}</p>
+                                <p class="text-xs text-gray-600 mb-1">Приоритет: ${violationData.priority}</p>
+                                <p class="text-xs text-gray-600 mb-1">Статус: ${violationData.status}</p>
+                                ${violationData.locationDescription ? `<p class="text-sm text-gray-600 mt-2">${violationData.locationDescription}</p>` : ''}
+                            </div>
+                        `,
+                        data: {
+                            type: 'violation',
+                            ...violationData
+                        }
+                    });
+                    
+                    console.log('✅ Маркер нарушения добавлен');
+                    
+                } catch (error) {
+                    console.error('❌ Ошибка добавления маркера нарушения:', error);
+                }
+            } else {
+                console.warn('⚠️ Нет координат нарушения');
+                
+                // Если нет ни координат проекта, ни нарушения - показываем Москву
+                if (!mapCentered) {
+                    map.setCenter([37.6176, 55.7558], 10);
+                    map.addMarker([37.6176, 55.7558], {
+                        title: 'Местоположение не указано',
+                        color: '#6B7280',
+                        popup: `
+                            <div class="p-3">
+                                <h3 class="font-bold text-gray-900 mb-2">📍 Местоположение не указано</h3>
+                                <p class="text-sm text-gray-700">Для нарушения "${violationData.title}" не указаны координаты</p>
+                            </div>
+                        `
+                    });
+                }
+            }
+        };
+        
+        // Создаем карту
+        console.log('🗺️ Создаем карту...');
+        map = createRussianMap('map', {
+            center: [37.6176, 55.7558],
+            zoom: 10,
+            debug: true,
+            defaultProvider: 'osm'
+        });
+        
+        // Обработчик смены провайдера
+        document.getElementById('map-provider').addEventListener('change', function(e) {
+            const provider = e.target.value;
+            if (map && map.changeProvider) {
+                const success = map.changeProvider(provider);
+                console.log(success ? `✅ Провайдер сменен на: ${provider}` : '❌ Ошибка смены провайдера');
+            }
+        });
+        
+        console.log('✅ Инициализация карты завершена');
+        
+    } catch (error) {
+        console.error('❌ Критическая ошибка инициализации карты:', error);
+        document.getElementById('map-loading').innerHTML = `
+            <div class="flex items-center justify-center h-96 bg-red-50">
+                <div class="text-center">
+                    <div class="text-6xl mb-4">❌</div>
+                    <h3 class="text-xl font-bold text-red-900 mb-2">Ошибка карты</h3>
+                    <p class="text-sm text-red-600 mb-4">${error.message || 'Неизвестная ошибка'}</p>
+                    <button onclick="location.reload()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                        🔄 Перезагрузить
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+});
+
+// Smooth scrolling for internal links
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus on textarea if verification form is present
+    const textarea = document.getElementById('inspector_comment');
+    if (textarea && textarea.closest('form')) {
+        textarea.focus();
+    }
+    
+    // Улучшения UX для формы комментариев
+    const commentTextarea = document.getElementById('id_comment');
+    const submitButton = document.getElementById('submit-comment-btn') || document.querySelector('button[name="add_comment"]');
+    const clearButton = document.querySelector('button[onclick*="clearCommentForm"]');
+    
+    console.log('=== COMMENT FORM DEBUG ===');
+    console.log('Textarea found:', !!commentTextarea, commentTextarea);
+    console.log('Submit button found:', !!submitButton, submitButton);
+    console.log('Clear button found:', !!clearButton, clearButton);
+    
+    if (commentTextarea && submitButton) {
+        // Простая и надежная функция активации кнопки
+        function updateButtonState() {
+            const textValue = commentTextarea.value.trim();
+            const shouldEnable = textValue.length > 0;
+            
+            console.log('💡 Update button state:', { 
+                textValue: textValue.substring(0, 20) + '...', 
+                textLength: textValue.length,
+                shouldEnable, 
+                currentlyDisabled: submitButton.disabled 
+            });
+            
+            if (shouldEnable) {
+                submitButton.disabled = false;
+                submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                submitButton.classList.add('hover:shadow-xl', 'hover:-translate-y-0.5');
+                submitButton.style.opacity = '1';
+                submitButton.style.cursor = 'pointer';
+                console.log('✅ Button ENABLED');
+            } else {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                submitButton.classList.remove('hover:shadow-xl', 'hover:-translate-y-0.5');
+                submitButton.style.opacity = '0.5';
+                submitButton.style.cursor = 'not-allowed';
+                console.log('❌ Button DISABLED');
+            }
+        }
+        
+        // Автоматическое изменение высоты текстового поля
+        function autoResize() {
+            commentTextarea.style.height = 'auto';
+            commentTextarea.style.height = Math.min(commentTextarea.scrollHeight, 300) + 'px';
+        }
+        
+        // Обработчик всех событий
+        function handleTextChange() {
+            console.log('📝 Text change event triggered');
+            const charCount = commentTextarea.value.length;
+            
+            autoResize();
+            updateButtonState();
+            
+            // Обновляем счётчик
+            const counter = document.querySelector('.char-counter');
+            const counterDisplay = document.querySelector('.char-counter-display');
+            
+            console.log('🔢 Counter elements:', { 
+                counter: !!counter, 
+                counterDisplay: !!counterDisplay,
+                charCount,
+                counterText: counter ? counter.textContent : 'not found'
+            });
+            
+            if (counter && counterDisplay) {
+                if (charCount === 0) {
+                    counter.textContent = '0 символов';
+                    counterDisplay.className = 'char-counter-display px-2 py-1 rounded bg-gray-100 text-gray-500';
+                } else if (charCount < 10) {
+                    counter.textContent = `${charCount} симв. - напишите ещё`;
+                    counterDisplay.className = 'char-counter-display px-2 py-1 rounded bg-orange-100 text-orange-600';
+                } else if (charCount < 100) {
+                    counter.textContent = `${charCount} символов - отлично!`;
+                    counterDisplay.className = 'char-counter-display px-2 py-1 rounded bg-green-100 text-green-600';
+                } else {
+                    counter.textContent = `${charCount} символов - отлично!`;
+                    counterDisplay.className = 'char-counter-display px-2 py-1 rounded bg-blue-100 text-blue-600';
+                }
+                console.log('✅ Counter updated:', counter.textContent);
+            } else {
+                console.warn('⚠️ Counter elements not found!');
+            }
+            
+            // Кнопка очистки
+            if (clearButton) {
+                clearButton.style.display = charCount > 0 ? 'inline-flex' : 'none';
+            }
+        }
+        
+        // Навешиваем обработчики на все события (агрессивно)
+        const events = ['input', 'keyup', 'keydown', 'change', 'blur', 'focus'];
+        events.forEach(eventType => {
+            commentTextarea.addEventListener(eventType, function() {
+                console.log(`📝 Event: ${eventType}, text length: ${this.value.length}`);
+                handleTextChange();
+            });
+        });
+        
+        commentTextarea.addEventListener('paste', function() {
+            setTimeout(() => {
+                console.log('📋 Paste event handled, text length:', this.value.length);
+                handleTextChange();
+            }, 10);
+        });
+        
+        // Глобальные функции для тестирования и отладки
+        window.testCommentButton = function() {
+            console.log('🧪 Testing comment button activation...');
+            if (commentTextarea) {
+                commentTextarea.value = 'Тестовый комментарий для проверки активации кнопки';
+                commentTextarea.dispatchEvent(new Event('input'));
+                handleTextChange();
+                updateButtonState();
+                console.log('Test text added and events fired');
+            }
+        };
+        
+        window.forceEnableButton = function() {
+            console.log('💪 Forcing button activation...');
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                submitButton.style.opacity = '1';
+                submitButton.style.cursor = 'pointer';
+                console.log('✅ Button force-enabled!');
+            }
+        };
+        
+        window.clearComment = function() {
+            if (commentTextarea) {
+                commentTextarea.value = '';
+                handleTextChange();
+                updateButtonState();
+                console.log('🧡 Comment cleared');
+            }
+        };
+        
+        // Глобальная функция для кнопки очистки в HTML
+        window.clearCommentForm = function() {
+            console.log('🧹 Clearing comment form via HTML button...');
+            const textarea = document.getElementById('id_comment');
+            const button = document.getElementById('submit-comment-btn');
+            
+            if (textarea) {
+                textarea.value = '';
+                textarea.focus();
+                
+                // Запускаем обработчики событий
+                textarea.dispatchEvent(new Event('input'));
+                textarea.dispatchEvent(new Event('change'));
+                
+                if (button) {
+                    button.disabled = true;
+                    button.classList.add('opacity-50', 'cursor-not-allowed');
+                    button.classList.remove('hover:shadow-xl');
+                }
+                
+                console.log('✅ Form cleared successfully');
+            } else {
+                console.error('❌ Textarea not found for clearing');
+            }
+        };
+        
+        window.debugCommentForm = function() {
+            console.log('🔍 Comment form debug info:', {
+                textarea: commentTextarea,
+                submitButton: submitButton,
+                textareaValue: commentTextarea ? commentTextarea.value : 'no textarea',
+                buttonDisabled: submitButton ? submitButton.disabled : 'no button',
+                buttonClasses: submitButton ? submitButton.className : 'no button'
+            });
+        };
+        
+        // Начальная инициализация
+        console.log('🎆 Initial setup...');
+        console.log('📝 Available functions: testCommentButton(), forceEnableButton(), clearComment(), debugCommentForm()');
+        
+        // Принудительно устанавливаем начальное состояние
+        commentTextarea.value = commentTextarea.value || '';  // Обнуляем, если undefined
+        handleTextChange(); // Проверяем начальное состояние
+        autoResize();
+        updateButtonState(); // Обновляем состояние кнопки
+        
+        // Дополнительная проверка через секунду
+        setTimeout(() => {
+            console.log('🔍 Final button check:', {
+                disabled: submitButton.disabled,
+                classes: submitButton.className,
+                textLength: commentTextarea.value.trim().length
+            });
+        }, 1000);
+        
+        // Фокус на поле при клике на форму
+        const commentForm = commentTextarea.closest('.bg-gradient-to-r');
+        if (commentForm) {
+            commentForm.addEventListener('click', function(e) {
+                if (e.target === commentForm || e.target.closest('.flex.items-center.mb-4')) {
+                    commentTextarea.focus();
+                }
+            });
+        }
+        
+        // Плавная прокрутка к форме после отправки
+        const form = commentTextarea.closest('form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                // Показываем спиннер на кнопке
+                if (submitButton) {
+                    const originalContent = submitButton.innerHTML;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Отправляем...';
+                    submitButton.disabled = true;
+                }
+            });
+        }
+    }
+    
+    // Плавное появление комментариев
+    const comments = document.querySelectorAll('.relative.bg-white.border');
+    comments.forEach((comment, index) => {
+        comment.style.opacity = '0';
+        comment.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            comment.style.transition = 'all 0.5s ease';
+            comment.style.opacity = '1';
+            comment.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+    
+    // Настраиваем обработчики модального окна
+    // Close modal on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closePhotoModal();
+        }
+    });
+    
+    // Close modal on background click
+    const photoModal = document.getElementById('photoModal');
+    if (photoModal) {
+        photoModal.addEventListener('click', function(event) {
+            if (event.target === this) {
+                closePhotoModal();
+            }
+        });
+    }
+    
+    // Проверяем доступность функций модального окна
+    console.log('🖼️ Modal functions check:', {
+        openPhotoModal: typeof openPhotoModal,
+        closePhotoModal: typeof closePhotoModal,
+        windowOpenPhotoModal: typeof window.openPhotoModal,
+        windowClosePhotoModal: typeof window.closePhotoModal,
+        functionsWork: !!openPhotoModal && !!closePhotoModal
+    });
+    
+    // Проверяем работу фотографий
+    const photoImages = document.querySelectorAll('img[onclick*="openPhotoModal"]');
+    console.log('📷 Found photo images:', photoImages.length);
+    
+    photoImages.forEach((img, index) => {
+        console.log(`🖼️ Photo ${index + 1}:`, {
+            src: img.src,
+            onclick: img.getAttribute('onclick'),
+            hasOnclick: img.hasAttribute('onclick')
+        });
+        
+        // Добавляем альтернативный обработчик клика
+        img.addEventListener('click', function(e) {
+            console.log('📸 Photo clicked:', this.src);
+            
+            // Если onclick не работает, попробуем выполнить вручную
+            if (window.openPhotoModal && !e.defaultPrevented) {
+                // Получаем параметры из onclick атрибута
+                const onclickAttr = this.getAttribute('onclick');
+                if (onclickAttr) {
+                    try {
+                        // Извлекаем параметры из onclick
+                        const match = onclickAttr.match(/openPhotoModal\(([^)]+)\)/);
+                        if (match) {
+                            console.log('🔧 Trying manual modal opening');
+                            eval(onclickAttr); // Выполняем onclick
+                        }
+                    } catch (error) {
+                        console.error('❌ Error executing onclick manually:', error);
+                    }
+                }
+            }
+        });
+    });
+    
+    // Аварийный режим для кнопки комментария
+    setTimeout(() => {
+        console.log('🚑 Emergency fallback for comment button...');
+        const anyTextarea = document.querySelector('textarea');
+        const anySubmitButton = document.getElementById('submit-comment-btn') || document.querySelector('button[name="add_comment"], button[type="submit"]');
+        
+        if (anyTextarea && anySubmitButton) {
+            console.log('🔧 Found fallback elements:', { anyTextarea, anySubmitButton });
+            
+            function emergencyButtonUpdate() {
+                const hasText = anyTextarea.value.trim().length > 0;
+                anySubmitButton.disabled = !hasText;
+                
+                if (hasText) {
+                    anySubmitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    anySubmitButton.classList.add('hover:shadow-xl');
+                    console.log('✅ EMERGENCY: Button enabled');
+                } else {
+                    anySubmitButton.classList.add('opacity-50', 'cursor-not-allowed');
+                    anySubmitButton.classList.remove('hover:shadow-xl');
+                    console.log('❌ EMERGENCY: Button disabled');
+                }
+            }
+            
+            // Навешиваем обработчики
+            anyTextarea.addEventListener('input', emergencyButtonUpdate);
+            anyTextarea.addEventListener('keyup', emergencyButtonUpdate);
+            anyTextarea.addEventListener('change', emergencyButtonUpdate);
+            
+            // Начальная проверка
+            emergencyButtonUpdate();
+        } else {
+            console.error('⚠️ Even fallback elements not found!');
+        }
+    }, 2000);
+    
+    // Карта будет инициализирована автоматически после загрузки российской системы
+});
+</script>
+
+{% endblock %}

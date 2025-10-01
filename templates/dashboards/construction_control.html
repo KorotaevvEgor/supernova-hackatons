@@ -1,0 +1,532 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Панель строительного контроля - Система управления благоустройством{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'moscow-blue': '#003366',
+                    'moscow-red': '#DC143C', 
+                    'moscow-gold': '#FFD700',
+                    'moscow-green': '#228B22',
+                }
+            }
+        }
+    }
+</script>
+<style>
+    .btn-mobile {
+        min-height: 2.75rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+    
+    @media (min-width: 640px) {
+        .btn-mobile {
+            min-height: 3rem;
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+    <!-- Заголовок -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl sm:rounded-2xl p-4 sm:p-8 text-white mb-6 sm:mb-8 shadow-xl">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div class="flex items-center">
+                <div class="w-12 h-12 sm:w-16 sm:h-16 bg-white bg-opacity-20 rounded-xl sm:rounded-2xl flex items-center justify-center mr-4 sm:mr-6">
+                    <i class="fas fa-shield-alt text-xl sm:text-3xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">Панель строительного контроля</h1>
+                    <p class="text-blue-100 text-sm sm:text-lg">Комплексный контроль качества и мониторинг объектов благоустройства</p>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full lg:w-auto">
+                <div class="text-center">
+                    <div class="text-xl sm:text-2xl font-bold text-white">{{ user.get_full_name|default:user.username }}</div>
+                    <div class="text-blue-200 text-xs sm:text-sm">Ответственный специалист</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистические карточки -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-building text-blue-600 text-lg sm:text-xl"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold text-blue-800">{{ stats.active_projects }}</div>
+                    <div class="text-xs sm:text-sm text-blue-600 font-medium">Объектов</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-hourglass-half text-blue-600 text-lg sm:text-xl"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold text-blue-800">{{ stats.planned_projects }}</div>
+                    <div class="text-xs sm:text-sm text-blue-600 font-medium">Планируется</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-check-circle text-blue-600 text-lg sm:text-xl"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold text-blue-800">{{ stats.pending_verification }}</div>
+                    <div class="text-xs sm:text-sm text-blue-600 font-medium">На верификации</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-105 {% if stats.active_violations > 0 %}ring-2 ring-red-200 animate-pulse{% endif %}">
+            <div class="flex flex-col sm:flex-row sm:items-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-lg sm:rounded-xl flex items-center justify-center mb-2 sm:mb-0">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-lg sm:text-xl{% if stats.active_violations > 0 %} animate-pulse{% endif %}"></i>
+                </div>
+                <div class="sm:ml-4">
+                    <div class="text-xl sm:text-2xl font-bold {% if stats.active_violations > 0 %}text-red-800{% else %}text-gray-800{% endif %}">{{ stats.active_violations }}</div>
+                    <div class="text-xs sm:text-sm text-red-600 font-medium">Активные замечания</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Быстрые действия -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+        <div class="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-bolt text-blue-600 mr-2"></i>
+                Быстрые действия
+            </h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="/projects/comments/" 
+                   class="btn-mobile inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-200 font-medium shadow-lg text-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    Просмотр замечаний
+                </a>
+                
+                <a href="/verification/" 
+                   class="btn-mobile inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-lg text-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Верификация работ
+                </a>
+                
+                <a href="/projects/schedule/" 
+                   class="btn-mobile inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 font-medium shadow-lg text-center">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Сетевой график
+                </a>
+                
+                <a href="/control/verify-identity/" 
+                   class="btn-mobile inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-xl hover:from-cyan-700 hover:to-cyan-800 transition-all duration-200 font-medium shadow-lg text-center">
+                    <i class="fas fa-shield-alt mr-2"></i>
+                    Подтверждение ID
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Список объектов под контролем -->
+    <div class="space-y-6">
+        {% for project in available_projects %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+            <div class="p-8">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-3 mb-4">
+                            <!-- Статус проекта -->
+                            <div class="inline-flex items-center px-4 py-2 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200
+                                {% if project.status == 'active' %}
+                                bg-gradient-to-r from-blue-200 to-indigo-300 text-blue-800
+                                {% elif project.status == 'planned' %}
+                                bg-gradient-to-r from-yellow-200 to-amber-300 text-yellow-800
+                                {% elif project.status == 'completed' %}
+                                bg-gradient-to-r from-green-200 to-emerald-300 text-green-800
+                                {% else %}
+                                bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700
+                                {% endif %}">
+                                {% if project.status == 'active' %}
+                                <i class="fas fa-play mr-2"></i>
+                                Активный
+                                {% elif project.status == 'planned' %}
+                                <i class="fas fa-calendar-alt mr-2"></i>
+                                Планируется
+                                {% elif project.status == 'completed' %}
+                                <i class="fas fa-check-circle mr-2"></i>
+                                Завершен
+                                {% else %}
+                                <i class="fas fa-pause mr-2"></i>
+                                {{ project.get_status_display }}
+                                {% endif %}
+                            </div>
+                        
+                            <!-- Процент готовности -->
+                            <div class="inline-flex items-center px-3 py-2 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all duration-200
+                                {% if project.completion_percentage >= 100 %}
+                                bg-gradient-to-r from-green-200 to-emerald-300 text-green-800
+                                {% elif project.completion_percentage >= 75 %}
+                                bg-gradient-to-r from-blue-200 to-cyan-300 text-blue-800
+                                {% elif project.completion_percentage >= 50 %}
+                                bg-gradient-to-r from-yellow-200 to-orange-300 text-yellow-800
+                                {% elif project.completion_percentage >= 25 %}
+                                bg-gradient-to-r from-orange-200 to-red-300 text-orange-800
+                                {% else %}
+                                bg-gradient-to-r from-red-200 to-pink-300 text-red-800
+                                {% endif %}">
+                                <div class="w-2 h-2 rounded-full mr-2 
+                                    {% if project.completion_percentage >= 100 %}
+                                    bg-green-600
+                                    {% elif project.completion_percentage >= 75 %}
+                                    bg-blue-600
+                                    {% elif project.completion_percentage >= 50 %}
+                                    bg-yellow-600
+                                    {% elif project.completion_percentage >= 25 %}
+                                    bg-orange-600
+                                    {% else %}
+                                    bg-red-600
+                                    {% endif %}"></div>
+                                {{ project.completion_percentage }}% готово
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold text-gray-900 mb-3 leading-tight">
+                            <a href="{% url 'projects:project_detail' project.id %}" class="text-gray-900 hover:text-blue-600 transition-colors">
+                                {{ project.name }}
+                            </a>
+                        </h3>
+                        
+                        {% if project.description %}
+                        <p class="text-gray-600 mb-6 leading-relaxed text-base">{{ project.description|truncatechars:200 }}</p>
+                        {% endif %}
+
+                        <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                                {% if project.address %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-map-marker-alt text-slate-500"></i>
+                                    <span><strong class="text-gray-900">Адрес:</strong> {{ project.address }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if project.foreman %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-hard-hat text-blue-500"></i>
+                                    <span><strong class="text-gray-900">Прораб:</strong> {{ project.foreman.get_full_name }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-calendar text-indigo-500"></i>
+                                    <span><strong class="text-gray-900">Создан:</strong> {{ project.created_at|date:"d.m.Y" }}</span>
+                                </div>
+                                
+                                {% if project.planned_start_date %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-calendar-check text-cyan-500"></i>
+                                    <span><strong class="text-gray-900">Начало:</strong> {{ project.planned_start_date|date:"d.m.Y" }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if project.planned_end_date %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-calendar-times text-slate-500"></i>
+                                    <span><strong class="text-gray-900">Окончание:</strong> {{ project.planned_end_date|date:"d.m.Y" }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if project.budget %}
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-ruble-sign text-blue-500"></i>
+                                    <span><strong class="text-gray-900">Бюджет:</strong> {{ project.budget|floatformat:0 }} руб.</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопки действий -->
+                <div class="mt-6">
+                    <div class="flex flex-wrap gap-3">
+                        <!-- Кнопка подробностей -->
+                        <a href="{% url 'projects:project_detail' project.id %}" 
+                           class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm">
+                            <i class="fas fa-eye mr-2 text-sm"></i>
+                            Подробнее
+                        </a>
+                        
+                        <!-- Кнопка активации для планируемых проектов -->
+                        {% if project.status == 'planned' and user.user_type == 'construction_control' %}
+                        <button onclick="activateProject({{ project.id }})" 
+                                class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 font-medium shadow-md hover:shadow-lg text-sm">
+                            <i class="fas fa-play mr-2 text-sm"></i>
+                            Активировать
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg p-12 text-center border border-gray-100">
+            <div class="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                <i class="fas fa-building text-gray-500 text-3xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-3">Проекты не найдены</h3>
+            <p class="text-gray-600 text-lg max-w-md mx-auto leading-relaxed">
+                В настоящее время у вас нет проектов под контролем.
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Карта объектов -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mt-8">
+        <div class="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-map-marked-alt text-blue-600 mr-2"></i>
+                    Карта объектов
+                </h3>
+                <select id="map-provider" class="px-4 py-2 border border-gray-200 rounded-xl bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="osm" selected>🗺️ Стандартная</option>
+                    <option value="satellite">🛰️ Спутник</option>
+                </select>
+            </div>
+        </div>
+        <div class="p-6">
+            <div id="map-loading" class="flex items-center justify-center h-[500px] bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl">
+                <div class="text-center">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+                    <p class="text-gray-600 font-medium">Загрузка карты...</p>
+                </div>
+            </div>
+            <div id="map" class="h-[500px] rounded-2xl shadow-inner" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Активация объекта
+function activateProject(projectId) {
+    if (confirm('Начать процесс активации объекта? Вы будете перенаправлены на страницу активации.')) {
+        // Перенаправляем на страницу активации через нашу систему
+        window.location.href = `/projects/activate/${projectId}/`;
+    }
+}
+
+// 🇺🇸 Инициализация российской картографической системы
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        console.log('🗺️ Инициализация картографической системы без брендинга...');
+        
+        // Глобальный обработчик готовности карты
+        window.onMapReady = function(mapInstance) {
+            console.log('✅ Карта готова!');
+            
+            // Добавляем проекты на карту
+            const projectsData = {{ projects_for_map|default:"[]"|safe }};
+            
+            if (projectsData && projectsData.length > 0) {
+                console.log(`🏢 Отображаем ${projectsData.length} проект(ов) на карте`);
+                
+                // Переменные для вычисления границ всех проектов
+                let minLng = Infinity, maxLng = -Infinity;
+                let minLat = Infinity, maxLat = -Infinity;
+                let totalLng = 0, totalLat = 0, projectCount = 0;
+                
+                projectsData.forEach(project => {
+                    if (project.coordinates && project.coordinates.coordinates) {
+                        let color = '#2942F9';
+                        let statusText = 'Активный';
+                        if (project.status === 'active') {
+                            color = '#2942F9';
+                            statusText = 'Активный';
+                        } else if (project.status === 'completed') {
+                            color = '#10B981';
+                            statusText = 'Завершен';
+                        } else if (project.status === 'suspended') {
+                            color = '#A51A2B';
+                            statusText = 'Приостановлен';
+                        } else if (project.status === 'planned') {
+                            color = '#F59E0B';
+                            statusText = 'Планируется';
+                        }
+                        
+                        const coords = project.coordinates.coordinates[0];
+                        
+                        // Вычисляем центр полигона
+                        const centerLng = coords.reduce((sum, coord) => sum + coord[0], 0) / coords.length;
+                        const centerLat = coords.reduce((sum, coord) => sum + coord[1], 0) / coords.length;
+                        
+                        // Обновляем границы для всех координат полигона
+                        coords.forEach(coord => {
+                            const [lng, lat] = coord;
+                            minLng = Math.min(minLng, lng);
+                            maxLng = Math.max(maxLng, lng);
+                            minLat = Math.min(minLat, lat);
+                            maxLat = Math.max(maxLat, lat);
+                        });
+                        
+                        // Накапливаем центры для общего центра
+                        totalLng += centerLng;
+                        totalLat += centerLat;
+                        projectCount++;
+                        
+                        // Добавляем маркер с улучшенным popup
+                        mapInstance.addMarker([centerLng, centerLat], {
+                            title: project.name,
+                            color: color,
+                            popup: `
+                                <div class="p-4 min-w-64">
+                                    <h3 class="font-bold text-gray-900 mb-3 text-sm">${project.name}</h3>
+                                    <div class="space-y-2 text-xs">
+                                        <p class="flex items-center text-gray-700">
+                                            <i class="fas fa-map-marker-alt text-red-500 w-4 mr-2"></i>
+                                            <span>${project.address || 'Адрес не указан'}</span>
+                                        </p>
+                                        <p class="flex items-center text-gray-600">
+                                            <i class="fas fa-info-circle text-blue-500 w-4 mr-2"></i>
+                                            <span>Статус: ${statusText}</span>
+                                        </p>
+                                        <p class="flex items-center text-gray-600">
+                                            <i class="fas fa-chart-line text-green-500 w-4 mr-2"></i>
+                                            <span>Готовность: ${project.completion}%</span>
+                                        </p>
+                                        <div class="mt-3 pt-2 border-t border-gray-200">
+                                            <a href="/projects/${project.id}/" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+                                                <i class="fas fa-eye mr-1"></i>
+                                                Подробнее
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            `,
+                            data: project
+                        });
+                        
+                        // Добавляем полигон с улучшенным стилем
+                        mapInstance.addPolygon(coords, {
+                            title: project.name,
+                            strokeColor: color,
+                            fillColor: color + '4D', // Увеличиваем прозрачность заливки
+                            strokeWidth: 4, // Увеличиваем толщину границы
+                            strokeOpacity: 0.8,
+                            fillOpacity: 0.3,
+                            data: project
+                        });
+                        
+                        console.log(`✅ Добавлен проект: ${project.name} в центре [${centerLng.toFixed(6)}, ${centerLat.toFixed(6)}]`);
+                    }
+                });
+                
+                // Устанавливаем вид карты для показа всех проектов
+                if (projectCount > 0) {
+                    if (projectCount === 1) {
+                        // Если проект один, центрируем на нем с большим зумом
+                        const avgLng = totalLng / projectCount;
+                        const avgLat = totalLat / projectCount;
+                        console.log(`🎯 Центрируем карту на единственном проекте: [${avgLng.toFixed(6)}, ${avgLat.toFixed(6)}]`);
+                        mapInstance.setCenter([avgLng, avgLat], 16);
+                    } else {
+                        // Если несколько проектов, показываем все с подходящим зумом
+                        const centerLng = (minLng + maxLng) / 2;
+                        const centerLat = (minLat + maxLat) / 2;
+                        
+                        // Вычисляем подходящий зум на основе размера области
+                        const lngDiff = maxLng - minLng;
+                        const latDiff = maxLat - minLat;
+                        const maxDiff = Math.max(lngDiff, latDiff);
+                        
+                        let zoom = 13;
+                        if (maxDiff < 0.01) zoom = 15;
+                        else if (maxDiff < 0.05) zoom = 14;
+                        else if (maxDiff < 0.1) zoom = 13;
+                        else if (maxDiff < 0.2) zoom = 12;
+                        else zoom = 11;
+                        
+                        console.log(`🎯 Центрируем карту на области: [${centerLng.toFixed(6)}, ${centerLat.toFixed(6)}], зум: ${zoom}`);
+                        console.log(`📊 Область покрытия: lng ${lngDiff.toFixed(6)}, lat ${latDiff.toFixed(6)}`);
+                        mapInstance.setCenter([centerLng, centerLat], zoom);
+                    }
+                }
+                
+            } else {
+                // Добавляем маркер Москвы по умолчанию
+                mapInstance.addMarker([37.6176, 55.7558], {
+                    title: 'Москва',
+                    color: '#2942F9',
+                    popup: `
+                        <div class="p-3">
+                            <h3 class="font-bold text-gray-900 mb-2">🏛️ Москва</h3>
+                            <p class="text-sm text-gray-700">Местоположение по умолчанию</p>
+                        </div>
+                    `
+                });
+            }
+        };
+        
+        // Создаем карту
+        const map = createRussianMap('map', {
+            center: [37.6176, 55.7558], 
+            zoom: 13, 
+            debug: true,
+            defaultProvider: 'osm'
+        });
+        
+        // Обработчик смены типа карты
+        const mapProvider = document.getElementById('map-provider');
+        if (mapProvider) {
+            mapProvider.addEventListener('change', function() {
+                const selectedProvider = this.value;
+                console.log('🔄 Переключение карты на:', selectedProvider);
+                
+                try {
+                    // Пересоздаем карту с новым типом
+                    const newMap = createRussianMap('map', {
+                        center: [37.6176, 55.7558],
+                        zoom: 13,
+                        debug: true,
+                        defaultProvider: selectedProvider
+                    });
+                } catch (error) {
+                    console.error('Ошибка при смене карты:', error);
+                }
+            });
+        }
+        
+    } catch (error) {
+        console.error('Failed to initialize map:', error);
+        document.getElementById('map-loading').innerHTML = `
+            <div class="text-center text-gray-500">
+                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                <p class="text-sm">Ошибка загрузки карты</p>
+            </div>
+        `;
+    }
+});
+</script>
+{% endblock %}

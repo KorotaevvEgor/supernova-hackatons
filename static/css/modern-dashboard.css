@@ -1,0 +1,527 @@
+/* Современная тема дашборда */
+
+:root {
+  /* Основные цвета */
+  --primary-dark: #0B1426;
+  --primary-blue: #1E40AF;
+  --secondary-blue: #3B82F6;
+  --accent-gradient: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+  --success-green: #10B981;
+  --warning-orange: #F59E0B;
+  --danger-red: #EF4444;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --bg-light: #F8FAFC;
+  --border-light: #E5E7EB;
+}
+
+/* Современная боковая панель */
+.modern-sidebar {
+  background: linear-gradient(180deg, var(--primary-dark) 0%, #1E293B 50%, #334155 100%);
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-brand {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-user {
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-nav-item {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  /* Устранение мигания при клике */
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.sidebar-nav-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(4px);
+}
+
+.sidebar-nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--secondary-blue);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.sidebar-nav-item:hover::before,
+.sidebar-nav-item.active::before {
+  transform: scaleY(1);
+}
+
+/* Дополнительные стили для навигации */
+.sidebar-nav-item .w-10 {
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-nav-item:hover .w-10 {
+  transform: scale(1.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+}
+
+.sidebar-nav-item span {
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.sidebar-nav-item:hover span {
+  font-weight: 600;
+  transform: translateX(2px);
+}
+
+/* Активное состояние пункта меню */
+.sidebar-nav-item.active {
+  background: rgba(255, 255, 255, 0.1);
+  border-left: 4px solid #3B82F6;
+}
+
+.sidebar-nav-item.active .w-10 {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+/* Устранение мигания при клике и фокусе */
+.sidebar-nav-item:focus {
+  outline: none !important;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(4px);
+}
+
+.sidebar-nav-item:active {
+  outline: none !important;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(4px) scale(0.98);
+  transition: all 0.1s ease;
+}
+
+.sidebar-nav-item:focus:not(:active) {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Предотвращение мигания для вложенных элементов */
+.sidebar-nav-item * {
+  pointer-events: none;
+}
+
+.sidebar-nav-item {
+  pointer-events: auto;
+}
+
+/* Специальные стили для градиентных кнопок (Идентификация, Выйти) */
+.sidebar-nav-item[class*="bg-gradient"] {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  transition: all 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-nav-item[class*="bg-gradient"]:hover {
+  transform: translateX(4px);
+  opacity: 0.9;
+  filter: brightness(1.1);
+}
+
+.sidebar-nav-item[class*="bg-gradient"]:focus {
+  outline: none !important;
+  transform: translateX(4px);
+  opacity: 0.9;
+}
+
+.sidebar-nav-item[class*="bg-gradient"]:active {
+  outline: none !important;
+  transform: translateX(4px) scale(0.95);
+  opacity: 0.8;
+  transition: all 0.1s ease;
+}
+
+.sidebar-nav-item[class*="bg-gradient"]:focus:not(:active) {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+/* Предотвращение конфликта с tailwind hover классами */
+.sidebar-nav-item[class*="hover:from-"] {
+  transition: all 0.3s ease !important;
+}
+
+.sidebar-nav-item[class*="hover:from-"]:hover {
+  transform: translateX(4px) !important;
+  opacity: 0.9 !important;
+}
+
+.sidebar-nav-item[class*="hover:from-"]:active {
+  transform: translateX(4px) scale(0.95) !important;
+  opacity: 0.8 !important;
+  transition: all 0.1s ease !important;
+}
+
+/* Полная изоляция градиентных кнопок от общих эффектов */
+.anti-flicker-btn {
+  /* Изолируем от всех возможных внешних влияний */
+  contain: layout style paint !important;
+  isolation: isolate !important;
+  position: relative !important;
+  z-index: 10 !important;
+  
+  /* Отключаем наследование анимаций и переходов */
+  animation: none !important;
+  transition: transform 0.3s ease, opacity 0.3s ease !important;
+  transform-style: flat !important;
+  
+  /* Стабилизируем рендеринг */
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  transform-origin: center !important;
+  will-change: transform, opacity !important;
+  
+  /* Предотвращаем CSS каскадирование */
+  all: revert !important;
+  
+  /* Восстанавливаем необходимые стили после revert */
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 0.75rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  border-radius: 0.75rem !important;
+  color: white !important;
+  text-decoration: none !important;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+}
+
+/* Блокируем влияние hover эффектов от соседних элементов */
+.sidebar-nav-item:not(.anti-flicker-btn):hover,
+.sidebar-nav-item:not(.anti-flicker-btn):focus,
+.sidebar-nav-item:not(.anti-flicker-btn):active {
+  /* Эти стили не должны влиять на .anti-flicker-btn */
+}
+
+/* Принудительная стабилизация градиентных кнопок */
+.anti-flicker-btn:not(:hover):not(:focus):not(:active) {
+  transform: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Отдельные состояния только для градиентных кнопок */
+.anti-flicker-btn:hover {
+  transform: translateX(4px) !important;
+  opacity: 0.9 !important;
+  filter: brightness(1.05) !important;
+  transition: all 0.3s ease !important;
+}
+
+.anti-flicker-btn:active {
+  transform: translateX(4px) scale(0.95) !important;
+  opacity: 0.8 !important;
+  transition: all 0.1s ease !important;
+}
+
+.anti-flicker-btn:focus:not(:active) {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Современные карточки */
+.modern-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modern-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+}
+
+.modern-card-header {
+  padding: 24px 24px 0;
+  border-bottom: none;
+}
+
+.modern-card-body {
+  padding: 24px;
+}
+
+/* Метрики карточки */
+.metric-card {
+  background: linear-gradient(135deg, white 0%, #F8FAFC 100%);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--accent-gradient);
+}
+
+.metric-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
+}
+
+.metric-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+}
+
+/* Графики и диаграммы */
+.chart-container {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.chart-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+/* Прогресс-бары */
+.progress-bar {
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent-gradient);
+  transition: width 0.6s ease;
+}
+
+/* Кнопки действий */
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.action-button:hover::before {
+  left: 100%;
+}
+
+.action-button-primary {
+  background: var(--accent-gradient);
+  color: white;
+}
+
+.action-button-secondary {
+  background: #F3F4F6;
+  color: var(--text-primary);
+}
+
+.action-button-danger {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+}
+
+/* Статистические индикаторы */
+.stat-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.stat-indicator-success {
+  background: #DCFCE7;
+  color: #16A34A;
+}
+
+.stat-indicator-warning {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.stat-indicator-danger {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+/* Таблицы */
+.modern-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.modern-table th {
+  background: #F8FAFC;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 16px;
+  text-align: left;
+}
+
+.modern-table td {
+  padding: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.modern-table tbody tr:hover {
+  background: #F8FAFC;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .metric-card {
+    padding: 16px;
+  }
+  
+  .metric-number {
+    font-size: 2rem;
+  }
+  
+  .chart-container {
+    padding: 16px;
+  }
+  
+  .modern-card-body {
+    padding: 16px;
+  }
+}
+
+/* Анимации */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.6s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* Специальные эффекты */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

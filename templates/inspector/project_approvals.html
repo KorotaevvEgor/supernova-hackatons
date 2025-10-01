@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Подтверждение этапов проекта - Инспектор{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Подтверждение этапов</h1>
+      <p class="mt-1 text-gray-600">Согласование завершенных этапов строительства</p>
+    </div>
+  </div>
+
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">
+        Ожидающие подтверждения ({{ pending_approvals|length|default:0 }})
+      </h2>
+    </div>
+    
+    {% if pending_approvals %}
+      <div class="divide-y divide-gray-200">
+        {% for stage in pending_approvals %}
+          <div class="p-6 hover:bg-gray-50">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <h3 class="text-lg font-medium text-gray-900">{{ stage.name }}</h3>
+                <p class="text-sm text-gray-600 mb-2">{{ stage.project.name }}</p>
+                <p class="text-sm text-gray-700">{{ stage.description|truncatechars:150 }}</p>
+                <div class="mt-2 flex items-center space-x-4">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Ожидает подтверждения
+                  </span>
+                  <span class="text-xs text-gray-500">Планируемое завершение: {{ stage.planned_end|date:"d.m.Y" }}</span>
+                </div>
+              </div>
+              <div class="ml-6 flex-shrink-0">
+                <div class="flex space-x-2">
+                  <button onclick="approveStage({{ stage.id }})" 
+                          class="inline-flex items-center px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700">
+                    <i class="fas fa-check mr-1"></i>
+                    Подтвердить
+                  </button>
+                  <button onclick="rejectStage({{ stage.id }})" 
+                          class="inline-flex items-center px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700">
+                    <i class="fas fa-times mr-1"></i>
+                    Отклонить
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="p-12 text-center text-gray-500">
+        <i class="fas fa-clipboard-check text-4xl mb-4 text-gray-400"></i>
+        <p class="text-lg mb-2">Нет этапов, ожидающих подтверждения</p>
+        <p class="text-sm">Все этапы проектов находятся в работе или уже завершены</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Approved stages section -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">
+        Недавно подтвержденные этапы
+      </h2>
+    </div>
+    
+    {% if recent_approved %}
+      <div class="divide-y divide-gray-200">
+        {% for stage in recent_approved %}
+          <div class="p-6 hover:bg-gray-50">
+            <div class="flex items-center justify-between">
+              <div class="flex-1">
+                <h3 class="text-lg font-medium text-gray-900">{{ stage.name }}</h3>
+                <p class="text-sm text-gray-600 mb-2">{{ stage.project.name }}</p>
+                <div class="mt-2 flex items-center space-x-4">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i>
+                    Подтверждено
+                  </span>
+                  <span class="text-xs text-gray-500">Завершено: {{ stage.actual_end|date:"d.m.Y H:i" }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="p-6 text-center text-gray-500">
+        <p class="text-sm">Недавних подтверждений нет</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function approveStage(stageId) {
+    if (confirm('Подтвердить завершение этапа?')) {
+        fetch(`/inspector/stage/${stageId}/approve/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при подтверждении этапа');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка');
+        });
+    }
+}
+
+function rejectStage(stageId) {
+    const reason = prompt('Укажите причину отклонения:');
+    if (reason) {
+        fetch(`/inspector/stage/${stageId}/reject/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({reason: reason})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при отклонении этапа');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Произошла ошибка');
+        });
+    }
+}
+</script>
+
+{% endblock %}

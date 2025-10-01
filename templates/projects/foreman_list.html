@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}Мои проекты — СУ благоустройства{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <!-- Заголовок -->
+  <div class="mb-6">
+    <h1 class="text-xl md:text-2xl font-bold text-gray-900">
+      <i class="fas fa-hard-hat text-primary-blue mr-2"></i>
+      Мои проекты
+    </h1>
+    <p class="text-sm text-gray-600">Проекты, назначенные мне как ответственному прорабу</p>
+  </div>
+
+  <!-- Статистика -->
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+    <div class="bg-white shadow rounded-lg p-5">
+      <div class="text-sm text-gray-500">Всего проектов</div>
+      <div class="text-2xl font-bold text-gray-900">{{ total_count }}</div>
+    </div>
+    <div class="bg-white shadow rounded-lg p-5">
+      <div class="text-sm text-gray-500">Активные</div>
+      <div class="text-2xl font-bold text-green-600">{{ status_counts.active }}</div>
+    </div>
+    <div class="bg-white shadow rounded-lg p-5">
+      <div class="text-sm text-gray-500">Завершенные</div>
+      <div class="text-2xl font-bold text-blue-600">{{ status_counts.completed }}</div>
+    </div>
+    <div class="bg-white shadow rounded-lg p-5">
+      <div class="text-sm text-gray-500">Планируемые</div>
+      <div class="text-2xl font-bold text-yellow-600">{{ status_counts.planned }}</div>
+    </div>
+  </div>
+
+  <!-- Список проектов -->
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    {% if projects %}
+      <div class="divide-y divide-gray-200">
+        {% for project in projects %}
+        <div class="px-4 sm:px-6 py-4 sm:py-6 hover:bg-gray-50 transition-colors">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div class="flex-1">
+              <div class="flex flex-col lg:flex-row lg:items-center lg:space-x-4 space-y-3 lg:space-y-0">
+                <div class="flex-1">
+                  <h3 class="text-base md:text-lg font-medium text-gray-900">
+                    <a href="/projects/{{ project.id }}/" class="hover:text-primary-blue transition-colors">
+                      {{ project.name }}
+                    </a>
+                  </h3>
+                  <p class="text-sm text-gray-600 mt-1">
+                    <i class="fas fa-map-marker-alt mr-1"></i>
+                    {{ project.address }}
+                  </p>
+                  
+                  <!-- Статусы проекта и активации -->
+                  <div class="flex items-center space-x-3 mt-3">
+                    <!-- Основной статус проекта -->
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      {% if project.status == 'active' %}bg-green-100 text-green-800
+                      {% elif project.status == 'planned' %}bg-yellow-100 text-yellow-800
+                      {% elif project.status == 'completed' %}bg-blue-100 text-blue-800
+                      {% elif project.status == 'suspended' %}bg-red-100 text-red-800
+                      {% else %}bg-gray-100 text-gray-800{% endif %}">
+                      {{ project.get_status_display }}
+                    </span>
+
+                    <!-- Статус активации если есть -->
+                    {% if project.activation %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        {% if project.activation.status == 'foreman_assigned' %}bg-blue-100 text-blue-800 activation-new-pulse
+                        {% elif project.activation.status == 'inspector_review' %}bg-yellow-100 text-yellow-800
+                        {% elif project.activation.status == 'approved' or project.activation.status == 'activated' %}bg-green-100 text-green-800
+                        {% elif project.activation.status == 'rejected' %}bg-red-100 text-red-800 activation-rejected-pulse
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        <i class="fas 
+                          {% if project.activation.status == 'foreman_assigned' %}fa-user-hard-hat
+                          {% elif project.activation.status == 'inspector_review' %}fa-search
+                          {% elif project.activation.status == 'approved' or project.activation.status == 'activated' %}fa-check-circle
+                          {% elif project.activation.status == 'rejected' %}fa-times-circle
+                          {% else %}fa-clock{% endif %} mr-1"></i>
+                        {% if project.activation.status == 'foreman_assigned' %}Назначен
+                        {% elif project.activation.status == 'inspector_review' %}На проверке
+                        {% elif project.activation.status == 'approved' %}Одобрено
+                        {% elif project.activation.status == 'activated' %}Активировано
+                        {% elif project.activation.status == 'rejected' %}Отклонено
+                        {% else %}{{ project.activation.get_status_display }}{% endif %}
+                      </span>
+                    {% endif %}
+                  </div>
+
+                  <!-- Даты -->
+                  <div class="text-xs text-gray-500 mt-2">
+                    <i class="fas fa-calendar mr-1"></i>
+                    {{ project.planned_start_date|date:"d.m.Y" }} - {{ project.planned_end_date|date:"d.m.Y" }}
+                  </div>
+                </div>
+
+                <!-- Прогресс -->
+                <div class="text-left lg:text-right lg:ml-4">
+                  <div class="text-base md:text-lg font-semibold text-gray-900 mb-1">{{ project.completion_percentage }}%</div>
+                  <div class="w-32 lg:w-24 bg-gray-200 rounded-full h-3">
+                    <div class="bg-primary-blue h-3 rounded-full transition-all duration-300" 
+                         style="width: {{ project.completion_percentage }}%"></div>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-1">Готовность</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Действия -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 lg:ml-6 w-full lg:w-auto">
+              <a href="/projects/{{ project.id }}/" 
+                 class="btn-mobile inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue">
+                <i class="fas fa-eye mr-2"></i>
+                Подробнее
+              </a>
+              
+              {% if project.status == 'active' %}
+              <a href="/foreman/project/{{ project.id }}/" 
+                 class="btn-mobile inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-blue hover:bg-primary-blue/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue">
+                <i class="fas fa-tools mr-2"></i>
+                Управление
+              </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Дополнительная информация при отклонении -->
+          {% if project.activation and project.activation.status == 'rejected' and project.activation.rejection_reason %}
+          <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-400"></i>
+              </div>
+              <div class="ml-3">
+                <h4 class="text-sm font-medium text-red-800">Причина отклонения активации:</h4>
+                <div class="text-sm text-red-700 mt-1">{{ project.activation.rejection_reason }}</div>
+                {% if project.activation.inspector_notes %}
+                <div class="text-xs text-red-600 mt-1">
+                  <strong>Замечания инспектора:</strong> {{ project.activation.inspector_notes }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="px-6 py-12 text-center">
+        <i class="fas fa-inbox text-gray-400 text-6xl mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Нет назначенных проектов</h3>
+        <p class="text-gray-600">На данный момент вам не назначены проекты для управления.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<style>
+/* Анимации для статусов активации */
+.activation-new-pulse {
+    animation: newAssignmentPulse 3s infinite;
+}
+
+@keyframes newAssignmentPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+    }
+}
+
+.activation-rejected-pulse {
+    animation: rejectedPulse 2s infinite;
+}
+
+@keyframes rejectedPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+    }
+}
+</style>
+{% endblock %}

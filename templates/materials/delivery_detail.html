@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Поставка {{ delivery.material_type.name }} — СУ благоустройства{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-card {
+    transition: all 0.3s ease;
+  }
+  
+  .detail-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+  
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  
+  .document-photo {
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  
+  @media (max-width: 640px) {
+    .detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <!-- Заголовок и навигация -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <nav class="text-sm text-gray-600 mb-2">
+            <a href="{% url 'materials:list' %}" class="hover:text-primary-blue">
+              <i class="fas fa-boxes mr-1"></i>Материалы
+            </a>
+            <span class="mx-2">/</span>
+            <span>Детали поставки</span>
+          </nav>
+          <h1 class="text-2xl font-bold text-gray-900">
+            <i class="fas fa-box text-accent-peach mr-2"></i>
+            {{ delivery.material_type.name }}
+          </h1>
+          <p class="mt-1 text-sm text-gray-600">
+            Поставка от {{ delivery.delivery_date|date:"d.m.Y H:i" }} • {{ delivery.project.name }}
+          </p>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <!-- Статус поставки -->
+          <span class="status-badge
+            {% if delivery.status == 'pending' %}bg-yellow-100 text-yellow-800
+            {% elif delivery.status == 'delivered' %}bg-orange-100 text-orange-800
+            {% elif delivery.status == 'accepted' %}bg-green-100 text-green-800
+            {% elif delivery.status == 'rejected' %}bg-red-100 text-red-800
+            {% else %}bg-gray-100 text-gray-800{% endif %}">
+            <i class="fas fa-circle text-xs mr-2"></i>
+            {{ delivery.get_status_display }}
+          </span>
+          
+          <!-- Кнопки действий -->
+          {% if delivery.status == 'delivered' %}
+          <button onclick="acceptDelivery({{ delivery.id }})" 
+                  class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+            <i class="fas fa-check mr-2"></i>
+            Принять поставку
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Основная информация -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Детали поставки -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white shadow rounded-lg detail-card">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">
+            <i class="fas fa-info-circle text-primary-blue mr-2"></i>
+            Основная информация
+          </h3>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 detail-grid">
+            <div>
+              <h4 class="font-medium text-gray-900 mb-3">Материал</h4>
+              <div class="space-y-2">
+                <div class="flex items-center">
+                  <div class="w-12 h-12 rounded-full bg-accent-peach/20 flex items-center justify-center mr-3">
+                    <i class="fas fa-box text-accent-peach"></i>
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-900">{{ delivery.material_type.name }}</div>
+                    <div class="text-sm text-gray-500">{{ delivery.material_type.code }}</div>
+                  </div>
+                </div>
+                <div class="mt-3">
+                  <span class="text-sm text-gray-600">Количество:</span>
+                  <span class="font-medium">{{ delivery.quantity }} {{ delivery.material_type.unit }}</span>
+                </div>
+                {% if delivery.material_type.description %}
+                <div class="text-sm text-gray-600 mt-2">
+                  {{ delivery.material_type.description }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div>
+              <h4 class="font-medium text-gray-900 mb-3">Поставка</h4>
+              <div class="space-y-3">
+                <div>
+                  <span class="text-sm text-gray-600">Поставщик:</span>
+                  <div class="font-medium">{{ delivery.supplier|default:"—" }}</div>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600">Дата поставки:</span>
+                  <div class="font-medium">{{ delivery.delivery_date|date:"d.m.Y H:i" }}</div>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600">ТТН номер:</span>
+                  <div class="font-medium">{{ delivery.ttn_number|default:"—" }}</div>
+                </div>
+                <div>
+                  <span class="text-sm text-gray-600">Принял:</span>
+                  <div class="font-medium">{{ delivery.received_by.get_full_name|default:delivery.received_by.username }}</div>
+                </div>
+                {% if delivery.location %}
+                <div>
+                  <span class="text-sm text-gray-600">Место приемки:</span>
+                  <div class="font-medium">{{ delivery.location }}</div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          {% if delivery.notes %}
+          <div class="mt-6 pt-6 border-t border-gray-200">
+            <h4 class="font-medium text-gray-900 mb-2">Примечания</h4>
+            <p class="text-gray-700">{{ delivery.notes }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Транспортные документы -->
+      {% if transport_documents %}
+      <div class="bg-white shadow rounded-lg detail-card">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">
+            <i class="fas fa-file-alt text-primary-blue mr-2"></i>
+            Транспортные документы ({{ transport_documents|length }})
+          </h3>
+        </div>
+        <div class="p-6">
+          <div class="space-y-4">
+            {% for doc in transport_documents %}
+            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-gray-900">{{ doc.document_number }}</div>
+                  <div class="text-sm text-gray-600">
+                    {{ doc.document_date|date:"d.m.Y" }} • {{ doc.sender_name }}
+                  </div>
+                  <div class="text-xs text-gray-500 mt-1">
+                    {{ doc.get_processing_status_display }}
+                    {% if doc.photos.all %} • {{ doc.photos.all|length }} фото{% endif %}
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                    {% if doc.processing_status == 'uploaded' %}bg-blue-100 text-blue-800
+                    {% elif doc.processing_status == 'processed' %}bg-yellow-100 text-yellow-800
+                    {% elif doc.processing_status == 'verified' %}bg-green-100 text-green-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ doc.get_processing_status_display }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Контроль качества -->
+      {% if quality_controls %}
+      <div class="bg-white shadow rounded-lg detail-card">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">
+            <i class="fas fa-check-circle text-primary-blue mr-2"></i>
+            Контроль качества ({{ quality_controls.count }})
+          </h3>
+        </div>
+        <div class="p-6">
+          <div class="space-y-4">
+            {% for control in quality_controls %}
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="font-medium text-gray-900">{{ control.control_date|date:"d.m.Y H:i" }}</div>
+                  <div class="text-sm text-gray-600">
+                    Инспектор: {{ control.inspector.get_full_name|default:control.inspector.username }}
+                  </div>
+                </div>
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                  {% if control.control_status == 'completed' %}bg-green-100 text-green-800
+                  {% elif control.control_status == 'failed' %}bg-red-100 text-red-800
+                  {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                  {{ control.get_control_status_display }}
+                </span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Боковая панель -->
+    <div class="space-y-6">
+      <!-- Статистика -->
+      <div class="bg-white shadow rounded-lg detail-card">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">
+            <i class="fas fa-chart-bar text-primary-blue mr-2"></i>
+            Статистика
+          </h3>
+        </div>
+        <div class="p-6">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Документов:</span>
+              <span class="font-medium">{{ delivery_stats.documents_count }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Фотографий:</span>
+              <span class="font-medium">{{ delivery_stats.photos_count }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Проверок качества:</span>
+              <span class="font-medium">{{ delivery_stats.quality_checks_count }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Обработано OCR:</span>
+              <span class="font-medium">{{ delivery_stats.ocr_processed }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Информация о проекте -->
+      <div class="bg-white shadow rounded-lg detail-card">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">
+            <i class="fas fa-building text-primary-blue mr-2"></i>
+            Проект
+          </h3>
+        </div>
+        <div class="p-6">
+          <div class="space-y-3">
+            <div>
+              <div class="font-medium text-gray-900">{{ delivery.project.name }}</div>
+              <div class="text-sm text-gray-600">{{ delivery.project.address }}</div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Статус проекта:</span>
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                {{ delivery.project.get_status_display }}
+              </span>
+            </div>
+            {% if delivery.project.foreman %}
+            <div>
+              <span class="text-sm text-gray-600">Прораб:</span>
+              <div class="font-medium">{{ delivery.project.foreman.get_full_name|default:delivery.project.foreman.username }}</div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Фотографии документов -->
+      {% if document_photos %}
+      <div class="bg-white shadow rounded-lg detail-card">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">
+            <i class="fas fa-images text-primary-blue mr-2"></i>
+            Документы ({{ document_photos|length }})
+          </h3>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-2 gap-4">
+            {% for photo in document_photos|slice:":6" %}
+            <div class="relative">
+              <img src="{{ photo.image.url }}" alt="Документ" class="document-photo w-full">
+              <div class="absolute top-2 right-2">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-black bg-opacity-75 text-white">
+                  {{ photo.get_photo_type_display }}
+                </span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if document_photos|length > 6 %}
+          <div class="mt-4 text-center">
+            <span class="text-sm text-gray-600">и еще {{ document_photos|length|add:"-6" }} фото...</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+// Принятие поставки
+async function acceptDelivery(deliveryId) {
+  if (!confirm('Принять эту поставку материала?')) return;
+  
+  try {
+    // Здесь будет API вызов для принятия поставки
+    alert('Поставка принята (API в разработке)');
+    location.reload();
+  } catch (error) {
+    alert('Ошибка при принятии поставки: ' + error.message);
+  }
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}

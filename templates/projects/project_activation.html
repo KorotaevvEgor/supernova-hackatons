@@ -1,0 +1,422 @@
+{% extends 'base.html' %}
+
+{% block title %}Активация объекта: {{ project.name }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-primary-dark">
+                    <i class="fas fa-rocket text-accent-peach mr-3"></i>
+                    Активация объекта
+                </h1>
+                <p class="text-gray-600 mt-2">{{ project.name }}</p>
+                <p class="text-sm text-gray-500">{{ project.address }}</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'projects:project_detail' project.id %}" 
+                   class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Назад к проекту
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Banner -->
+    {% if activation_status.is_already_active %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="flex items-center">
+            <i class="fas fa-info-circle text-blue-500 mr-3"></i>
+            <div>
+                <h3 class="text-lg font-medium text-blue-900">Объект уже активирован</h3>
+                <p class="text-blue-700">
+                    Статус: <strong>{{ project.get_status_display }}</strong>
+                    {% if project.control_service %}
+                        | Ответственный от стройконтроля: <strong>{{ project.control_service.get_full_name }}</strong>
+                    {% endif %}
+                    {% if project.foreman %}
+                        | Прораб: <strong>{{ project.foreman.get_full_name }}</strong>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Progress Steps -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Этапы активации объекта</h2>
+        <div class="flex items-center justify-between">
+            <!-- Step 1: Assign Foreman -->
+            <div class="flex items-center">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full 
+                    {% if activation_status.has_foreman %}bg-green-500 text-white{% else %}bg-gray-200 text-gray-600{% endif %}">
+                    <i class="fas fa-user-hard-hat"></i>
+                </div>
+                <div class="ml-3">
+                    <div class="text-sm font-medium
+                        {% if activation_status.has_foreman %}text-green-600{% else %}text-gray-500{% endif %}">
+                        Назначение прораба
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 h-1 mx-4 
+                {% if activation_status.has_foreman %}bg-green-300{% else %}bg-gray-200{% endif %}">
+            </div>
+
+            <!-- Step 2: Create Checklist -->
+            <div class="flex items-center">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full 
+                    {% if activation_status.has_checklist %}bg-green-500 text-white{% else %}bg-gray-200 text-gray-600{% endif %}">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <div class="ml-3">
+                    <div class="text-sm font-medium
+                        {% if activation_status.has_checklist %}text-green-600{% else %}text-gray-500{% endif %}">
+                        Чек-лист открытия
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 h-1 mx-4 
+                {% if activation_status.checklist_completed %}bg-green-300{% else %}bg-gray-200{% endif %}">
+            </div>
+
+            <!-- Step 3: Upload Act -->
+            <div class="flex items-center">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full 
+                    {% if activation_status.has_opening_act %}bg-green-500 text-white{% else %}bg-gray-200 text-gray-600{% endif %}">
+                    <i class="fas fa-file-upload"></i>
+                </div>
+                <div class="ml-3">
+                    <div class="text-sm font-medium
+                        {% if activation_status.has_opening_act %}text-green-600{% else %}text-gray-500{% endif %}">
+                        Акт открытия
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 h-1 mx-4 
+                {% if activation_status.can_activate %}bg-green-300{% else %}bg-gray-200{% endif %}">
+            </div>
+
+            <!-- Step 4: Activate -->
+            <div class="flex items-center">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full 
+                    {% if activation_status.can_activate %}bg-primary-blue text-white{% elif activation_status.is_already_active %}bg-green-500 text-white{% else %}bg-gray-200 text-gray-600{% endif %}">
+                    <i class="fas fa-play"></i>
+                </div>
+                <div class="ml-3">
+                    <div class="text-sm font-medium
+                        {% if activation_status.can_activate %}text-primary-blue{% elif activation_status.is_already_active %}text-green-600{% else %}text-gray-500{% endif %}">
+                        Активация
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left Column -->
+        <div class="space-y-6">
+            
+            <!-- Step 1: Assign Foreman -->
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                        <i class="fas fa-user-hard-hat text-accent-peach mr-3"></i>
+                        1. Назначение прораба
+                        {% if activation_status.has_foreman %}
+                        <i class="fas fa-check-circle text-green-500 ml-2"></i>
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="p-6">
+                    {% if activation_status.has_foreman %}
+                        <div class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <i class="fas fa-user text-green-500 mr-3"></i>
+                            <div>
+                                <div class="font-medium text-green-900">{{ project.foreman.get_full_name }}</div>
+                                <div class="text-sm text-green-700">{{ project.foreman.email }}</div>
+                                <div class="text-xs text-green-600">Прораб назначен</div>
+                            </div>
+                        </div>
+                        {% if not activation_status.is_already_active %}
+                        <form method="post" class="mt-4">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="assign_foreman">
+                            <div>
+                                <label for="foreman_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Изменить прораба:
+                                </label>
+                                <select name="foreman_id" id="foreman_id" 
+                                        class="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue mb-3">
+                                    <option value="">Выберите прораба</option>
+                                    {% for foreman in foremen %}
+                                    <option value="{{ foreman.id }}" {% if foreman.id == project.foreman.id %}selected{% endif %}>
+                                        {{ foreman.get_full_name }} ({{ foreman.email }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="w-full bg-primary-blue text-white px-4 py-2 rounded-md hover:bg-secondary-blue transition-colors">
+                                    <i class="fas fa-user-check mr-2"></i>Изменить прораба
+                                </button>
+                            </div>
+                        </form>
+                        {% endif %}
+                    {% else %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="assign_foreman">
+                            <div>
+                                <label for="foreman_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Выберите ответственного прораба:
+                                </label>
+                                <select name="foreman_id" id="foreman_id" 
+                                        class="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue mb-3">
+                                    <option value="">Выберите прораба</option>
+                                    {% for foreman in foremen %}
+                                    <option value="{{ foreman.id }}">
+                                        {{ foreman.get_full_name }} ({{ foreman.email }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="w-full bg-primary-blue text-white px-4 py-2 rounded-md hover:bg-secondary-blue transition-colors">
+                                    <i class="fas fa-user-check mr-2"></i>Назначить прораба
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Step 3: Upload Opening Act -->
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                        <i class="fas fa-file-upload text-accent-peach mr-3"></i>
+                        3. Акт открытия объекта
+                        {% if activation_status.has_opening_act %}
+                        <i class="fas fa-check-circle text-green-500 ml-2"></i>
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="p-6">
+                    {% if activation_status.has_opening_act %}
+                        <div class="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
+                            <i class="fas fa-file-pdf text-green-500 mr-3"></i>
+                            <div>
+                                <div class="font-medium text-green-900">Акт открытия загружен</div>
+                                <div class="text-sm text-green-700">
+                                    <a href="{{ project.opening_act.url }}" target="_blank" class="hover:underline">
+                                        Открыть файл
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if not activation_status.is_already_active %}
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="upload_act">
+                        <div>
+                            <label for="opening_act" class="block text-sm font-medium text-gray-700 mb-2">
+                                {% if activation_status.has_opening_act %}Заменить акт открытия:{% else %}Загрузите акт открытия объекта:{% endif %}
+                            </label>
+                            <input type="file" name="opening_act" id="opening_act" 
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   class="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue mb-3">
+                            <p class="text-xs text-gray-500 mb-3">Поддерживаются форматы: PDF, JPG, PNG</p>
+                            <button type="submit" class="w-full bg-accent-peach text-white px-4 py-2 rounded-md hover:bg-accent-red transition-colors">
+                                <i class="fas fa-upload mr-2"></i>
+                                {% if activation_status.has_opening_act %}Заменить файл{% else %}Загрузить файл{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column -->
+        <div class="space-y-6">
+
+            <!-- Step 2: Opening Checklist -->
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                        <i class="fas fa-clipboard-list text-accent-peach mr-3"></i>
+                        2. Чек-лист открытия объекта
+                        {% if activation_status.checklist_completed %}
+                        <i class="fas fa-check-circle text-green-500 ml-2"></i>
+                        {% elif activation_status.has_checklist %}
+                        <i class="fas fa-clock text-yellow-500 ml-2"></i>
+                        {% endif %}
+                    </h3>
+                </div>
+                <div class="p-6">
+                    {% if not activation_status.has_checklist %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-clipboard-list text-gray-300 text-4xl mb-4"></i>
+                            <p class="text-gray-500 mb-4">Чек-лист открытия объекта не создан</p>
+                            {% if not activation_status.is_already_active %}
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="create_checklist">
+                                <button type="submit" class="bg-primary-blue text-white px-6 py-3 rounded-md hover:bg-secondary-blue transition-colors">
+                                    <i class="fas fa-plus mr-2"></i>Создать чек-лист
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <!-- Checklist Progress -->
+                        {% with total_items=checklist_items|length completed_items=checklist_items|dictsort:"is_completed"|slice:"::-1"|dictsort:"is_completed" %}
+                        {% with completed_count=completed_items|dictsort:"is_completed"|dictsortreversed:"is_completed"|slice:":1"|length %}
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                <span>Прогресс выполнения</span>
+                                <span>{{ checklist_items|dictsort:"is_completed"|dictsortreversed:"is_completed"|length }} из {{ total_items }}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" 
+                                     style="width: {% widthratio checklist_items|dictsort:'is_completed'|dictsortreversed:'is_completed'|length total_items 100 %}%">
+                                </div>
+                            </div>
+                        </div>
+                        {% endwith %}
+                        {% endwith %}
+
+                        {% if not activation_status.is_already_active %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_checklist">
+                            
+                            <div class="space-y-4 max-h-96 overflow-y-auto">
+                                {% for completion in checklist_items %}
+                                <div class="border border-gray-200 rounded-lg p-4 {% if completion.is_completed %}bg-green-50{% endif %}">
+                                    <div class="flex items-start">
+                                        <div class="flex items-center h-5">
+                                            <input id="item_{{ completion.checklist_item.id }}" 
+                                                   name="item_{{ completion.checklist_item.id }}" 
+                                                   type="checkbox" 
+                                                   {% if completion.is_completed %}checked{% endif %}
+                                                   class="focus:ring-primary-blue h-4 w-4 text-primary-blue border-gray-300 rounded">
+                                        </div>
+                                        <div class="ml-3 text-sm flex-1">
+                                            <label for="item_{{ completion.checklist_item.id }}" 
+                                                   class="font-medium text-gray-900 cursor-pointer">
+                                                {{ completion.checklist_item.name }}
+                                            </label>
+                                            <p class="text-gray-500">{{ completion.checklist_item.description }}</p>
+                                            
+                                            <div class="mt-2">
+                                                <textarea name="notes_{{ completion.checklist_item.id }}" 
+                                                          rows="2" 
+                                                          placeholder="Примечания..."
+                                                          class="w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue">{{ completion.completion_notes }}</textarea>
+                                            </div>
+                                            
+                                            {% if completion.completed_at %}
+                                            <div class="text-xs text-green-600 mt-1">
+                                                <i class="fas fa-check mr-1"></i>
+                                                Выполнено: {{ completion.completed_at|date:"d.m.Y H:i" }}
+                                                {% if completion.completed_by %}
+                                                ({{ completion.completed_by.get_full_name }})
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="mt-6 pt-4 border-t border-gray-200">
+                                <button type="submit" class="w-full bg-primary-blue text-white px-4 py-2 rounded-md hover:bg-secondary-blue transition-colors">
+                                    <i class="fas fa-save mr-2"></i>Сохранить изменения
+                                </button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <!-- View Only Mode -->
+                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                            {% for completion in checklist_items %}
+                            <div class="flex items-center p-3 border border-gray-200 rounded-lg {% if completion.is_completed %}bg-green-50{% endif %}">
+                                <div class="flex items-center">
+                                    <i class="fas fa-{% if completion.is_completed %}check-circle text-green-500{% else %}circle text-gray-300{% endif %} mr-3"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900">{{ completion.checklist_item.name }}</div>
+                                    {% if completion.completion_notes %}
+                                    <div class="text-sm text-gray-600 mt-1">{{ completion.completion_notes }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Final Activation Button -->
+    {% if not activation_status.is_already_active %}
+    <div class="mt-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-rocket text-accent-peach mr-3"></i>
+                Финальная активация объекта
+            </h3>
+            
+            {% if activation_status.can_activate %}
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        <div>
+                            <h4 class="font-medium text-green-900">Все этапы завершены!</h4>
+                            <p class="text-green-700 text-sm">Объект готов к активации.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="post" onsubmit="return confirm('Вы уверены, что хотите активировать объект? После активации изменения будут невозможны.')">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="activate">
+                    <button type="submit" class="w-full bg-gradient-to-r from-accent-peach to-accent-red text-white px-6 py-4 rounded-lg hover:from-accent-red hover:to-accent-burgundy transition-all transform hover:scale-105 text-lg font-medium">
+                        <i class="fas fa-rocket mr-3"></i>
+                        АКТИВИРОВАТЬ ОБЪЕКТ
+                    </button>
+                </form>
+            {% else %}
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+                        <div>
+                            <h4 class="font-medium text-yellow-900">Не все этапы завершены</h4>
+                            <p class="text-yellow-700 text-sm">
+                                Для активации объекта необходимо:
+                                {% if not activation_status.has_foreman %}
+                                <br>• Назначить прораба
+                                {% endif %}
+                                {% if not activation_status.checklist_completed %}
+                                <br>• Завершить заполнение чек-листа открытия
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,524 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Проверка активации - {{ activation.project.name }}{% endblock %}
+
+{% block content %}
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Навигация -->
+    <div class="mb-6">
+        <a href="{% url 'projects:inspector_activations' %}" 
+           class="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 font-medium">
+            <i class="fas fa-arrow-left"></i>
+            <span>Назад к списку активаций</span>
+        </a>
+    </div>
+
+    <!-- Заголовок проекта -->
+    <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-8 mb-8">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold mb-2">{{ activation.project.name }}</h1>
+                <p class="text-blue-100">{{ activation.project.description }}</p>
+            </div>
+            <div class="bg-white bg-opacity-20 px-4 py-2 rounded-lg">
+                <span class="flex items-center space-x-2">
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ activation.checklist_completed_at|date:"d.m.Y H:i" }}</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+        <!-- Информация о проекте -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center space-x-2">
+                    <i class="fas fa-info-circle text-blue-500"></i>
+                    <span>Информация о проекте</span>
+                </h3>
+                
+                <div class="space-y-6">
+                    <div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Адрес</div>
+                        <div class="text-sm font-semibold text-gray-900">{{ activation.project.address }}</div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Инициатор активации</div>
+                        <div class="text-sm font-semibold text-gray-900">{{ activation.initiated_by.get_full_name }}</div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Назначенный прораб</div>
+                        <div class="text-sm font-semibold text-gray-900">
+                            {% if activation.assigned_foreman %}
+                                {{ activation.assigned_foreman.get_full_name }}
+                            {% else %}
+                                <span class="text-gray-400">Не назначен</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Плановая дата начала</div>
+                        <div class="text-sm font-semibold text-gray-900">{{ activation.project.planned_start_date|date:"d.m.Y" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Чек-лист активации -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center space-x-2">
+                        <i class="fas fa-tasks text-blue-500"></i>
+                        <span>Чек-лист активации</span>
+                    </h3>
+                    <div class="px-4 py-2 rounded-full text-sm font-semibold
+                                {% if checklist.completion_percentage >= 80 %}
+                                    bg-green-100 text-green-800
+                                {% elif checklist.completion_percentage >= 50 %}
+                                    bg-yellow-100 text-yellow-800
+                                {% else %}
+                                    bg-red-100 text-red-800
+                                {% endif %}">
+                        {{ checklist.completion_percentage }}% выполнено
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <h4 class="font-semibold text-gray-900 mb-4">Проверка готовности объекта к активации</h4>
+                    
+                    <div class="space-y-4">
+                        <!-- 1. Регламентная документация -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.regulatory_documentation == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.regulatory_documentation == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.regulatory_documentation == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.regulatory_documentation == 'yes' %}✓{% elif checklist.regulatory_documentation == 'no' %}✗{% elif checklist.regulatory_documentation == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Регламентная документация</div>
+                                {% if checklist.regulatory_documentation_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.regulatory_documentation_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 2. Приказ руководителя строительных работ -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.construction_manager_order == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.construction_manager_order == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.construction_manager_order == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.construction_manager_order == 'yes' %}✓{% elif checklist.construction_manager_order == 'no' %}✗{% elif checklist.construction_manager_order == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Приказ руководителя строительных работ</div>
+                                {% if checklist.construction_manager_order_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.construction_manager_order_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 3. Приказ по строительному контролю -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.construction_control_order == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.construction_control_order == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.construction_control_order == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.construction_control_order == 'yes' %}✓{% elif checklist.construction_control_order == 'no' %}✗{% elif checklist.construction_control_order == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Приказ по строительному контролю</div>
+                                {% if checklist.construction_control_order_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.construction_control_order_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 4. Приказ по техническому надзору -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.project_supervision_order == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.project_supervision_order == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.project_supervision_order == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.project_supervision_order == 'yes' %}✓{% elif checklist.project_supervision_order == 'no' %}✗{% elif checklist.project_supervision_order == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Приказ по техническому надзору</div>
+                                {% if checklist.project_supervision_order_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.project_supervision_order_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 5. Отметка печати СМР -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.project_documentation_stamp == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.project_documentation_stamp == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.project_documentation_stamp == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.project_documentation_stamp == 'yes' %}✓{% elif checklist.project_documentation_stamp == 'no' %}✗{% elif checklist.project_documentation_stamp == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Отметка печати СМР</div>
+                                {% if checklist.project_documentation_stamp_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.project_documentation_stamp_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 6. Проект производства работ -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.work_production_project == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.work_production_project == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.work_production_project == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.work_production_project == 'yes' %}✓{% elif checklist.work_production_project == 'no' %}✗{% elif checklist.work_production_project == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Проект производства работ</div>
+                                {% if checklist.work_production_project_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.work_production_project_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 7. Подготовка инженерной площадки -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.engineering_site_preparation == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.engineering_site_preparation == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.engineering_site_preparation == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.engineering_site_preparation == 'yes' %}✓{% elif checklist.engineering_site_preparation == 'no' %}✗{% elif checklist.engineering_site_preparation == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Подготовка инженерной площадки</div>
+                                {% if checklist.engineering_site_preparation_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.engineering_site_preparation_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 8. Акт геодезической разбивочной съемки -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.geodetic_breakdown_act == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.geodetic_breakdown_act == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.geodetic_breakdown_act == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.geodetic_breakdown_act == 'yes' %}✓{% elif checklist.geodetic_breakdown_act == 'no' %}✗{% elif checklist.geodetic_breakdown_act == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Акт геодезической разбивочной съемки</div>
+                                {% if checklist.geodetic_breakdown_act_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.geodetic_breakdown_act_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 9. Генеральный план -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.general_plan == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.general_plan == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.general_plan == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.general_plan == 'yes' %}✓{% elif checklist.general_plan == 'no' %}✗{% elif checklist.general_plan == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Генеральный план</div>
+                                {% if checklist.general_plan_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.general_plan_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 10. Временная инфраструктура -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.temporary_infrastructure == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.temporary_infrastructure == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.temporary_infrastructure == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.temporary_infrastructure == 'yes' %}✓{% elif checklist.temporary_infrastructure == 'no' %}✗{% elif checklist.temporary_infrastructure == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Временная инфраструктура</div>
+                                {% if checklist.temporary_infrastructure_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.temporary_infrastructure_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 11. Пункты мойки техники -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.vehicle_cleaning_points == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.vehicle_cleaning_points == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.vehicle_cleaning_points == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.vehicle_cleaning_points == 'yes' %}✓{% elif checklist.vehicle_cleaning_points == 'no' %}✗{% elif checklist.vehicle_cleaning_points == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Пункты мойки техники</div>
+                                {% if checklist.vehicle_cleaning_points_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.vehicle_cleaning_points_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 12. Контейнеры для отходов -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.waste_containers == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.waste_containers == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.waste_containers == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.waste_containers == 'yes' %}✓{% elif checklist.waste_containers == 'no' %}✗{% elif checklist.waste_containers == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Контейнеры для отходов</div>
+                                {% if checklist.waste_containers_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.waste_containers_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 13. Информационные щиты -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.information_boards == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.information_boards == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.information_boards == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.information_boards == 'yes' %}✓{% elif checklist.information_boards == 'no' %}✗{% elif checklist.information_boards == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Информационные щиты</div>
+                                {% if checklist.information_boards_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.information_boards_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- 14. Стенды противопожарной безопасности -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-semibold
+                                        {% if checklist.fire_safety_stands == 'yes' %}
+                                            bg-green-500
+                                        {% elif checklist.fire_safety_stands == 'no' %}
+                                            bg-red-500
+                                        {% elif checklist.fire_safety_stands == 'not_required' %}
+                                            bg-gray-400
+                                        {% else %}
+                                            bg-gray-300
+                                        {% endif %}">
+                                {% if checklist.fire_safety_stands == 'yes' %}✓{% elif checklist.fire_safety_stands == 'no' %}✗{% elif checklist.fire_safety_stands == 'not_required' %}–{% else %}?{% endif %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">Стенды противопожарной безопасности</div>
+                                {% if checklist.fire_safety_stands_notes %}
+                                    <div class="text-sm text-gray-600 mt-1 p-2 bg-gray-100 rounded">{{ checklist.fire_safety_stands_notes }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if checklist.overall_readiness %}
+                <div class="bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-lg p-6 text-center mb-6">
+                    <div class="text-3xl mb-2">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h4 class="text-xl font-bold mb-1">Объект готов к активации</h4>
+                    <p class="text-teal-100">Согласно заключению службы строительного контроля</p>
+                </div>
+                {% endif %}
+
+                {% if checklist.additional_notes %}
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h5 class="font-semibold text-gray-900 mb-2">Дополнительные примечания:</h5>
+                    <div class="text-sm text-gray-700">{{ checklist.additional_notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Действия инспектора -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+        <h3 class="text-2xl font-bold text-gray-900 mb-8 flex items-center space-x-3">
+            <i class="fas fa-gavel text-purple-600"></i>
+            <span>Решение инспектора</span>
+        </h3>
+
+        <div class="grid lg:grid-cols-2 gap-8">
+            <!-- Одобрить активацию -->
+            <div class="border-2 border-green-200 rounded-xl p-6 bg-green-50">
+                <div class="flex items-center space-x-3 mb-6">
+                    <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                    <h4 class="text-xl font-bold text-green-800">Одобрить активацию</h4>
+                </div>
+                <form method="post" enctype="multipart/form-data" id="approve-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    
+                    <div class="mb-4">
+                        <label for="inspector_notes" class="block text-sm font-medium text-gray-700 mb-2">Заметки инспектора (необязательно)</label>
+                        <textarea 
+                            name="inspector_notes" 
+                            id="inspector_notes" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                            rows="3" 
+                            placeholder="Дополнительные заметки или рекомендации..."
+                        ></textarea>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label for="activation_document" class="block text-sm font-medium text-gray-700 mb-2">Документ об активации (необязательно)</label>
+                        <input 
+                            type="file" 
+                            name="activation_document" 
+                            id="activation_document" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            accept=".pdf,.doc,.docx"
+                        >
+                        <div class="text-xs text-gray-500 mt-1">Принимаются файлы: PDF, DOC, DOCX</div>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-6 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            onclick="return confirm('Вы уверены, что хотите одобрить активацию этого проекта?')">
+                        <i class="fas fa-check"></i>
+                        <span>Одобрить и активировать</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Отклонить активацию -->
+            <div class="border-2 border-red-200 rounded-xl p-6 bg-red-50">
+                <div class="flex items-center space-x-3 mb-6">
+                    <i class="fas fa-times-circle text-2xl text-red-600"></i>
+                    <h4 class="text-xl font-bold text-red-800">Отклонить активацию</h4>
+                </div>
+                <form method="post" id="reject-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reject">
+                    
+                    <div class="mb-6">
+                        <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-2">Причина отклонения *</label>
+                        <textarea 
+                            name="rejection_reason" 
+                            id="rejection_reason" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" 
+                            rows="4" 
+                            placeholder="Укажите причины отклонения активации..."
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-6 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            onclick="return confirm('Вы уверены, что хотите отклонить активацию этого проекта?')">
+                        <i class="fas fa-times"></i>
+                        <span>Отклонить активацию</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Валидация формы отклонения
+    document.getElementById('reject-form').addEventListener('submit', function(e) {
+        const reason = document.getElementById('rejection_reason').value.trim();
+        if (reason.length < 10) {
+            e.preventDefault();
+            alert('Пожалуйста, укажите подробную причину отклонения (минимум 10 символов).');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

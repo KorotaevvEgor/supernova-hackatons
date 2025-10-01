@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}Нарушения - Инспектор{% endblock %}
+
+{% block content %}
+<style>
+.priority-critical {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.priority-urgent {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+  }
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+</style>
+
+<!-- Главный контейнер -->
+<div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Геро-секция -->
+    <div class="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-700 to-orange-800 rounded-3xl shadow-2xl">
+      <div class="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full -mr-48 -mt-48"></div>
+      <div class="absolute bottom-0 left-0 w-64 h-64 bg-white opacity-5 rounded-full -ml-32 -mb-32"></div>
+      
+      <div class="relative px-8 py-12">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="flex items-center mb-4">
+              <div class="w-16 h-16 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center mr-6">
+                <i class="fas fa-exclamation-triangle text-3xl text-white"></i>
+              </div>
+              <div>
+                <h1 class="text-4xl font-bold text-white mb-2">Нарушения</h1>
+                <p class="text-xl text-red-100">Список всех зафиксированных нарушений</p>
+              </div>
+            </div>
+          </div>
+          <div class="hidden lg:block">
+            <a href="{% url 'inspector:add_violation' %}" 
+               class="inline-flex items-center px-6 py-3 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-2xl transition-all duration-300 font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 backdrop-blur-sm">
+              <i class="fas fa-plus mr-3 text-lg"></i>
+              Зафиксировать нарушение
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="glass-effect rounded-2xl shadow-xl p-8">
+      <div class="mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-2 flex items-center">
+          <i class="fas fa-filter mr-3 text-blue-600"></i>
+          Фильтры
+        </h2>
+        <p class="text-gray-600">Настройте параметры поиска</p>
+      </div>
+      <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div>
+          <label for="project" class="block text-sm font-semibold text-gray-700 mb-2">Проект</label>
+          <select name="project" id="project" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+            <option value="all">Все проекты</option>
+            {% for project in projects %}
+              <option value="{{ project.id }}" {% if current_project == project.id|stringformat:"s" %}selected{% endif %}>
+                {{ project.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="status" class="block text-sm font-semibold text-gray-700 mb-2">Статус</label>
+          <select name="status" id="status" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+            <option value="all">Все статусы</option>
+            {% for value, label in violation_statuses %}
+              <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="priority" class="block text-sm font-semibold text-gray-700 mb-2">Приоритет</label>
+          <select name="priority" id="priority" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+            <option value="all">Все приоритеты</option>
+            {% for value, label in violation_priorities %}
+              <option value="{{ value }}" {% if current_priority == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex items-end">
+          <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+            <i class="fas fa-search mr-2"></i>
+            Применить
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Список нарушений -->
+    <div class="glass-effect rounded-2xl shadow-xl overflow-hidden">
+      <div class="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6">
+        <h2 class="text-2xl font-bold text-white flex items-center">
+          <i class="fas fa-list mr-3"></i>
+          Нарушения ({{ violations.paginator.count }})
+        </h2>
+        <p class="text-red-100 mt-1">Результаты поиска</p>
+      </div>
+      
+      {% if violations %}
+        <div class="max-h-screen overflow-y-auto">
+          {% for violation in violations %}
+            <div class="p-8 border-b border-gray-100 last:border-b-0 card-hover bg-white">
+              <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-900 mr-4">{{ violation.title }}</h3>
+                    <div class="flex items-center gap-3">
+                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                        {% if violation.status == 'detected' %}bg-red-100 text-red-800 border border-red-200
+                        {% elif violation.status == 'notified' %}bg-amber-100 text-amber-800 border border-amber-200
+                        {% elif violation.status == 'in_correction' %}bg-blue-100 text-blue-800 border border-blue-200
+                        {% elif violation.status == 'corrected' %}bg-indigo-100 text-indigo-800 border border-indigo-200
+                        {% elif violation.status == 'verified' %}bg-green-100 text-green-800 border border-green-200
+                        {% else %}bg-gray-100 text-gray-800 border border-gray-200
+                        {% endif %}">
+                        {{ violation.get_status_display }}
+                      </span>
+                      {% if violation.is_overdue %}
+                        <span class="priority-critical text-sm px-3 py-1 rounded-full font-semibold">
+                          <i class="fas fa-exclamation-triangle mr-1"></i>
+                          Просрочено
+                        </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  
+                  <div class="bg-gray-50 rounded-xl p-4 mb-4">
+                    <p class="text-lg font-medium text-gray-800 mb-2">
+                      <i class="fas fa-building mr-2 text-blue-600"></i>{{ violation.project.name }}
+                    </p>
+                    <p class="text-sm text-gray-600">
+                      <i class="fas fa-tag mr-2 text-gray-400"></i>Код: {{ violation.violation_type.code }}
+                    </p>
+                  </div>
+                  
+                  <p class="text-gray-700 text-lg leading-relaxed mb-6">{{ violation.description|truncatechars:200 }}</p>
+                  
+                  <div class="grid grid-cols-2 gap-6">
+                    <div class="bg-blue-50 rounded-xl p-4">
+                      <p class="text-sm font-semibold text-blue-800 mb-1">
+                        <i class="fas fa-calendar mr-2"></i>Дата выявления
+                      </p>
+                      <p class="text-blue-700">{{ violation.detected_at|date:"d.m.Y H:i" }}</p>
+                    </div>
+                    <div class="bg-orange-50 rounded-xl p-4">
+                      <p class="text-sm font-semibold text-orange-800 mb-1">
+                        <i class="fas fa-clock mr-2"></i>Крайний срок
+                      </p>
+                      <p class="text-orange-700">{{ violation.deadline|date:"d.m.Y" }}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="ml-8">
+                  <a href="{% url 'inspector:violation_detail' violation.id %}" 
+                     class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 font-semibold">
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    Подробнее
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Пагинация -->
+        {% if violations.has_other_pages %}
+          <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-8 py-6 border-t border-gray-200">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-gray-700 font-medium">
+                Показано {{ violations.start_index }} - {{ violations.end_index }} из {{ violations.paginator.count }}
+              </div>
+              <div class="flex space-x-3">
+                {% if violations.has_previous %}
+                  <a href="?page={{ violations.previous_page_number }}" 
+                     class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium shadow-sm">
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    Предыдущая
+                  </a>
+                {% endif %}
+                {% if violations.has_next %}
+                  <a href="?page={{ violations.next_page_number }}" 
+                     class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium shadow-lg">
+                    Следующая
+                    <i class="fas fa-chevron-right ml-2"></i>
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      {% else %}
+        <!-- Пустое состояние -->
+        <div class="p-16 text-center">
+          <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-clipboard-list text-4xl text-gray-400"></i>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900 mb-3">Нарушений не найдено</h3>
+          <p class="text-gray-600 text-lg mb-8 max-w-md mx-auto">Попробуйте изменить фильтры или зафиксировать новое нарушение</p>
+          <a href="{% url 'inspector:add_violation' %}" 
+             class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-2xl transition-all duration-300 font-bold shadow-xl hover:shadow-2xl transform hover:scale-105">
+            <i class="fas fa-plus mr-3 text-lg"></i>
+            Зафиксировать нарушение
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

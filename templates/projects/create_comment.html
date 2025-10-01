@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Создание замечания - Система управления благоустройством{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'moscow-blue': '#003366',
+                    'moscow-red': '#DC143C', 
+                    'moscow-gold': '#FFD700',
+                    'moscow-green': '#228B22',
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-2xl">
+    <!-- Навигация -->
+    <div class="mb-6">
+        <nav class="flex items-center space-x-2 text-sm text-gray-600">
+            <a href="{% url 'projects:project_list' %}" class="hover:text-moscow-blue">Проекты</a>
+            <span>/</span>
+            <a href="{% url 'projects:project_detail' project.id %}" class="hover:text-moscow-blue">{{ project.name|truncatechars:30 }}</a>
+            <span>/</span>
+            <span class="text-gray-800">Создание замечания</span>
+        </nav>
+    </div>
+
+    <!-- Форма создания замечания -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center space-x-3 mb-6">
+            <div class="w-10 h-10 bg-moscow-red rounded-full flex items-center justify-center">
+                <span class="text-white text-lg">📝</span>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Создание замечания</h1>
+                <p class="text-gray-600">Проект: {{ project.name }}</p>
+            </div>
+        </div>
+
+        <!-- Информационный блок о геолокации -->
+        <div class="bg-blue-50 border-l-4 border-moscow-blue p-4 mb-6">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-5 h-5 text-moscow-blue mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-moscow-blue">Требование геолокации</h3>
+                    <div class="mt-1 text-sm text-blue-700">
+                        <p>Для создания замечания необходимо находиться на объекте. Ваше местоположение будет автоматически определено и проверено.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form id="createCommentForm">
+            {% csrf_token %}
+            
+            <!-- Заголовок замечания -->
+            <div class="mb-6">
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                    Заголовок замечания <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="title" name="title" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-moscow-blue focus:border-moscow-blue"
+                       placeholder="Краткое описание замечания">
+            </div>
+
+            <!-- Описание замечания -->
+            <div class="mb-6">
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Подробное описание <span class="text-red-500">*</span>
+                </label>
+                <textarea id="description" name="description" rows="5" required
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-moscow-blue focus:border-moscow-blue"
+                          placeholder="Детально опишите выявленное замечание, включая его местоположение на объекте, характер нарушения и требования к устранению"></textarea>
+            </div>
+
+            <!-- Приоритет -->
+            <div class="mb-6">
+                <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">
+                    Приоритет
+                </label>
+                <select id="priority" name="priority"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-moscow-blue focus:border-moscow-blue">
+                    <option value="medium">Средний</option>
+                    <option value="low">Низкий</option>
+                    <option value="high">Высокий</option>
+                    <option value="critical">Критический</option>
+                </select>
+                <p class="mt-1 text-sm text-gray-500">
+                    Критический - требует немедленного устранения, Высокий - устранение в течение суток
+                </p>
+            </div>
+
+            <!-- Связанная работа (необязательно) -->
+            <div class="mb-6">
+                <label for="work_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    Связанная работа (необязательно)
+                </label>
+                <select id="work_id" name="work_id"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-moscow-blue focus:border-moscow-blue">
+                    <option value="">Не связано с конкретной работой</option>
+                    {% for work in works %}
+                    <option value="{{ work.id }}">{{ work.name }} ({{ work.work_type.name }})</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-sm text-gray-500">
+                    Выберите работу, к которой относится замечание, если применимо
+                </p>
+            </div>
+
+            <!-- Статус геолокации -->
+            <div class="mb-6">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Статус определения местоположения</h4>
+                    <div id="locationStatus" class="text-sm">
+                        <div class="flex items-center text-yellow-600">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Определение местоположения...
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button type="button" onclick="getCurrentLocation()" 
+                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Обновить местоположение
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопки управления -->
+            <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6">
+                <a href="{% url 'projects:project_detail' project.id %}" 
+                   class="inline-flex items-center justify-center px-6 py-3 border-2 border-gray-300 rounded-xl text-base font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Отмена
+                </a>
+                <button type="submit" id="submitBtn" disabled
+                        class="inline-flex items-center justify-center px-6 py-3 border-2 border-transparent rounded-xl text-base font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transform hover:scale-105 transition-all duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span id="submitBtnText">Создать замечание</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentLocation = null;
+let locationValid = false;
+
+// Автоматическое определение местоположения при загрузке страницы
+window.addEventListener('load', function() {
+    getCurrentLocation();
+});
+
+function getCurrentLocation() {
+    const statusEl = document.getElementById('locationStatus');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    statusEl.innerHTML = `
+        <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+            <div class="flex items-center text-blue-600">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 818-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="font-medium">Определение местоположения...</span>
+            </div>
+        </div>
+    `;
+    
+    if (!navigator.geolocation) {
+        statusEl.innerHTML = `
+            <div class="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                <div class="flex items-center text-red-600">
+                    <svg class="mr-3 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="font-medium">Геолокация недоступна в вашем браузере</span>
+                </div>
+            </div>
+        `;
+        locationValid = false;
+        submitBtn.disabled = true;
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        async function(position) {
+            currentLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            };
+            
+            // Проверяем, находится ли пользователь на объекте
+            try {
+                const response = await fetch('{% url "projects:api_validate_location" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        project_id: {{ project.id }},
+                        latitude: currentLocation.latitude,
+                        longitude: currentLocation.longitude
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (result.valid) {
+                        statusEl.innerHTML = `
+                            <div class="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                                <div class="flex items-center text-green-600 mb-2">
+                                    <svg class="mr-3 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="font-medium">${result.message}</span>
+                                </div>
+                                <div class="ml-8 space-y-1">
+                                    <div class="flex items-center text-sm text-green-700">
+                                        <span class="font-medium mr-2">Широта:</span>
+                                        <span class="font-mono bg-green-100 px-2 py-1 rounded">${currentLocation.latitude.toFixed(6)}</span>
+                                    </div>
+                                    <div class="flex items-center text-sm text-green-700">
+                                        <span class="font-medium mr-2">Долгота:</span>
+                                        <span class="font-mono bg-green-100 px-2 py-1 rounded">${currentLocation.longitude.toFixed(6)}</span>
+                                    </div>
+                                    <div class="flex items-center text-sm text-green-700">
+                                        <span class="font-medium mr-2">Точность:</span>
+                                        <span class="bg-green-100 px-2 py-1 rounded">±${Math.round(currentLocation.accuracy)} м</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        locationValid = true;
+                        submitBtn.disabled = false;
+                    } else {
+                        statusEl.innerHTML = `
+                            <div class="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                                <div class="flex items-center text-red-600 mb-2">
+                                    <svg class="mr-3 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="font-medium">${result.message}</span>
+                                </div>
+                                <div class="ml-8 text-sm text-red-700">
+                                    <p class="bg-red-100 px-3 py-2 rounded-lg">
+                                        Для создания замечания необходимо находиться на территории объекта
+                                    </p>
+                                </div>
+                            </div>
+                        `;
+                        locationValid = false;
+                        submitBtn.disabled = true;
+                    }
+                } else {
+                    throw new Error(result.error || 'Ошибка проверки местоположения');
+                }
+            } catch (error) {
+                statusEl.innerHTML = `
+                    <div class="flex items-center text-orange-600">
+                        <svg class="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        Местоположение определено, но проверка недоступна
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500">
+                        Координаты: ${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}
+                    </div>
+                `;
+                // В случае ошибки проверки позволяем создать замечание
+                locationValid = true;
+                submitBtn.disabled = false;
+            }
+        },
+        function(error) {
+            let errorMessage = 'Не удалось определить местоположение';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Доступ к геолокации запрещен. Разрешите доступ в настройках браузера.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Местоположение недоступно';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Превышено время ожидания определения местоположения';
+                    break;
+            }
+            
+            statusEl.innerHTML = `
+                <div class="flex items-center text-red-600">
+                    <svg class="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    ${errorMessage}
+                </div>
+            `;
+            
+            locationValid = false;
+            submitBtn.disabled = true;
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
+}
+
+// Обработка отправки формы
+document.getElementById('createCommentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (!locationValid || !currentLocation) {
+        alert('Необходимо определить местоположение для создания замечания');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('submitBtn');
+    const submitBtnText = document.getElementById('submitBtnText');
+    const originalText = submitBtnText.textContent;
+    
+    // Блокируем кнопку и показываем загрузку
+    submitBtn.disabled = true;
+    submitBtnText.textContent = 'Создание...';
+    
+    try {
+        const formData = {
+            project_id: {{ project.id }},
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            priority: document.getElementById('priority').value,
+            work_id: document.getElementById('work_id').value || null,
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude
+        };
+        
+        const response = await fetch('{% url "projects:api_comments_list_create" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Успешно создано, переходим к просмотру замечания
+            window.location.href = `{% url "projects:comment_detail" 0 %}`.replace('0', result.comment_id);
+        } else {
+            alert('Ошибка при создании замечания: ' + (result.error || 'Неизвестная ошибка'));
+            submitBtn.disabled = false;
+            submitBtnText.textContent = originalText;
+        }
+    } catch (error) {
+        console.error('Error creating comment:', error);
+        alert('Произошла ошибка при создании замечания');
+        submitBtn.disabled = false;
+        submitBtnText.textContent = originalText;
+    }
+});
+
+// Валидация формы в реальном времени
+document.getElementById('title').addEventListener('input', validateForm);
+document.getElementById('description').addEventListener('input', validateForm);
+
+function validateForm() {
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const submitBtn = document.getElementById('submitBtn');
+    
+    const formValid = title.length > 0 && description.length > 0;
+    
+    if (!locationValid) {
+        submitBtn.disabled = true;
+    } else {
+        submitBtn.disabled = !formValid;
+    }
+}
+</script>
+{% endblock %}

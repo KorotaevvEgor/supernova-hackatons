@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Проекты — СУ благоустройства{% endblock %}
+{% block content %}
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900"><i class="fas fa-project-diagram text-primary-blue mr-2"></i>Проекты</h1>
+    <p class="text-sm text-gray-600">Управление проектами благоустройства Москвы</p>
+  </div>
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+    <div class="bg-white shadow rounded-lg p-5"><div class="text-sm text-gray-500">Всего</div><div class="text-2xl font-bold">{{ total_count }}</div></div>
+    <div class="bg-white shadow rounded-lg p-5"><div class="text-sm text-gray-500">Активные</div><div class="text-2xl font-bold">{{ status_counts.active }}</div></div>
+    <div class="bg-white shadow rounded-lg p-5"><div class="text-sm text-gray-500">Завершенные</div><div class="text-2xl font-bold">{{ status_counts.completed }}</div></div>
+    <div class="bg-white shadow rounded-lg p-5"><div class="text-sm text-gray-500">Планируемые</div><div class="text-2xl font-bold">{{ status_counts.planned }}</div></div>
+  </div>
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <ul class="divide-y divide-gray-200">
+      {% for p in projects %}
+      <li class="px-4 py-4 flex items-center justify-between">
+        <div>
+          <div class="font-medium text-gray-900"><a class="hover:text-primary-blue" href="/projects/{{ p.id }}/">{{ p.name }}</a></div>
+          <div class="text-sm text-gray-500">{{ p.address }}</div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-right">
+            <div class="text-sm font-medium">{{ p.completion_percentage }}%</div>
+            <div class="w-24 bg-gray-200 rounded-full h-2 mt-1"><div class="bg-green-600 h-2 rounded-full" style="width: {{ p.completion_percentage }}%"></div></div>
+          </div>
+          <a href="/projects/{{ p.id }}/" class="text-primary-blue"><i class="fas fa-eye"></i></a>
+        </div>
+      </li>
+      {% empty %}
+      <li class="px-4 py-8 text-center text-gray-500">Проекты не найдены</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endblock %}

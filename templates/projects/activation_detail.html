@@ -1,0 +1,795 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Активация проекта - {{ block.super }}{% endblock %}
+
+{% block content %}
+<style>
+@media print {
+    /* Основные настройки страницы */
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+    
+    html, body {
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+        padding: 0;
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+    
+    /* Скрываем ненужные элементы */
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    
+    /* Контейнер */
+    .max-w-6xl { max-width: 100% !important; }
+    .px-4, .px-6, .px-8 { padding-left: 8px !important; padding-right: 8px !important; }
+    .py-8, .py-6, .py-4 { padding-top: 6px !important; padding-bottom: 6px !important; }
+    .mb-8, .mb-6 { margin-bottom: 12px !important; }
+    .mt-8, .mt-6 { margin-top: 12px !important; }
+    
+    /* Грид лайаут */
+    .grid {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+    
+    .lg\:grid-cols-3, .lg\:col-span-2, .lg\:col-span-1 {
+        grid-template-columns: none !important;
+        grid-column: auto !important;
+    }
+    
+    .gap-8 { gap: 8px !important; }
+    .space-y-8 > * + * { margin-top: 8px !important; }
+    
+    /* Карточки */
+    .bg-white {
+        background-color: #ffffff !important;
+        border: 1px solid #e5e7eb !important;
+    }
+    
+    .bg-gray-50 { background-color: #f9fafb !important; }
+    .bg-blue-50 { background-color: #eff6ff !important; }
+    .bg-red-50 { background-color: #fef2f2 !important; }
+    .bg-green-50 { background-color: #f0fdf4 !important; }
+    
+    .shadow-sm, .shadow { box-shadow: none !important; }
+    .rounded-lg { border-radius: 4px !important; }
+    
+    /* Текст */
+    .text-3xl { font-size: 18px !important; }
+    .text-2xl { font-size: 16px !important; }
+    .text-xl { font-size: 14px !important; }
+    .text-lg { font-size: 13px !important; }
+    .text-base { font-size: 12px !important; }
+    .text-sm { font-size: 11px !important; }
+    .text-xs { font-size: 10px !important; }
+    
+    .text-blue-600 { color: #2563eb !important; }
+    .text-red-600 { color: #dc2626 !important; }
+    .text-green-600 { color: #16a34a !important; }
+    .text-gray-900 { color: #111827 !important; }
+    .text-gray-700 { color: #374151 !important; }
+    .text-gray-600 { color: #4b5563 !important; }
+    .text-gray-500 { color: #6b7280 !important; }
+    
+    /* Границы */
+    .border-blue-400 { border-color: #60a5fa !important; }
+    .border-red-400 { border-color: #f87171 !important; }
+    .border-green-500 { border-color: #22c55e !important; }
+    .border-gray-200 { border-color: #e5e7eb !important; }
+    .border-l-4 { border-left-width: 3px !important; }
+    
+    /* Флекс */
+    .flex {
+        display: flex !important;
+        align-items: flex-start !important;
+    }
+    
+    .items-center { align-items: center !important; }
+    .justify-between { justify-content: space-between !important; }
+    
+    /* Маржины и паддинги */
+    .p-6, .p-4 { padding: 8px !important; }
+    .mr-2, .ml-2 { margin-right: 4px !important; margin-left: 4px !important; }
+    .mr-3, .ml-3 { margin-right: 6px !important; margin-left: 6px !important; }
+    .mr-4, .ml-4 { margin-right: 8px !important; margin-left: 8px !important; }
+    
+    /* Чек-лист */
+    .md\:grid-cols-2 {
+        display: block !important;
+    }
+    
+    .md\:grid-cols-2 .flex {
+        margin-bottom: 4px !important;
+        page-break-inside: avoid;
+    }
+    
+    /* Иконки */
+    .fas {
+        font-size: inherit !important;
+    }
+    
+    .w-12, .h-12 { width: 24px !important; height: 24px !important; }
+    .w-10, .h-10 { width: 20px !important; height: 20px !important; }
+    
+    /* История событий - сделаем компактной */
+    .flow-root ul {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .flow-root li {
+        margin-bottom: 6px !important;
+        page-break-inside: avoid;
+    }
+    
+    .h-8, .w-8 { width: 16px !important; height: 16px !important; }
+    
+    /* Предотвращаем разрывы */
+    .bg-white,
+    .checklist-section,
+    .project-info {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    /* Оптимизируем пространство */
+    .min-h-screen {
+        min-height: auto !important;
+    }
+}
+
+.print-only { display: none; }
+</style>
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex mb-8 no-print" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li>
+                    <div>
+                        <a href="{% url 'projects:construction_control_dashboard' %}" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-home"></i>
+                            <span class="sr-only">Мои объекты</span>
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-400 mr-4"></i>
+                        <a href="{% url 'projects:project_detail' project_id=activation.project.id %}" class="text-gray-400 hover:text-gray-500">
+                            {{ activation.project.name|truncatechars:30 }}
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-400 mr-4"></i>
+                        <span class="text-sm font-medium text-gray-900">Процесс активации</span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Заголовок и статус -->
+        <div class="mb-8">
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4">
+                            {% if activation.status == 'activated' %}
+                                <i class="fas fa-check text-white text-xl"></i>
+                            {% elif activation.status == 'rejected' %}
+                                <i class="fas fa-times text-white text-xl"></i>
+                            {% elif activation.status == 'inspector_review' %}
+                                <i class="fas fa-search text-white text-xl"></i>
+                            {% else %}
+                                <i class="fas fa-cog text-white text-xl animate-spin"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Процесс активации проекта</h1>
+                            <p class="text-gray-600">{{ activation.project.name }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Текущий статус</div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                            {% if activation.status == 'activated' %}bg-green-100 text-green-800
+                            {% elif activation.status == 'rejected' %}bg-red-100 text-red-800
+                            {% elif activation.status == 'inspector_review' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ activation.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Основная информация -->
+            <div class="lg:col-span-2 space-y-8">
+                
+        <!-- Информация о проекте -->
+        <div class="bg-white shadow-sm rounded-lg p-6 mb-8 project-info">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Информация о проекте</h2>
+                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <dt class="font-medium text-gray-500">Адрес</dt>
+                            <dd class="text-gray-900">{{ activation.project.address }}</dd>
+                        </div>
+                        <div>
+                            <dt class="font-medium text-gray-500">Контракт</dt>
+                            <dd class="text-gray-900">{{ activation.project.contract_number }}</dd>
+                        </div>
+                        <div>
+                            <dt class="font-medium text-gray-500">Плановая дата начала</dt>
+                            <dd class="text-gray-900">{{ activation.project.planned_start_date|date:"d.m.Y" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="font-medium text-gray-500">Плановая дата окончания</dt>
+                            <dd class="text-gray-900">{{ activation.project.planned_end_date|date:"d.m.Y" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+        <!-- Участники процесса -->
+        <div class="bg-white shadow-sm rounded-lg p-6 project-info">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Участники процесса активации</h2>
+                    <div class="space-y-4">
+                        
+                        <!-- Инициатор -->
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-user-tie text-blue-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">{{ activation.initiated_by.get_full_name }}</div>
+                                <div class="text-sm text-gray-500">Инициировал активацию • {{ activation.created_at|date:"d.m.Y H:i" }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Назначенный прораб -->
+                        {% if activation.assigned_foreman %}
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-hard-hat text-orange-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">{{ activation.assigned_foreman.get_full_name }}</div>
+                                <div class="text-sm text-gray-500">Назначен прорабом • {{ activation.foreman_assigned_at|date:"d.m.Y H:i" }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Инспектор -->
+                        {% if activation.reviewing_inspector %}
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                <i class="fas fa-search text-green-600"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">{{ activation.reviewing_inspector.get_full_name }}</div>
+                                <div class="text-sm text-gray-500">Проверяющий инспектор • {{ activation.inspector_reviewed_at|date:"d.m.Y H:i" }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            <!-- Чек-лист активации -->
+            {% if activation.checklist %}
+            <div class="bg-white shadow-sm rounded-lg p-6 checklist-section">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">Чек-лист активации</h2>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-gray-900">{{ activation.checklist.completion_percentage }}%</div>
+                            <div class="text-sm text-gray-500">готовность</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Пункты чек-листа -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- 1. Регламентная документация -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.regulatory_documentation == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.regulatory_documentation == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.regulatory_documentation == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Регламентная документация</span>
+                            </div>
+                            
+                            <!-- 2. Приказ руководителя строительных работ -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.construction_manager_order == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.construction_manager_order == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.construction_manager_order == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Приказ руководителя строительных работ</span>
+                            </div>
+                            
+                            <!-- 3. Приказ по строительному контролю -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.construction_control_order == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.construction_control_order == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.construction_control_order == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Приказ по строительному контролю</span>
+                            </div>
+                            
+                            <!-- 4. Приказ по техническому надзору -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.project_supervision_order == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.project_supervision_order == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.project_supervision_order == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Приказ по техническому надзору</span>
+                            </div>
+                            
+                            <!-- 5. Отметка печати СМР -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.project_documentation_stamp == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.project_documentation_stamp == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.project_documentation_stamp == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Отметка печати СМР</span>
+                            </div>
+                            
+                            <!-- 6. Проект производства работ -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.work_production_project == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.work_production_project == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.work_production_project == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Проект производства работ</span>
+                            </div>
+                            
+                            <!-- 7. Подготовка инженерной площадки -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.engineering_site_preparation == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.engineering_site_preparation == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.engineering_site_preparation == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Подготовка инженерной площадки</span>
+                            </div>
+                            
+                            <!-- 8. Акт геодезической разбивочной съемки -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.geodetic_breakdown_act == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.geodetic_breakdown_act == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.geodetic_breakdown_act == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Акт геодезической разбивочной съемки</span>
+                            </div>
+                            
+                            <!-- 9. Генеральный план -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.general_plan == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.general_plan == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.general_plan == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Генеральный план</span>
+                            </div>
+                            
+                            <!-- 10. Временная инфраструктура -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.temporary_infrastructure == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.temporary_infrastructure == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.temporary_infrastructure == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Временная инфраструктура</span>
+                            </div>
+                            
+                            <!-- 11. Пункты мойки техники -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.vehicle_cleaning_points == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.vehicle_cleaning_points == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.vehicle_cleaning_points == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Пункты мойки техники</span>
+                            </div>
+                            
+                            <!-- 12. Контейнеры для отходов -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.waste_containers == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.waste_containers == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.waste_containers == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Контейнеры для отходов</span>
+                            </div>
+                            
+                            <!-- 13. Информационные щиты -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.information_boards == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.information_boards == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.information_boards == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Информационные щиты</span>
+                            </div>
+                            
+                            <!-- 14. Стенды противопожарной безопасности -->
+                            <div class="flex items-center">
+                                {% if activation.checklist.fire_safety_stands == 'yes' %}
+                                    <i class="fas fa-check text-green-500 mr-2"></i>
+                                {% elif activation.checklist.fire_safety_stands == 'no' %}
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                {% elif activation.checklist.fire_safety_stands == 'not_required' %}
+                                    <i class="fas fa-minus text-gray-500 mr-2"></i>
+                                {% else %}
+                                    <i class="fas fa-question text-gray-400 mr-2"></i>
+                                {% endif %}
+                                <span class="text-sm">Стенды противопожарной безопасности</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Общая готовность (отдельная строка) -->
+                        <div class="mt-6 p-4 border-t border-gray-200">
+                            <div class="flex items-center">
+                                <i class="fas fa-{{ activation.checklist.overall_readiness|yesno:'check,times' }} 
+                                   text-{{ activation.checklist.overall_readiness|yesno:'green,red' }}-500 mr-3 text-lg"></i>
+                                <span class="text-base font-semibold">Объект готов к активации</span>
+                            </div>
+                        </div>
+
+                        {% if activation.checklist.additional_notes %}
+                        <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                            <h4 class="font-medium text-gray-900 mb-2">Дополнительные примечания:</h4>
+                            <p class="text-sm text-gray-700">{{ activation.checklist.additional_notes }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="text-sm text-gray-500">
+                            Заполнено {{ activation.checklist.filled_at|date:"d.m.Y H:i" }} пользователем {{ activation.checklist.filled_by.get_full_name }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Заметки инспектора -->
+                {% if activation.inspector_notes %}
+                <div class="bg-white shadow-sm rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Заметки инспектора</h2>
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                        <p class="text-gray-700">{{ activation.inspector_notes }}</p>
+                        {% if activation.reviewing_inspector %}
+                        <p class="text-sm text-blue-600 mt-2">
+                            — {{ activation.reviewing_inspector.get_full_name }}, {{ activation.inspector_reviewed_at|date:"d.m.Y H:i" }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Причина отклонения -->
+                {% if activation.rejection_reason %}
+                <div class="bg-white shadow-sm rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Причина отклонения</h2>
+                    <div class="bg-red-50 border-l-4 border-red-400 p-4">
+                        <p class="text-gray-700">{{ activation.rejection_reason }}</p>
+                        {% if activation.reviewing_inspector %}
+                        <p class="text-sm text-red-600 mt-2">
+                            — {{ activation.reviewing_inspector.get_full_name }}, {{ activation.inspector_reviewed_at|date:"d.m.Y H:i" }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Документ об активации -->
+                {% if activation.activation_document %}
+                <div class="bg-white shadow-sm rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Документ об активации</h2>
+                    <div class="flex items-center p-4 border border-gray-200 rounded-lg">
+                        <i class="fas fa-file-pdf text-red-500 text-2xl mr-4"></i>
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-900">Акт об открытии объекта</div>
+                            <div class="text-sm text-gray-500">Загружен {{ activation.inspector_reviewed_at|date:"d.m.Y H:i" }}</div>
+                        </div>
+                        <a href="{{ activation.activation_document.url }}" 
+                           target="_blank"
+                           class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-download mr-1"></i>
+                            Скачать
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- История событий -->
+            <div class="space-y-6">
+                <div class="bg-white shadow-sm rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">История событий</h2>
+                    
+                    {% if events %}
+                    <div class="flow-root">
+                        <ul class="-mb-8">
+                            {% for event in events %}
+                            <li>
+                                <div class="relative pb-8">
+                                    {% if not forloop.last %}
+                                    <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                    {% endif %}
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full flex items-center justify-center
+                                                {% if event.event_type == 'activated' %}bg-green-500
+                                                {% elif event.event_type == 'rejected' %}bg-red-500
+                                                {% elif event.event_type == 'approved' %}bg-green-400
+                                                {% elif event.event_type == 'sent_for_review' %}bg-yellow-500
+                                                {% elif event.event_type == 'checklist_completed' %}bg-blue-500
+                                                {% elif event.event_type == 'foreman_assigned' %}bg-orange-500
+                                                {% else %}bg-gray-500{% endif %}">
+                                                {% if event.event_type == 'activated' %}
+                                                    <i class="fas fa-rocket text-white text-xs"></i>
+                                                {% elif event.event_type == 'rejected' %}
+                                                    <i class="fas fa-times text-white text-xs"></i>
+                                                {% elif event.event_type == 'approved' %}
+                                                    <i class="fas fa-check text-white text-xs"></i>
+                                                {% elif event.event_type == 'checklist_completed' %}
+                                                    <i class="fas fa-clipboard-check text-white text-xs"></i>
+                                                {% elif event.event_type == 'foreman_assigned' %}
+                                                    <i class="fas fa-user-plus text-white text-xs"></i>
+                                                {% else %}
+                                                    <i class="fas fa-circle text-white text-xs"></i>
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div>
+                                                <div class="text-sm">
+                                                    <span class="font-medium text-gray-900">{{ event.get_event_type_display }}</span>
+                                                </div>
+                                                <p class="mt-0.5 text-sm text-gray-500">
+                                                    {{ event.created_at|date:"d.m.Y H:i" }}
+                                                </p>
+                                            </div>
+                                            <div class="mt-2 text-sm text-gray-700">
+                                                {{ event.description }}
+                                            </div>
+                                            <div class="mt-1 text-xs text-gray-500">
+                                                {{ event.user.get_full_name }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-6 text-gray-500">
+                        <i class="fas fa-history text-2xl mb-2"></i>
+                        <p>Пока нет событий</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Действия -->
+                <div class="bg-white shadow-sm rounded-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Доступные действия</h2>
+                    
+                    <div class="space-y-3">
+                        <!-- Кнопка печати -->
+                        <button onclick="printReport()" 
+                                class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 no-print">
+                            <i class="fas fa-print mr-2"></i>
+                            Распечатать отчет
+                        </button>
+                        
+                        {% if activation.status == 'pending' and activation.initiated_by == request.user %}
+                            <a href="{% url 'projects:assign_foreman' activation_id=activation.id %}"
+                               class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 no-print">
+                                <i class="fas fa-user-plus mr-2"></i>
+                                Назначить прораба
+                            </a>
+                        {% endif %}
+
+                        {% if activation.status == 'foreman_assigned' and activation.initiated_by == request.user %}
+                            <a href="{% url 'projects:checklist_form' activation_id=activation.id %}"
+                               class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 no-print">
+                                <i class="fas fa-clipboard-check mr-2"></i>
+                                Заполнить чек-лист
+                            </a>
+                        {% endif %}
+
+                        {% if activation.status == 'inspector_review' and request.user.user_type == 'inspector' %}
+                            <a href="{% url 'projects:inspector_review' activation_id=activation.id %}"
+                               class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 no-print">
+                                <i class="fas fa-search mr-2"></i>
+                                Проверить активацию
+                            </a>
+                        {% endif %}
+
+                        <!-- Повторное заполнение чек-листа после отклонения -->
+                        {% if activation.status == 'rejected' and activation.initiated_by == request.user and request.user.user_type == 'construction_control' %}
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-3">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-exclamation-circle text-orange-500 mr-2"></i>
+                                    <h4 class="text-sm font-medium text-orange-800">Проект отклонен инспектором</h4>
+                                </div>
+                                <p class="text-sm text-orange-700 mb-3">Вы можете исправить замечания и повторно заполнить чек-лист</p>
+                            </div>
+                            
+                            <a href="{% url 'projects:checklist_form' activation_id=activation.id %}"
+                               class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 no-print">
+                                <i class="fas fa-redo mr-2"></i>
+                                Повторно заполнить чек-лист
+                            </a>
+                        {% endif %}
+
+                        <a href="{% url 'projects:project_detail' project_id=activation.project.id %}"
+                           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 no-print">
+                            <i class="fas fa-folder-open mr-2"></i>
+                            Открыть проект
+                        </a>
+
+                        <a href="{% url 'projects:construction_control_dashboard' %}"
+                           class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 no-print">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            К списку проектов
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Заголовок для печати -->
+<div class="print-only" style="margin-bottom: 20px; padding: 15px; border-bottom: 2px solid #e5e7eb;">
+    <div class="text-center">
+        <h1 style="font-size: 18px; font-weight: bold; margin-bottom: 8px; color: #111827;">ОТЧЕТ ОБ АКТИВАЦИИ ПРОЕКТА</h1>
+        <p style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 4px;">{{ activation.project.name }}</p>
+        <p style="font-size: 11px; color: #6b7280;">Статус: {{ activation.get_status_display }} | Сформирован: {{ "now"|date:"d.m.Y H:i" }}</p>
+    </div>
+</div>
+
+<script>
+function printReport() {
+    // Сохраняем оригинальный заголовок
+    const originalTitle = document.title;
+    
+    // Устанавливаем заголовок для печати
+    document.title = 'Отчет об активации - {{ activation.project.name }}';
+    
+    // Настраиваем body для печати
+    const body = document.body;
+    const originalOverflow = body.style.overflow;
+    const originalMargin = body.style.margin;
+    const originalPadding = body.style.padding;
+    
+    body.style.overflow = 'visible';
+    body.style.margin = '0';
+    body.style.padding = '0';
+    
+    // Оптимизируем контейнер
+    const container = document.querySelector('.max-w-6xl');
+    const originalMaxWidth = container ? container.style.maxWidth : '';
+    const originalWidth = container ? container.style.width : '';
+    
+    if (container) {
+        container.style.maxWidth = '100%';
+        container.style.width = '100%';
+    }
+    
+    // Печатаем
+    setTimeout(() => {
+        window.print();
+        
+        // Восстанавливаем после печати
+        setTimeout(() => {
+            document.title = originalTitle;
+            body.style.overflow = originalOverflow;
+            body.style.margin = originalMargin;
+            body.style.padding = originalPadding;
+            
+            if (container) {
+                container.style.maxWidth = originalMaxWidth;
+                container.style.width = originalWidth;
+            }
+        }, 100);
+    }, 100);
+}
+
+// Обработка события печати
+window.addEventListener('afterprint', () => {
+    // Восстанавливаем стили после печати
+    const body = document.body;
+    const container = document.querySelector('.max-w-6xl');
+    
+    body.style.overflow = '';
+    body.style.margin = '';
+    body.style.padding = '';
+    
+    if (container) {
+        container.style.maxWidth = '';
+        container.style.width = '';
+    }
+});
+
+// Обработка события перед печатью
+window.addEventListener('beforeprint', () => {
+    // Дополнительные настройки перед печатью
+    const main = document.querySelector('main');
+    if (main) {
+        main.style.marginLeft = '0';
+        main.style.width = '100%';
+    }
+});
+</script>
+{% endblock %}

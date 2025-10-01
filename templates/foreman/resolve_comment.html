@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block title %}Устранить замечание - Прораб{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <!-- Заголовок -->
+  <div class="mb-8">
+    <div class="flex items-center space-x-4">
+      <a href="{% url 'foreman:comments_management' %}" class="text-gray-600 hover:text-gray-900">
+        <i class="fas fa-arrow-left text-lg"></i>
+      </a>
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Устранить замечание</h1>
+        <p class="mt-1 text-gray-600">Подтвердите устранение замечания и добавьте комментарий</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Информация о замечании -->
+  <div class="bg-white shadow rounded-lg mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-medium text-gray-900">
+          <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i>
+          Информация о замечании
+        </h2>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+          {{ comment.get_status_display }}
+        </span>
+      </div>
+    </div>
+    
+    <div class="p-6 space-y-4">
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900">{{ comment.title }}</h3>
+        <p class="mt-2 text-gray-700">{{ comment.description }}</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h4 class="text-sm font-medium text-gray-500">Проект</h4>
+          <p class="mt-1 text-sm text-gray-900">{{ comment.project.name }}</p>
+          <p class="text-xs text-gray-600">{{ comment.project.address }}</p>
+        </div>
+        
+        <div>
+          <h4 class="text-sm font-medium text-gray-500">Приоритет</h4>
+          <span class="mt-1 inline-flex items-center px-2 py-1 rounded text-xs font-medium
+            {% if comment.priority == 'critical' %}bg-red-100 text-red-800
+            {% elif comment.priority == 'high' %}bg-orange-100 text-orange-800
+            {% elif comment.priority == 'medium' %}bg-yellow-100 text-yellow-800
+            {% else %}bg-gray-100 text-gray-800
+            {% endif %}">
+            {{ comment.get_priority_display }}
+          </span>
+        </div>
+        
+        <div>
+          <h4 class="text-sm font-medium text-gray-500">Автор замечания</h4>
+          <p class="mt-1 text-sm text-gray-900">{{ comment.created_by.get_full_name }}</p>
+          <p class="text-xs text-gray-600">{{ comment.created_at|date:"d.m.Y H:i" }}</p>
+        </div>
+        
+        {% if comment.due_date %}
+        <div>
+          <h4 class="text-sm font-medium text-gray-500">Срок устранения</h4>
+          <p class="mt-1 text-sm text-gray-900">{{ comment.due_date|date:"d.m.Y" }}</p>
+          {% if comment.is_overdue %}
+            <p class="text-xs text-red-600">Просрочено</p>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      
+      {% if comment.photo %}
+      <div>
+        <h4 class="text-sm font-medium text-gray-500 mb-2">Фото нарушения</h4>
+        <img src="{{ comment.photo.url }}" alt="Фото нарушения" class="max-w-sm rounded-lg border">
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Форма устранения -->
+  <form method="post" enctype="multipart/form-data" class="space-y-6">
+    {% csrf_token %}
+    
+    <!-- Подтверждение устранения -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-medium text-gray-900">
+          <i class="fas fa-check-circle text-green-500 mr-2"></i>
+          Подтверждение устранения
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">Опишите принятые меры по устранению замечания</p>
+      </div>
+      
+      <div class="p-6 space-y-6">
+        <!-- Комментарий об устранении -->
+        <div>
+          <label for="response_comment" class="block text-sm font-medium text-gray-700">
+            Описание выполненных работ <span class="text-red-500">*</span>
+          </label>
+          <textarea name="response_comment" id="response_comment" rows="4" required
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-blue focus:border-primary-blue"
+                    placeholder="Опишите какие меры были приняты для устранения замечания..."></textarea>
+          <p class="mt-1 text-xs text-gray-500">Подробно опишите выполненные работы, использованные материалы и методы</p>
+        </div>
+
+        <!-- Фото после устранения -->
+        <div>
+          <label for="resolution_photos" class="block text-sm font-medium text-gray-700">
+            Фото после устранения
+          </label>
+          <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors">
+            <div class="space-y-1 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <div class="flex text-sm text-gray-600">
+                <label for="resolution_photos" class="relative cursor-pointer bg-white rounded-md font-medium text-primary-blue hover:text-primary-blue/80 focus-within:outline-none">
+                  <span>Загрузить фото</span>
+                  <input id="resolution_photos" name="resolution_photos" type="file" accept="image/*" multiple class="sr-only" onchange="previewFiles(this)">
+                </label>
+                <p class="pl-1">или перетащите файлы</p>
+              </div>
+              <p class="text-xs text-gray-500">PNG, JPG до 10MB каждый</p>
+            </div>
+          </div>
+          <div id="photos-preview" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+        </div>
+
+        <!-- Дата устранения -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="resolution_date" class="block text-sm font-medium text-gray-700">
+              Дата устранения
+            </label>
+            <input type="date" name="resolution_date" id="resolution_date" 
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-blue focus:border-primary-blue"
+                   value="{{ today|date:'Y-m-d' }}">
+            <p class="mt-1 text-xs text-gray-500">Дата фактического устранения замечания</p>
+          </div>
+
+          <div>
+            <label for="resolution_time" class="block text-sm font-medium text-gray-700">
+              Время устранения
+            </label>
+            <input type="time" name="resolution_time" id="resolution_time" 
+                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-blue focus:border-primary-blue">
+            <p class="mt-1 text-xs text-gray-500">Время завершения работ (опционально)</p>
+          </div>
+        </div>
+
+        <!-- Использованные материалы -->
+        <div>
+          <label for="materials_used" class="block text-sm font-medium text-gray-700">
+            Использованные материалы
+          </label>
+          <textarea name="materials_used" id="materials_used" rows="2"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-blue focus:border-primary-blue"
+                    placeholder="Укажите материалы и их количество (опционально)"></textarea>
+        </div>
+
+        <!-- Исполнители -->
+        <div>
+          <label for="performers" class="block text-sm font-medium text-gray-700">
+            Исполнители работ
+          </label>
+          <input type="text" name="performers" id="performers" 
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-blue focus:border-primary-blue"
+                 placeholder="ФИО исполнителей (опционально)">
+        </div>
+      </div>
+    </div>
+
+    <!-- Дополнительная информация -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-medium text-gray-900">
+          <i class="fas fa-info-circle text-primary-blue mr-2"></i>
+          Дополнительная информация
+        </h2>
+      </div>
+      
+      <div class="p-6 space-y-4">
+        <div class="flex items-start space-x-3">
+          <input type="checkbox" name="require_reinspection" id="require_reinspection" value="true"
+                 class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded mt-1">
+          <div>
+            <label for="require_reinspection" class="text-sm font-medium text-gray-700">
+              Требует повторной проверки
+            </label>
+            <p class="text-xs text-gray-500">Отметьте, если замечание требует дополнительного контроля</p>
+          </div>
+        </div>
+
+        <div class="flex items-start space-x-3">
+          <input type="checkbox" name="related_to_safety" id="related_to_safety" value="true"
+                 class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded mt-1">
+          <div>
+            <label for="related_to_safety" class="text-sm font-medium text-gray-700">
+              Связано с безопасностью
+            </label>
+            <p class="text-xs text-gray-500">Замечание касалось вопросов безопасности труда</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="flex justify-end space-x-4 pt-6">
+      <a href="{% url 'foreman:comments_management' %}" 
+         class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue">
+        Отмена
+      </a>
+      <button type="submit" 
+              class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+        <i class="fas fa-check mr-2"></i>
+        Отметить как устраненное
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+// Установка текущего времени по умолчанию
+document.getElementById('resolution_time').value = new Date().toTimeString().slice(0, 5);
+
+// Превью множественных файлов
+function previewFiles(input) {
+    const files = input.files;
+    const preview = document.getElementById('photos-preview');
+    
+    // Очищаем предыдущие превью
+    preview.innerHTML = '';
+    
+    if (files.length === 0) return;
+    
+    Array.from(files).forEach((file, index) => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'relative';
+                div.innerHTML = `
+                    <img src="${e.target.result}" alt="Превью ${index + 1}" 
+                         class="h-24 w-24 object-cover rounded-lg border">
+                    <div class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs cursor-pointer"
+                         onclick="removePreview(this)" data-index="${index}">
+                        ×
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1 truncate">${file.name}</p>
+                `;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function removePreview(element) {
+    // В реальной реализации здесь была бы логика удаления файла из input
+    element.parentElement.remove();
+}
+
+// Валидация формы
+document.querySelector('form').addEventListener('submit', function(e) {
+    const responseComment = document.getElementById('response_comment').value.trim();
+    
+    if (responseComment.length < 10) {
+        e.preventDefault();
+        alert('Описание выполненных работ должно быть не менее 10 символов');
+        return false;
+    }
+    
+    if (!confirm('Вы уверены, что замечание устранено? Это действие нельзя будет отменить.')) {
+        e.preventDefault();
+        return false;
+    }
+});
+
+// Автоматическое изменение размера textarea
+document.getElementById('response_comment').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+});
+</script>
+{% endblock %}

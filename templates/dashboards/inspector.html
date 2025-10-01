@@ -1,0 +1,511 @@
+{% extends 'base.html' %}
+{% block title %}Дашборд инспектора — СУ благоустройства{% endblock %}
+{% block content %}
+<div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Заголовок -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">🔍 Дашборд инспектора</h1>
+                    <p class="mt-2 text-sm text-gray-600">Контроль качества и безопасности работ</p>
+                </div>
+                <div class="text-right">
+                    <div class="inline-flex items-center px-4 py-2 rounded-lg bg-primary-blue/10 text-primary-blue">
+                        <i class="fas fa-user-shield mr-2"></i>
+                        {{ user.get_full_name|default:user.username }}
+                    </div>
+                    {% if assigned_projects %}
+                    <p class="text-sm text-gray-600 mt-1">Контроль {{ assigned_projects|length }} объект{{ assigned_projects|length|pluralize:"а,ов,ов" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clipboard-list text-2xl text-primary-blue"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Объекты под контролем</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.assigned_projects }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-2xl text-accent-red"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Активные замечания</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.active_violations }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock text-2xl text-accent-peach"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Ожидают проверки</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.pending_inspections }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Проверок сегодня</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.today_inspections }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-file-alt text-2xl text-gray-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Документов на согласование</dt>
+                                <dd class="text-lg font-medium text-gray-900">{{ stats.pending_documents }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Плановые проверки -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-calendar-check text-primary-blue mr-2"></i>
+                        Плановые проверки
+                    </h3>
+                    <button onclick="showInspectionModal()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-blue hover:bg-primary-blue/90">
+                        <i class="fas fa-plus mr-2"></i>
+                        Провести проверку
+                    </button>
+                </div>
+                <div class="p-6">
+                    {% if scheduled_inspections %}
+                        <div class="space-y-3">
+                            {% for inspection in scheduled_inspections %}
+                            <div class="border border-gray-200 rounded-lg p-3 {% if inspection.is_overdue %}border-red-300 bg-red-50{% endif %}">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-medium text-gray-900">{{ inspection.project.name }}</h4>
+                                        <p class="text-xs text-gray-600">{{ inspection.inspection_type }} - {{ inspection.description }}</p>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            <i class="fas fa-calendar mr-1"></i>
+                                            Дата: {{ inspection.scheduled_date|date:"d.m.Y H:i" }}
+                                            {% if inspection.is_overdue %}
+                                            <span class="text-red-600 ml-2">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                Просрочено
+                                            </span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-1 text-xs rounded-full {% if inspection.status == 'completed' %}bg-green-100 text-green-800{% elif inspection.status == 'in_progress' %}bg-blue-100 text-blue-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                            {{ inspection.get_status_display }}
+                                        </span>
+                                        {% if inspection.status != 'completed' %}
+                                        <button onclick="startInspection({{ inspection.id }})" class="text-primary-blue hover:text-primary-blue/80">
+                                            <i class="fas fa-play-circle text-lg"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-calendar-times text-3xl mb-2"></i>
+                            <p>Нет плановых проверок на сегодня</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Быстрые действия -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-bolt text-accent-peach mr-2"></i>
+                        Быстрые действия
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <button onclick="createViolationModal()" class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                            <i class="fas fa-exclamation-triangle text-2xl text-red-500 mb-2"></i>
+                            <span class="text-sm font-medium text-gray-900">Зафиксировать нарушение</span>
+                        </button>
+                        <button onclick="approveDocumentModal()" class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                            <i class="fas fa-file-signature text-2xl text-green-500 mb-2"></i>
+                            <span class="text-sm font-medium text-gray-900">Согласовать документ</span>
+                        </button>
+                        <button onclick="scheduleInspectionModal()" class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                            <i class="fas fa-calendar-plus text-2xl text-blue-500 mb-2"></i>
+                            <span class="text-sm font-medium text-gray-900">Запланировать проверку</span>
+                        </button>
+                        <button onclick="generateReportModal()" class="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                            <i class="fas fa-file-pdf text-2xl text-gray-500 mb-2"></i>
+                            <span class="text-sm font-medium text-gray-900">Сформировать отчет</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Фотофиксация нарушений -->
+                    <div class="mt-6 border-t pt-4">
+                        <h4 class="text-sm font-medium text-gray-900 mb-3">Фотофиксация нарушений</h4>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                            <div id="violation-camera-container" style="display: none;">
+                                <video id="violation-camera-stream" class="w-full rounded-lg mb-4" autoplay playsinline></video>
+                                <div class="space-x-3">
+                                    <button onclick="captureViolationPhoto()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                        <i class="fas fa-camera mr-2"></i>
+                                        Зафиксировать
+                                    </button>
+                                    <button onclick="stopViolationCamera()" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50">
+                                        Отменить
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="violation-upload-area">
+                                <i class="fas fa-camera text-4xl text-gray-400 mb-2"></i>
+                                <div class="space-x-3">
+                                    <button onclick="startViolationCamera()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                        <i class="fas fa-camera mr-2"></i>
+                                        Камера
+                                    </button>
+                                    <label class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer">
+                                        <i class="fas fa-upload mr-2"></i>
+                                        Загрузить
+                                        <input type="file" id="violation-photo" accept="image/*" class="sr-only" onchange="processViolationPhoto(this.files[0])">
+                                    </label>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Сфотографируйте нарушение для создания замечания</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Мои объекты -->
+        {% if assigned_projects %}
+        <div class="bg-white shadow rounded-lg mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-building text-primary-blue mr-2"></i>
+                    Объекты под контролем
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for project in assigned_projects %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex-1">
+                                <h4 class="text-lg font-medium text-gray-900">{{ project.name }}</h4>
+                                <p class="text-sm text-gray-600">{{ project.address }}</p>
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded-full {% if project.status == 'active' %}bg-blue-100 text-blue-800{% elif project.status == 'completed' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ project.get_status_display }}
+                            </span>
+                        </div>
+                        
+                        <!-- Статистика по объекту -->
+                        <div class="grid grid-cols-2 gap-3 mb-4 text-sm">
+                            <div class="text-center p-2 bg-gray-50 rounded">
+                                <div class="font-medium text-red-600">{{ project.active_violations_count|default:0 }}</div>
+                                <div class="text-xs text-gray-600">Замечаний</div>
+                            </div>
+                            <div class="text-center p-2 bg-gray-50 rounded">
+                                <div class="font-medium text-blue-600">{{ project.completion }}%</div>
+                                <div class="text-xs text-gray-600">Готовность</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <a href="/projects/{{ project.id }}/" class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50">
+                                <i class="fas fa-eye mr-2"></i>
+                                Детали
+                            </a>
+                            {% if project.status == 'active' %}
+                            <button onclick="quickInspection({{ project.id }})" class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-blue hover:bg-primary-blue/90">
+                                <i class="fas fa-search mr-2"></i>
+                                Проверить
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Активные нарушения -->
+        {% if recent_violations %}
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-exclamation-triangle text-accent-red mr-2"></i>
+                    Последние замечания
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    {% for violation in recent_violations %}
+                    <div class="border rounded-lg p-4 {% if violation.severity == 'critical' %}border-red-300 bg-red-50{% elif violation.severity == 'major' %}border-orange-300 bg-orange-50{% else %}border-yellow-300 bg-yellow-50{% endif %}">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <h4 class="text-sm font-medium text-gray-900">{{ violation.project.name }}</h4>
+                                    <span class="ml-2 px-2 py-1 text-xs rounded-full {% if violation.severity == 'critical' %}bg-red-100 text-red-800{% elif violation.severity == 'major' %}bg-orange-100 text-orange-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                        {{ violation.get_severity_display }}
+                                    </span>
+                                </div>
+                                <p class="text-sm text-gray-700 mb-2">{{ violation.description }}</p>
+                                <div class="flex items-center text-xs text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    {{ violation.created_at|date:"d.m.Y H:i" }}
+                                    {% if violation.deadline %}
+                                    <span class="ml-3">
+                                        <i class="fas fa-calendar-alt mr-1"></i>
+                                        Срок: {{ violation.deadline|date:"d.m.Y" }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 text-xs rounded-full {% if violation.status == 'open' %}bg-red-100 text-red-800{% elif violation.status == 'in_progress' %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                    {{ violation.get_status_display }}
+                                </span>
+                                {% if violation.status == 'in_progress' %}
+                                <button onclick="checkViolationFix({{ violation.id }})" class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-check-circle text-lg"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальные окна -->
+{% include 'modals/inspection_modal.html' %}
+{% include 'modals/violation_modal.html' %}
+{% include 'modals/document_approval_modal.html' %}
+
+<script>
+// Работа с камерой для фиксации нарушений
+let violationStream = null;
+
+async function startViolationCamera() {
+    try {
+        violationStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } 
+        });
+        document.getElementById('violation-camera-stream').srcObject = violationStream;
+        document.getElementById('violation-upload-area').style.display = 'none';
+        document.getElementById('violation-camera-container').style.display = 'block';
+    } catch (error) {
+        alert('Ошибка доступа к камере: ' + error.message);
+    }
+}
+
+function stopViolationCamera() {
+    if (violationStream) {
+        violationStream.getTracks().forEach(track => track.stop());
+        violationStream = null;
+    }
+    document.getElementById('violation-camera-container').style.display = 'none';
+    document.getElementById('violation-upload-area').style.display = 'block';
+}
+
+async function captureViolationPhoto() {
+    const video = document.getElementById('violation-camera-stream');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    canvas.toBlob(async (blob) => {
+        stopViolationCamera();
+        await processViolationPhoto(blob);
+    }, 'image/jpeg', 0.8);
+}
+
+async function processViolationPhoto(file) {
+    if (!file) return;
+    
+    // Открываем модальное окно создания нарушения с фото
+    createViolationModal(file);
+}
+
+// Начать проверку
+async function startInspection(inspectionId) {
+    try {
+        // Отметим геолокацию
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const response = await fetch(`/api/inspections/${inspectionId}/start/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude,
+                            accuracy: Math.round(pos.coords.accuracy || 0)
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        alert('Проверка начата!');
+                        location.reload();
+                    } else {
+                        const error = await response.json();
+                        alert('Ошибка начала проверки: ' + (error.detail || 'Неизвестная ошибка'));
+                    }
+                } catch (e) {
+                    alert('Ошибка: ' + e.message);
+                }
+            }, (err) => {
+                alert('Для проведения проверки необходима геолокация');
+            });
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Быстрая проверка объекта
+async function quickInspection(projectId) {
+    if (!confirm('Провести внеплановую проверку объекта?')) return;
+    
+    try {
+        const response = await fetch('/api/inspections/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                project_id: projectId,
+                inspection_type: 'spot_check',
+                description: 'Внеплановая проверка',
+                inspector_id: '{{ user.id }}'
+            })
+        });
+        
+        if (response.ok) {
+            const inspection = await response.json();
+            startInspection(inspection.id);
+        } else {
+            const error = await response.json();
+            alert('Ошибка создания проверки: ' + (error.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Проверить устранение нарушения
+async function checkViolationFix(violationId) {
+    if (!confirm('Подтвердить устранение замечания?')) return;
+    
+    try {
+        const response = await fetch(`/api/violations/${violationId}/approve_fix/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                approved_by: '{{ user.id }}',
+                approval_comment: 'Устранение подтверждено инспектором'
+            })
+        });
+        
+        if (response.ok) {
+            alert('Устранение замечания подтверждено!');
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка: ' + (error.detail || 'Не удалось подтвердить устранение'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+}
+
+// Модальные окна
+function showInspectionModal() {
+    document.getElementById('inspectionModal').classList.remove('hidden');
+}
+
+function createViolationModal(photo = null) {
+    const modal = document.getElementById('violationModal');
+    if (photo) {
+        // Добавляем фото к форме создания нарушения
+        const photoPreview = document.getElementById('violation-photo-preview');
+        if (photoPreview) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                photoPreview.innerHTML = `<img src="${e.target.result}" class="max-h-48 rounded-lg">`;
+            };
+            reader.readAsDataURL(photo);
+        }
+    }
+    modal.classList.remove('hidden');
+}
+
+function approveDocumentModal() {
+    document.getElementById('documentApprovalModal').classList.remove('hidden');
+}
+
+function scheduleInspectionModal() {
+    // Открыть модальное окно планирования проверки
+    showInspectionModal();
+}
+
+function generateReportModal() {
+    // Открыть модальное окно генерации отчета
+    alert('Функция генерации отчетов будет доступна в следующих версиях');
+}
+</script>
+{% endblock %}

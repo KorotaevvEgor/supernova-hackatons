@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мои объекты - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Заголовок -->
+        <div class="md:flex md:items-center md:justify-between mb-8">
+            <div class="flex-1 min-w-0">
+                <h1 class="text-3xl font-bold leading-tight text-gray-900">
+                    Мои объекты
+                </h1>
+                <p class="mt-1 text-sm text-gray-500">
+                    Объекты строительного контроля под вашим управлением
+                </p>
+            </div>
+        </div>
+
+        <!-- Статистика -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-clock text-white text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Запланированы</dt>
+                                <dd class="text-lg font-semibold text-gray-900">{{ planned_projects.count }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                                <i class="fas fa-rocket text-white text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Готовы к активации</dt>
+                                <dd class="text-lg font-semibold text-green-600">{{ ready_for_activation.count }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-cog text-white text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">В работе</dt>
+                                <dd class="text-lg font-semibold text-gray-900">{{ active_projects.count }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Завершены</dt>
+                                <dd class="text-lg font-semibold text-gray-900">{{ completed_projects.count }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Готовые к активации (приоритетный блок) -->
+        {% if ready_for_activation %}
+        <div class="mb-8">
+            <div class="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg p-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                        <i class="fas fa-rocket text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-xl font-bold text-green-800">Доступна активация объектов</h2>
+                        <p class="text-sm text-green-600">{{ ready_for_activation.count }} объект(ов) готов к активации</p>
+                    </div>
+                </div>
+                
+                <div class="grid gap-4">
+                    {% for project in ready_for_activation %}
+                    <div class="bg-white border-2 border-green-300 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse mr-3"></div>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ project.name }}</h3>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-1">{{ project.address }}</p>
+                                <div class="flex items-center mt-2 text-sm text-gray-500">
+                                    <i class="fas fa-calendar mr-1"></i>
+                                    <span>Плановое начало: {{ project.planned_start_date|date:"d.m.Y" }}</span>
+                                    <span class="mx-2">•</span>
+                                    <i class="fas fa-file-contract mr-1"></i>
+                                    <span>{{ project.contract_number }}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                {% if project.activation %}
+                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                                        {{ project.activation.get_status_display }}
+                                    </span>
+                                    <a href="{% url 'projects:activation_detail' activation_id=project.activation.id %}" 
+                                       class="inline-flex items-center px-4 py-2 border border-yellow-300 rounded-md shadow-sm text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                                        <i class="fas fa-eye mr-2"></i>
+                                        Статус
+                                    </a>
+                                {% else %}
+                                    <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium animate-pulse">
+                                        ✨ Доступна активация объекта
+                                    </span>
+                                    <a href="{% url 'projects:initiate_activation' project_id=project.id %}" 
+                                       class="inline-flex items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors">
+                                        <i class="fas fa-rocket mr-2"></i>
+                                        Активировать
+                                    </a>
+                                {% endif %}
+                                <a href="{% url 'projects:project_detail' project_id=project.id %}" 
+                                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-folder-open mr-2"></i>
+                                    Открыть
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Активные проекты -->
+        {% if active_projects %}
+        <div class="mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-cog text-yellow-500 mr-2"></i>
+                Проекты в работе
+            </h2>
+            <div class="grid gap-4">
+                {% for project in active_projects %}
+                <div class="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                                <h3 class="text-lg font-semibold text-gray-900">{{ project.name }}</h3>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">{{ project.address }}</p>
+                            <div class="flex items-center mt-2 text-sm text-gray-500">
+                                <i class="fas fa-user mr-1"></i>
+                                <span>Прораб: {{ project.foreman.get_full_name|default:"Не назначен" }}</span>
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-percentage mr-1"></i>
+                                <span>Готовность: {{ project.completion_percentage }}%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                                В работе
+                            </span>
+                            <a href="{% url 'projects:project_detail' project_id=project.id %}" 
+                               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-folder-open mr-2"></i>
+                                Открыть
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Запланированные проекты (не готовые к активации) -->
+        {% if planned_projects %}
+        <div class="mb-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-clock text-blue-500 mr-2"></i>
+                Запланированные проекты
+            </h2>
+            <div class="grid gap-4">
+                {% for project in planned_projects %}
+                {% if project.planned_start_date > today %}
+                <div class="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                                <h3 class="text-lg font-semibold text-gray-900">{{ project.name }}</h3>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">{{ project.address }}</p>
+                            <div class="flex items-center mt-2 text-sm text-gray-500">
+                                <i class="fas fa-calendar mr-1"></i>
+                                <span>Начало: {{ project.planned_start_date|date:"d.m.Y" }}</span>
+                                <span class="mx-2">•</span>
+                                <i class="fas fa-file-contract mr-1"></i>
+                                <span>{{ project.contract_number }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                Запланирован
+                            </span>
+                            <a href="{% url 'projects:project_detail' project_id=project.id %}" 
+                               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-folder-open mr-2"></i>
+                                Открыть
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Уведомления (всплывающие) -->
+<div id="notifications-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Загружаем уведомления
+    loadNotifications();
+    
+    // Обновляем каждые 30 секунд
+    setInterval(loadNotifications, 30000);
+});
+
+function loadNotifications() {
+    fetch('{% url "projects:notifications_api" %}')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('notifications-container');
+            container.innerHTML = '';
+            
+            data.notifications.forEach(notification => {
+                showNotification(notification);
+            });
+        })
+        .catch(error => console.error('Ошибка загрузки уведомлений:', error));
+}
+
+function showNotification(notification) {
+    const container = document.getElementById('notifications-container');
+    
+    const notificationEl = document.createElement('div');
+    notificationEl.className = 'bg-white border-l-4 border-blue-400 shadow-lg rounded-md p-4 max-w-sm transform transition-transform duration-300 translate-x-full';
+    
+    const iconClass = {
+        'foreman_assignment': 'fas fa-user-plus text-blue-500',
+        'activation_review': 'fas fa-search text-yellow-500', 
+        'activation_approved': 'fas fa-check-circle text-green-500',
+        'activation_rejected': 'fas fa-times-circle text-red-500'
+    }[notification.type] || 'fas fa-bell text-gray-500';
+    
+    notificationEl.innerHTML = `
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="${iconClass}"></i>
+            </div>
+            <div class="ml-3 flex-1">
+                <h4 class="text-sm font-medium text-gray-900">${notification.title}</h4>
+                <p class="text-sm text-gray-600 mt-1">${notification.message}</p>
+                <div class="mt-2 flex space-x-2">
+                    ${notification.activation_id ? 
+                        `<a href="/projects/activation/${notification.activation_id}/" class="text-xs text-blue-600 hover:text-blue-800">Перейти</a>` : 
+                        ''
+                    }
+                    <button onclick="markAsRead(${notification.id})" class="text-xs text-gray-500 hover:text-gray-700">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(notificationEl);
+    
+    // Анимация появления
+    setTimeout(() => notificationEl.classList.remove('translate-x-full'), 100);
+    
+    // Автоматически скрыть через 10 секунд
+    setTimeout(() => {
+        notificationEl.classList.add('translate-x-full');
+        setTimeout(() => notificationEl.remove(), 300);
+    }, 10000);
+}
+
+function markAsRead(notificationId) {
+    fetch(`{% url "projects:mark_notification_read" notification_id=0 %}`.replace('0', notificationId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Удаляем уведомление из DOM
+            const notifications = document.querySelectorAll('#notifications-container > div');
+            notifications.forEach(el => {
+                if (el.innerHTML.includes(`markAsRead(${notificationId})`)) {
+                    el.classList.add('translate-x-full');
+                    setTimeout(() => el.remove(), 300);
+                }
+            });
+        }
+    })
+    .catch(error => console.error('Ошибка при отметке уведомления:', error));
+}
+</script>
+{% endblock %}

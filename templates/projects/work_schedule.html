@@ -1,0 +1,545 @@
+{% extends 'base.html' %}
+
+{% block title %}Сетевой график работ - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="max-w-full mx-auto">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 mb-6 text-white shadow-xl">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-project-diagram text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold mb-1">
+                        Сетевой график работ
+                    </h1>
+                    <p class="text-blue-100">
+                        Комплексное управление графиком выполнения работ по всем объектам
+                    </p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="exportSchedule()" class="bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200 backdrop-blur-sm">
+                    <i class="fas fa-download mr-2"></i>Экспорт
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div class="flex-1 min-w-0">
+                <label for="project" class="block text-sm font-medium text-gray-700 mb-1">Проект</label>
+                <select name="project" id="project" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue">
+                    <option value="">Все проекты</option>
+                    {% for p in all_projects %}
+                    <option value="{{ p.id }}" {% if selected_project and selected_project.id == p.id %}selected{% endif %}>
+                        {{ p.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="flex-1 min-w-0">
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Статус проекта</label>
+                <select name="status" id="status" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-blue focus:border-primary-blue">
+                    <option value="">Все статусы</option>
+                    <option value="planned" {% if status_filter == 'planned' %}selected{% endif %}>Запланированы</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Активные</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Завершенные</option>
+                    <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Приостановленные</option>
+                </select>
+            </div>
+            
+            <div>
+                <button type="submit" class="bg-primary-blue text-white px-4 py-2 rounded-md hover:bg-secondary-blue transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Применить
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Overall Statistics -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <!-- Всего проектов -->
+        <div class="bg-white border-2 border-blue-600 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col items-center text-center space-y-3">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-project-diagram text-xl text-blue-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold mb-1 text-blue-600">{{ overall_stats.total_projects }}</p>
+                    <p class="text-blue-700 text-sm font-medium">Всего проектов</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Всего работ -->
+        <div class="bg-white border-2 border-indigo-600 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col items-center text-center space-y-3">
+                <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-tasks text-xl text-indigo-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold mb-1 text-indigo-600">{{ overall_stats.total_works }}</p>
+                    <p class="text-indigo-700 text-sm font-medium">Всего работ</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Выполнено -->
+        <div class="bg-white border-2 border-green-600 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col items-center text-center space-y-3">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check-circle text-xl text-green-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold mb-1 text-green-600">{{ overall_stats.completed_works }}</p>
+                    <p class="text-green-700 text-sm font-medium">Выполнено</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Просрочено -->
+        <div class="bg-white border-2 border-red-500 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105{% if overall_stats.delayed_works > 0 %} ring-2 ring-red-300 animate-pulse{% endif %}">
+            <div class="flex flex-col items-center text-center space-y-3">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-xl text-red-500{% if overall_stats.delayed_works > 0 %} animate-pulse{% endif %}"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold mb-1 text-red-500">{{ overall_stats.delayed_works }}</p>
+                    <p class="text-red-600 text-sm font-medium">Просрочено</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Готовность -->
+        <div class="bg-white border-2 border-cyan-600 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <div class="flex flex-col items-center text-center space-y-3">
+                <div class="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-percentage text-xl text-cyan-600"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold mb-1 text-cyan-600">{{ overall_stats.overall_completion }}%</p>
+                    <p class="text-cyan-700 text-sm font-medium">Готовность</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Карточка активации (показываем только при наличии) -->
+        {% if overall_stats.projects_to_activate > 0 %}
+        <div class="bg-white border-2 border-orange-500 p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ring-2 ring-orange-300 animate-pulse">
+            <div class="flex flex-col items-center text-center space-y-3">
+                <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-rocket text-xl text-orange-500 animate-bounce"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold mb-1 text-orange-500">{{ overall_stats.projects_to_activate }}</p>
+                    <p class="text-orange-600 text-sm font-medium">Требуют активации</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Projects and Works -->
+    {% for project_data in projects_data %}
+    <div class="bg-white rounded-lg shadow-md mb-6">
+        <!-- Project Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-building text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold">{{ project_data.project.name }}</h3>
+                        <p class="text-blue-200 text-sm">{{ project_data.project.address }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold">{{ project_data.stats.completion_percentage }}%</div>
+                        <div class="text-xs text-blue-200">Выполнение</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xl font-bold">{{ project_data.stats.readiness_score }}%</div>
+                        <div class="text-xs text-blue-200">Готовность</div>
+                    </div>
+                    <div class="flex flex-col items-center space-y-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium 
+                            {% if project_data.project.status == 'active' %}bg-green-200 text-green-800
+                            {% elif project_data.project.status == 'completed' %}bg-blue-200 text-blue-800
+                            {% elif project_data.project.status == 'suspended' %}bg-red-200 text-red-800
+                            {% else %}bg-yellow-200 text-yellow-800{% endif %}">
+                            {{ project_data.project.get_status_display }}
+                        </span>
+                        
+                        <!-- Кнопка активации для запланированных проектов -->
+                        {% if project_data.project.status == 'planned' %}
+                            {% now "Y-m-d" as current_date %}
+                            {% if project_data.project.planned_start_date|date:"Y-m-d" <= current_date %}
+                            <a href="{% url 'projects:project_activation' project_data.project.id %}" 
+                               class="inline-flex items-center px-3 py-1 bg-gradient-to-r from-accent-peach to-accent-red text-white text-xs font-medium rounded-md hover:from-accent-red hover:to-accent-burgundy transition-all transform hover:scale-105">
+                                <i class="fas fa-rocket mr-1"></i>
+                                Активировать
+                            </a>
+                            {% else %}
+                            <div class="text-xs text-blue-200">
+                                Начало: {{ project_data.project.planned_start_date|date:"d.m.Y" }}
+                            </div>
+                            {% endif %}
+                        {% elif project_data.project.status == 'active' and project_data.project.control_service %}
+                        <div class="text-xs text-blue-200 text-center">
+                            Ответств.: {{ project_data.project.control_service.get_full_name|truncatechars:15 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Statistics -->
+        <div class="p-4 border-b border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-xl font-bold text-gray-900">{{ project_data.stats.total_works }}</div>
+                    <div class="text-sm text-gray-600">Всего работ</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xl font-bold text-green-600">{{ project_data.stats.completed_works }}</div>
+                    <div class="text-sm text-gray-600">Выполнено</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xl font-bold text-red-600">{{ project_data.stats.delayed_works }}</div>
+                    <div class="text-sm text-gray-600">Просрочено</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xl font-bold text-primary-blue">{{ project_data.project.workflow_status }}</div>
+                    <div class="text-sm text-gray-600">Этап работ</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Works Schedule -->
+        <div class="p-4">
+            {% if project_data.schedule_data %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b">
+                            <th class="px-3 py-2 text-left font-medium text-gray-700">Работа</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-700">Тип</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Плановые даты</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Фактические даты</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Объем</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Прогресс</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for work in project_data.schedule_data %}
+                        <tr class="border-b hover:bg-gray-50 {% if work.id in project_data.critical_path_ids %}bg-yellow-50{% endif %}">
+                            <td class="px-3 py-2">
+                                <div class="flex items-center">
+                                    {% if work.id in project_data.critical_path_ids %}
+                                    <i class="fas fa-star text-yellow-500 mr-2" title="Критический путь"></i>
+                                    {% endif %}
+                                    <div>
+                                        <div class="font-medium text-gray-900">{{ work.name }}</div>
+                                        {% if work.is_delayed %}
+                                        <div class="text-xs text-red-600">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                                            Просрочено на {{ work.days_remaining|floatformat:0 }} дн.
+                                        </div>
+                                        {% elif work.days_remaining > 0 %}
+                                        <div class="text-xs text-gray-500">
+                                            Осталось: {{ work.days_remaining }} дн.
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2">
+                                <span class="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                                    {{ work.work_type_code }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="text-xs">
+                                    <div>{{ work.planned_start|date:"d.m.Y" }}</div>
+                                    <div class="text-gray-500">{{ work.planned_end|date:"d.m.Y" }}</div>
+                                    <div class="text-gray-400">({{ work.duration_days }} дн.)</div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="text-xs">
+                                    {% if work.actual_start %}
+                                    <div class="text-green-600">{{ work.actual_start|date:"d.m.Y" }}</div>
+                                    {% else %}
+                                    <div class="text-gray-400">—</div>
+                                    {% endif %}
+                                    {% if work.actual_end %}
+                                    <div class="text-green-600">{{ work.actual_end|date:"d.m.Y" }}</div>
+                                    {% else %}
+                                    <div class="text-gray-400">—</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="text-xs">
+                                    <div class="font-medium">{{ work.volume|floatformat:2 }}</div>
+                                    <div class="text-gray-500">{{ work.unit }}</div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                                        <div class="bg-{% if work.progress_percentage == 100 %}green{% elif work.progress_percentage > 0 %}yellow{% else %}gray{% endif %}-500 h-2 rounded-full" 
+                                             style="width: {{ work.progress_percentage }}%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-600">{{ work.progress_percentage }}%</span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <span class="inline-block px-2 py-1 rounded-full text-xs font-medium
+                                    {% if work.status == 'completed' or work.status == 'verified' %}bg-green-100 text-green-800
+                                    {% elif work.status == 'in_progress' %}bg-yellow-100 text-yellow-800
+                                    {% elif work.status == 'suspended' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if work.status == 'not_started' %}Не начата
+                                    {% elif work.status == 'in_progress' %}В процессе
+                                    {% elif work.status == 'completed' %}Завершена
+                                    {% elif work.status == 'verified' %}Проверена
+                                    {% elif work.status == 'suspended' %}Приостановлена
+                                    {% else %}{{ work.status }}{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-clipboard-list text-4xl mb-4"></i>
+                <p>Нет данных о работах для данного проекта</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <i class="fas fa-project-diagram text-gray-300 text-6xl mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Нет проектов</h3>
+        <p class="text-gray-500">Проекты, соответствующие выбранным фильтрам, не найдены.</p>
+    </div>
+    {% endfor %}
+
+    <!-- Consolidated All Works List -->
+    {% if all_works %}
+    <div class="bg-white rounded-lg shadow-md mt-6">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-t-xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-list text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold">Сводный список всех работ</h3>
+                        <p class="text-blue-200 text-sm">Работы по всем проектам отсортированы по плановой дате начала</p>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold">{{ all_works|length }}</div>
+                    <div class="text-xs text-blue-200">Всего работ</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b">
+                            <th class="px-3 py-2 text-left font-medium text-gray-700">Работа</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-700">Проект</th>
+                            <th class="px-3 py-2 text-left font-medium text-gray-700">Тип</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Плановые даты</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Фактические даты</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Объем</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Прогресс</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Статус</th>
+                            <th class="px-3 py-2 text-center font-medium text-gray-700">Ответственный</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for work in all_works %}
+                        <tr class="border-b hover:bg-gray-50 {% if work.is_delayed %}bg-red-50{% elif work.status == 'completed' or work.status == 'verified' %}bg-green-50{% elif work.status == 'in_progress' %}bg-yellow-50{% endif %}">
+                            <td class="px-3 py-2">
+                                <div class="flex items-center">
+                                    {% if work.is_critical %}
+                                    <i class="fas fa-star text-yellow-500 mr-2" title="Критический путь"></i>
+                                    {% endif %}
+                                    <div>
+                                        <div class="font-medium text-gray-900">{{ work.name }}</div>
+                                        {% if work.is_delayed %}
+                                        <div class="text-xs text-red-600">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                                            Просрочено на {{ work.days_remaining|floatformat:0 }} дн.
+                                        </div>
+                                        {% elif work.days_remaining > 0 %}
+                                        <div class="text-xs text-gray-500">
+                                            Осталось: {{ work.days_remaining }} дн.
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2">
+                                <div class="text-sm font-medium text-gray-900">{{ work.project_name }}</div>
+                                {% if work.project_address %}
+                                <div class="text-xs text-gray-500">{{ work.project_address|truncatechars:30 }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-2">
+                                <span class="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                                    {{ work.work_type_code }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="text-xs">
+                                    <div>{{ work.planned_start|date:"d.m.Y" }}</div>
+                                    <div class="text-gray-500">{{ work.planned_end|date:"d.m.Y" }}</div>
+                                    <div class="text-gray-400">({{ work.duration_days }} дн.)</div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="text-xs">
+                                    {% if work.actual_start %}
+                                    <div class="text-green-600">{{ work.actual_start|date:"d.m.Y" }}</div>
+                                    {% else %}
+                                    <div class="text-gray-400">—</div>
+                                    {% endif %}
+                                    {% if work.actual_end %}
+                                    <div class="text-green-600">{{ work.actual_end|date:"d.m.Y" }}</div>
+                                    {% else %}
+                                    <div class="text-gray-400">—</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="text-xs">
+                                    <div class="font-medium">{{ work.volume|floatformat:2 }}</div>
+                                    <div class="text-gray-500">{{ work.unit }}</div>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                                        <div class="bg-{% if work.progress_percentage == 100 %}green{% elif work.progress_percentage > 0 %}yellow{% else %}gray{% endif %}-500 h-2 rounded-full" 
+                                             style="width: {{ work.progress_percentage }}%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-600">{{ work.progress_percentage }}%</span>
+                                </div>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <span class="inline-block px-2 py-1 rounded-full text-xs font-medium
+                                    {% if work.status == 'completed' or work.status == 'verified' %}bg-green-100 text-green-800
+                                    {% elif work.status == 'in_progress' %}bg-yellow-100 text-yellow-800
+                                    {% elif work.status == 'suspended' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if work.status == 'not_started' %}Не начата
+                                    {% elif work.status == 'in_progress' %}В процессе
+                                    {% elif work.status == 'completed' %}Завершена
+                                    {% elif work.status == 'verified' %}Проверена
+                                    {% elif work.status == 'suspended' %}Приостановлена
+                                    {% else %}{{ work.status }}{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                {% if work.responsible_person %}
+                                <div class="text-xs text-gray-700">{{ work.responsible_person|truncatechars:15 }}</div>
+                                {% else %}
+                                <div class="text-xs text-gray-400">—</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Schedule Changes -->
+    {% if schedule_changes %}
+    <div class="bg-white rounded-lg shadow-md mt-6">
+        <div class="px-4 py-3 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">
+                <i class="fas fa-history mr-2 text-primary-blue"></i>
+                Последние изменения в графике
+            </h3>
+        </div>
+        <div class="p-4">
+            <div class="space-y-3">
+                {% for change in schedule_changes %}
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-900">{{ change.work.name }}</div>
+                        <div class="text-sm text-gray-600">{{ change.work.project.name }}</div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {{ change.previous_start_date|date:"d.m.Y" }} - {{ change.previous_end_date|date:"d.m.Y" }}
+                            →
+                            {{ change.new_start_date|date:"d.m.Y" }} - {{ change.new_end_date|date:"d.m.Y" }}
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <span class="inline-block px-2 py-1 rounded-full text-xs font-medium
+                            {% if change.status == 'approved' %}bg-green-100 text-green-800
+                            {% elif change.status == 'rejected' %}bg-red-100 text-red-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {% if change.status == 'approved' %}Одобрено
+                            {% elif change.status == 'rejected' %}Отклонено
+                            {% else %}На рассмотрении{% endif %}
+                        </span>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {{ change.created_at|date:"d.m.Y H:i" }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function exportSchedule() {
+    // Простая функция экспорта данных
+    const projectId = document.getElementById('project').value;
+    const status = document.getElementById('status').value;
+    
+    let url = '/projects/api/schedule-export/?';
+    if (projectId) url += `project=${projectId}&`;
+    if (status) url += `status=${status}&`;
+    
+    // Открыть в новом окне или загрузить файл
+    window.open(url);
+}
+
+// Обновление страницы при изменении фильтров
+document.getElementById('project').addEventListener('change', function() {
+    this.form.submit();
+});
+
+document.getElementById('status').addEventListener('change', function() {
+    this.form.submit();
+});
+</script>
+{% endblock %}

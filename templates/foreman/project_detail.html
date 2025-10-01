@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.name }} - Прораб{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Заголовок проекта -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">{{ project.name }}</h1>
+          <p class="mt-1 text-sm text-gray-600">{{ project.address }}</p>
+          <div class="mt-2 flex items-center space-x-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if project.status == 'active' %}bg-green-100 text-green-800
+              {% elif project.status == 'planned' %}bg-yellow-100 text-yellow-800
+              {% else %}bg-gray-100 text-gray-800
+              {% endif %}">
+              {{ project.get_status_display }}
+            </span>
+            <span class="text-sm text-gray-500">
+              Готовность: {{ project.completion_percentage }}%
+            </span>
+            <span class="text-sm text-gray-500">
+              {{ project.planned_start_date|date:"d.m.Y" }} - {{ project.planned_end_date|date:"d.m.Y" }}
+            </span>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div class="w-16 h-16 bg-primary-blue/20 rounded-full flex items-center justify-center">
+              <span class="text-sm font-medium text-primary-blue">{{ project.completion_percentage }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Навигационные вкладки -->
+  <div class="bg-white shadow rounded-lg">
+    <nav class="flex space-x-8 px-6" aria-label="Tabs">
+      <button onclick="showTab('works')" id="works-tab" 
+              class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-primary-blue text-primary-blue">
+        <i class="fas fa-tasks mr-2"></i>Состав работ
+      </button>
+      <button onclick="showTab('schedule')" id="schedule-tab" 
+              class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+        <i class="fas fa-calendar-alt mr-2"></i>Сетевой график
+      </button>
+      <button onclick="showTab('materials')" id="materials-tab" 
+              class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+        <i class="fas fa-boxes mr-2"></i>Материалы
+      </button>
+      <button onclick="showTab('comments')" id="comments-tab" 
+              class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+        <i class="fas fa-exclamation-triangle mr-2"></i>Замечания
+      </button>
+    </nav>
+  </div>
+
+  <!-- Вкладка: Состав работ -->
+  <div id="works-content" class="tab-content bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">
+        <i class="fas fa-tasks text-primary-blue mr-2"></i>
+        Состав работ ({{ works.count }})
+      </h2>
+    </div>
+    <div class="p-6">
+      {% if works %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Название работ
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Объем
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Плановые сроки
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Статус
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Действия
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for work in works %}
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">{{ work.name }}</div>
+                    {% if work.work_type %}
+                      <div class="text-sm text-gray-500">{{ work.work_type.name }}</div>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ work.volume }} {{ work.unit }}</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">
+                      {{ work.planned_start_date|date:"d.m.Y" }} - {{ work.planned_end_date|date:"d.m.Y" }}
+                    </div>
+                    {% if work.is_delayed %}
+                      <div class="text-xs text-red-600">Просрочено</div>
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      {% if work.status == 'not_started' %}bg-gray-100 text-gray-800
+                      {% elif work.status == 'in_progress' %}bg-yellow-100 text-yellow-800
+                      {% elif work.status == 'completed' %}bg-blue-100 text-blue-800
+                      {% elif work.status == 'verified' %}bg-green-100 text-green-800
+                      {% endif %}">
+                      {{ work.get_status_display }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {% if work.status in 'not_started,in_progress' %}
+                      <a href="{% url 'foreman:work_progress' %}" class="text-primary-blue hover:underline">
+                        Отметить
+                      </a>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-12">
+          <i class="fas fa-tasks text-gray-400 text-4xl mb-4"></i>
+          <p class="text-gray-500">Состав работ не определен</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Вкладка: Сетевой график -->
+  <div id="schedule-content" class="tab-content bg-white shadow rounded-lg hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">
+        <i class="fas fa-calendar-alt text-primary-blue mr-2"></i>
+        Сетевой график работ
+      </h2>
+    </div>
+    <div class="p-6">
+      <div id="schedule-chart" class="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+        <p class="text-gray-500">Диаграмма Ганта будет здесь</p>
+      </div>
+      {% if can_edit_schedule %}
+        <div class="mt-4 text-center">
+          <button class="inline-flex items-center px-4 py-2 bg-primary-blue text-white text-sm font-medium rounded-md hover:bg-primary-blue/90">
+            <i class="fas fa-edit mr-2"></i>
+            Редактировать график
+          </button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Вкладка: Материалы -->
+  <div id="materials-content" class="tab-content bg-white shadow rounded-lg hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-medium text-gray-900">
+          <i class="fas fa-boxes text-primary-blue mr-2"></i>
+          Материалы по проекту
+        </h2>
+        <a href="{% url 'materials:incoming_control' %}?project={{ project.id }}" 
+           class="inline-flex items-center px-4 py-2 bg-accent-peach text-white text-sm font-medium rounded-md hover:bg-accent-peach/90">
+          <i class="fas fa-robot mr-2"></i>
+          Добавить поставку
+        </a>
+      </div>
+    </div>
+    <div class="p-6">
+      {% if materials %}
+        <div class="space-y-4">
+          {% for material in materials %}
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="font-medium text-gray-900">{{ material.material_type.name }}</h4>
+                  <p class="text-sm text-gray-600">{{ material.quantity }} {{ material.material_type.unit }}</p>
+                  <p class="text-sm text-gray-500">Поставщик: {{ material.supplier }}</p>
+                </div>
+                <div class="text-right">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    {% if material.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% elif material.status == 'delivered' %}bg-blue-100 text-blue-800
+                    {% elif material.status == 'accepted' %}bg-green-100 text-green-800
+                    {% elif material.status == 'rejected' %}bg-red-100 text-red-800
+                    {% endif %}">
+                    {{ material.get_status_display }}
+                  </span>
+                  <p class="text-xs text-gray-500 mt-1">{{ material.delivery_date|date:"d.m.Y" }}</p>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="mt-4 text-center">
+          <a href="{% url 'materials:list' %}?project={{ project.id }}" class="text-sm text-primary-blue hover:underline">
+            Посмотреть все материалы →
+          </a>
+        </div>
+      {% else %}
+        <div class="text-center py-12">
+          <i class="fas fa-boxes text-gray-400 text-4xl mb-4"></i>
+          <p class="text-gray-500 mb-4">Поставок материалов пока нет</p>
+          <a href="{% url 'materials:incoming_control' %}?project={{ project.id }}" 
+             class="inline-flex items-center px-4 py-2 bg-accent-peach text-white text-sm font-medium rounded-md hover:bg-accent-peach/90">
+            <i class="fas fa-robot mr-2"></i>
+            Добавить первую поставку
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Вкладка: Замечания -->
+  <div id="comments-content" class="tab-content bg-white shadow rounded-lg hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-medium text-gray-900">
+          <i class="fas fa-exclamation-triangle text-primary-blue mr-2"></i>
+          Замечания по проекту
+        </h2>
+        <a href="{% url 'foreman:comments_management' %}?project={{ project.id }}" class="text-sm text-primary-blue hover:underline">
+          Посмотреть все →
+        </a>
+      </div>
+    </div>
+    <div class="p-6">
+      {% if comments %}
+        <div class="space-y-4">
+          {% for comment in comments %}
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center space-x-2 mb-2">
+                    <h4 class="font-medium text-gray-900">{{ comment.title }}</h4>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                      {% if comment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                      {% elif comment.status == 'accepted' %}bg-blue-100 text-blue-800
+                      {% elif comment.status == 'resolved' %}bg-green-100 text-green-800
+                      {% elif comment.status == 'rejected' %}bg-red-100 text-red-800
+                      {% endif %}">
+                      {{ comment.get_status_display }}
+                    </span>
+                  </div>
+                  <p class="text-sm text-gray-600 mb-2">{{ comment.description|truncatechars:100 }}</p>
+                  <div class="flex items-center space-x-4 text-xs text-gray-500">
+                    <span>{{ comment.created_by.get_full_name }}</span>
+                    <span>{{ comment.created_at|date:"d.m.Y H:i" }}</span>
+                    {% if comment.due_date %}
+                      <span>До {{ comment.due_date|date:"d.m.Y" }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+                {% if comment.status == 'accepted' and comment.assigned_to == user %}
+                  <div class="ml-4">
+                    <a href="{% url 'foreman:resolve_comment' comment.id %}" 
+                       class="inline-flex items-center px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700">
+                      <i class="fas fa-check mr-1"></i>Устранить
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-8">
+          <i class="fas fa-check-circle text-green-400 text-3xl mb-2"></i>
+          <p class="text-gray-500">Нет замечаний по проекту</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+let scheduleData = {{ work_schedule_data|safe }};
+
+function showTab(tabName) {
+    // Скрываем все вкладки
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Убираем активное состояние со всех кнопок
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('border-primary-blue', 'text-primary-blue');
+        button.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // Показываем нужную вкладку
+    document.getElementById(`${tabName}-content`).classList.remove('hidden');
+    
+    // Активируем нужную кнопку
+    const activeButton = document.getElementById(`${tabName}-tab`);
+    activeButton.classList.remove('border-transparent', 'text-gray-500');
+    activeButton.classList.add('border-primary-blue', 'text-primary-blue');
+    
+    // Если это вкладка сетевого графика, инициализируем диаграмму
+    if (tabName === 'schedule' && scheduleData && scheduleData.length > 0) {
+        initializeScheduleChart();
+    }
+}
+
+function initializeScheduleChart() {
+    const chartContainer = document.getElementById('schedule-chart');
+    
+    // Простая визуализация графика работ
+    let chartHTML = '<div class="w-full h-full p-4 overflow-auto"><div class="space-y-2">';
+    
+    scheduleData.forEach((work, index) => {
+        const progressWidth = work.progress_percentage || 0;
+        const statusColor = work.status === 'completed' ? 'bg-green-500' : 
+                           work.status === 'in_progress' ? 'bg-yellow-500' : 'bg-gray-300';
+        
+        chartHTML += `
+            <div class="bg-white p-3 rounded-lg border">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium">${work.name}</span>
+                    <span class="text-xs text-gray-500">${work.planned_start} - ${work.planned_end}</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="${statusColor} h-2 rounded-full" style="width: ${progressWidth}%"></div>
+                </div>
+                <div class="flex justify-between items-center mt-1">
+                    <span class="text-xs text-gray-500">${work.volume} ${work.unit}</span>
+                    <span class="text-xs text-gray-600">${progressWidth}%</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    chartHTML += '</div></div>';
+    chartContainer.innerHTML = chartHTML;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Показываем первую вкладку по умолчанию
+    showTab('works');
+});
+</script>
+{% endblock %}

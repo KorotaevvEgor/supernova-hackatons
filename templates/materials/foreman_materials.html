@@ -1,0 +1,882 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Материалы - {{ selected_project.name|default:"Мои проекты" }} — СУ благоустройства{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Дополнительные стили для адаптивности */
+  .container {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* Мобильная таблица */
+  @media (max-width: 768px) {
+    .mobile-card {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .mobile-card:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  /* Настольная таблица */
+  @media (min-width: 769px) {
+    .desktop-table {
+      font-size: 0.875rem;
+    }
+  }
+  
+  /* Отзывчивые кнопки */
+  .btn-responsive {
+    min-height: 44px; /* Минимальная высота для мобильных устройств */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Скрытие переполнения для длинных текстов */
+  .text-ellipsis {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <!-- Заголовок -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex-1">
+          <h1 class="text-xl lg:text-2xl font-bold text-gray-900">
+            <i class="fas fa-boxes text-accent-peach mr-2"></i>
+            Материалы - {{ selected_project.name|default:"Мои проекты" }}
+          </h1>
+          <p class="mt-1 text-sm text-gray-600">
+            {% if selected_project %}
+              Поставки материалов для проекта "{{ selected_project.name }}"
+            {% else %}
+              Управление поставками материалов по всем назначенным проектам
+            {% endif %}
+          </p>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <!-- Кнопка добавить поставку -->
+          <button id="add-delivery-btn" 
+                  class="inline-flex items-center justify-center px-4 py-2 bg-primary-blue text-white rounded-md hover:bg-primary-blue/90 transition-colors text-sm">
+            <i class="fas fa-plus mr-2"></i>
+            <span class="hidden sm:inline">Добавить поставку</span>
+            <span class="sm:hidden">Добавить</span>
+          </button>
+          
+          <!-- Кнопка OCR -->
+          <button onclick="window.location.href='{% url 'materials:incoming_control' %}'" 
+                  class="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm">
+            <i class="fas fa-camera mr-2"></i>
+            <span class="hidden sm:inline">OCR Сканирование</span>
+            <span class="sm:hidden">OCR</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Фильтр по проектам -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-medium text-gray-900">
+        <i class="fas fa-filter text-primary-blue mr-2"></i>
+        Фильтр по проекту
+      </h3>
+      {% if selected_project %}
+        <a href="{% url 'materials:list' %}" class="text-sm text-gray-600 hover:text-gray-800">
+          <i class="fas fa-times mr-1"></i>
+          Сбросить фильтр
+        </a>
+      {% endif %}
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+      {% for project in projects %}
+        <a href="?project={{ project.id }}" 
+           class="block p-3 md:p-4 border rounded-lg hover:bg-gray-50 transition-colors {% if selected_project and selected_project.id == project.id %}bg-primary-blue/10 border-primary-blue{% else %}border-gray-200{% endif %}">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex-1">
+              <h4 class="font-medium text-gray-900 text-sm lg:text-base">{{ project.name|truncatechars:35 }}</h4>
+              <p class="text-xs md:text-sm text-gray-600 mt-1">{{ project.address|truncatechars:30 }}</p>
+            </div>
+            <div class="text-right mt-2 sm:mt-0 sm:ml-2">
+              <span class="text-xs md:text-sm font-medium text-gray-900">
+                {{ project.material_deliveries.count }} поставок
+              </span>
+              <div class="text-xs text-gray-500">
+                {{ project.get_status_display }}
+              </div>
+            </div>
+          </div>
+        </a>
+      {% empty %}
+        <div class="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-6 text-gray-500">
+          <i class="fas fa-inbox text-3xl mb-2"></i>
+          <p>У вас нет назначенных проектов</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Статистика -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-blue-100">
+          <i class="fas fa-boxes text-blue-600 text-xl"></i>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500">Всего поставок</p>
+          <p class="text-2xl font-semibold text-gray-900">{{ stats.total }}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-yellow-100">
+          <i class="fas fa-clock text-yellow-600 text-xl"></i>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500">Ожидается</p>
+          <p class="text-2xl font-semibold text-gray-900">{{ stats.pending }}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-orange-100">
+          <i class="fas fa-truck text-orange-600 text-xl"></i>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500">Доставлено</p>
+          <p class="text-2xl font-semibold text-gray-900">{{ stats.delivered }}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+      <div class="flex items-center">
+        <div class="p-3 rounded-full bg-green-100">
+          <i class="fas fa-check-circle text-green-600 text-xl"></i>
+        </div>
+        <div class="ml-4">
+          <p class="text-sm font-medium text-gray-500">Принято</p>
+          <p class="text-2xl font-semibold text-gray-900">{{ stats.accepted }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Список поставок -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">
+        <i class="fas fa-list text-primary-blue mr-2"></i>
+        Поставки материалов
+        {% if selected_project %} - {{ selected_project.name }}{% endif %}
+      </h3>
+    </div>
+    
+    <!-- Мобильные карточки -->
+    <div class="block md:hidden">
+      {% for delivery in deliveries %}
+      <div class="mobile-card border-b border-gray-200 p-4 hover:bg-gray-50">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center flex-1">
+            <div class="flex-shrink-0 h-10 w-10">
+              <div class="h-10 w-10 rounded-full bg-accent-peach/20 flex items-center justify-center">
+                <i class="fas fa-box text-accent-peach"></i>
+              </div>
+            </div>
+            <div class="ml-3 flex-1">
+              <a href="{% url 'materials:delivery_detail' delivery.id %}" class="text-sm font-medium text-gray-900 hover:text-primary-blue">
+                {{ delivery.material_type.name }}
+              </a>
+              <div class="text-xs text-gray-500">
+                {{ delivery.material_type.code }}
+                {% if not selected_project %} · {{ delivery.project.name|truncatechars:20 }}{% endif %}
+              </div>
+              <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500">
+                <span>Кол-во: {{ delivery.quantity }} {{ delivery.material_type.unit }}</span>
+                <span>{{ delivery.delivery_date|date:"d.m.Y" }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-col items-end space-y-1">
+            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+              {% if delivery.status == 'pending' %}bg-yellow-100 text-yellow-800
+              {% elif delivery.status == 'delivered' %}bg-orange-100 text-orange-800
+              {% elif delivery.status == 'accepted' %}bg-green-100 text-green-800
+              {% elif delivery.status == 'rejected' %}bg-red-100 text-red-800
+              {% else %}bg-gray-100 text-gray-800{% endif %}">
+              {{ delivery.get_status_display }}
+            </span>
+            <div class="flex space-x-1">
+              <a href="{% url 'materials:delivery_detail' delivery.id %}" 
+                 class="text-primary-blue hover:text-primary-blue/80">
+                <i class="fas fa-eye text-sm"></i>
+              </a>
+              <button onclick="editDelivery({{ delivery.id }})" 
+                      class="text-green-600 hover:text-green-800">
+                <i class="fas fa-edit text-sm"></i>
+              </button>
+              {% if delivery.status == 'delivered' %}
+              <button onclick="acceptDelivery({{ delivery.id }})" 
+                      class="text-blue-600 hover:text-blue-800" 
+                      title="Принять поставку">
+                <i class="fas fa-check text-sm"></i>
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 text-xs text-gray-500">
+          <div class="flex justify-between">
+            <span>Поставщик: {{ delivery.supplier|default:"—" }}</span>
+            {% if delivery.ttn_number %}
+              <span>ТТН: {{ delivery.ttn_number }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="p-8 text-center text-gray-500">
+        {% if selected_project %}
+          <i class="fas fa-box-open text-4xl mb-2"></i>
+          <p>Нет поставок материалов для проекта</p>
+          <p class="text-sm">"{{ selected_project.name }}"</p>
+        {% else %}
+          <i class="fas fa-boxes text-4xl mb-2"></i>
+          <p>Нет поставок материалов</p>
+        {% endif %}
+        <button onclick="document.getElementById('add-delivery-btn').click()" 
+                class="mt-2 text-primary-blue hover:text-primary-blue/80">
+          Добавить первую поставку
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Настольная таблица -->
+    <div class="hidden md:block overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Материал
+            </th>
+            <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Кол-во
+            </th>
+            <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Поставщик
+            </th>
+            <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Дата
+            </th>
+            <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Статус
+            </th>
+            <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              ТТН
+            </th>
+            <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Действия
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for delivery in deliveries %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 lg:px-6 py-4">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 h-8 w-8">
+                  <div class="h-8 w-8 rounded-full bg-accent-peach/20 flex items-center justify-center">
+                    <i class="fas fa-box text-accent-peach text-sm"></i>
+                  </div>
+                </div>
+                <div class="ml-3">
+                  <a href="{% url 'materials:delivery_detail' delivery.id %}" class="text-sm font-medium text-gray-900 hover:text-primary-blue block">
+                    {{ delivery.material_type.name|truncatechars:30 }}
+                  </a>
+                  <div class="text-xs text-gray-500">
+                    {{ delivery.material_type.code }}
+                    {% if not selected_project %} · {{ delivery.project.name|truncatechars:20 }}{% endif %}
+                  </div>
+                </div>
+              </div>
+            </td>
+            
+            <td class="px-3 lg:px-6 py-4 text-sm text-gray-900">
+              <div>{{ delivery.quantity }}</div>
+              <div class="text-xs text-gray-500">{{ delivery.material_type.unit }}</div>
+            </td>
+            
+            <td class="px-3 lg:px-6 py-4 text-sm text-gray-900">
+              {{ delivery.supplier|default:"—"|truncatechars:20 }}
+            </td>
+            
+            <td class="px-3 lg:px-6 py-4 text-sm text-gray-500">
+              <div>{{ delivery.delivery_date|date:"d.m.Y" }}</div>
+              <div class="text-xs">{{ delivery.delivery_date|date:"H:i" }}</div>
+            </td>
+            
+            <td class="px-3 lg:px-6 py-4">
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                {% if delivery.status == 'pending' %}bg-yellow-100 text-yellow-800
+                {% elif delivery.status == 'delivered' %}bg-orange-100 text-orange-800
+                {% elif delivery.status == 'accepted' %}bg-green-100 text-green-800
+                {% elif delivery.status == 'rejected' %}bg-red-100 text-red-800
+                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                {{ delivery.get_status_display }}
+              </span>
+            </td>
+            
+            <td class="px-3 lg:px-6 py-4 text-sm text-gray-500">
+              {% if delivery.ttn_number %}
+                {{ delivery.ttn_number|truncatechars:15 }}
+              {% else %}
+                <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+            
+            <td class="px-3 lg:px-6 py-4 text-sm font-medium">
+              <div class="flex space-x-1">
+                <a href="{% url 'materials:delivery_detail' delivery.id %}" 
+                   class="text-primary-blue hover:text-primary-blue/80 p-1">
+                  <i class="fas fa-eye text-xs"></i>
+                </a>
+                <button onclick="editDelivery({{ delivery.id }})" 
+                        class="text-green-600 hover:text-green-800 p-1">
+                  <i class="fas fa-edit text-xs"></i>
+                </button>
+                {% if delivery.status == 'delivered' %}
+                <button onclick="acceptDelivery({{ delivery.id }})" 
+                        class="text-blue-600 hover:text-blue-800 p-1" 
+                        title="Принять поставку">
+                  <i class="fas fa-check text-xs"></i>
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+              {% if selected_project %}
+                <i class="fas fa-box-open text-4xl mb-2"></i>
+                <p>Нет поставок материалов для проекта "{{ selected_project.name }}"</p>
+              {% else %}
+                <i class="fas fa-boxes text-4xl mb-2"></i>
+                <p>Нет поставок материалов</p>
+              {% endif %}
+              <button onclick="document.getElementById('add-delivery-btn').click()" 
+                      class="mt-2 text-primary-blue hover:text-primary-blue/80">
+                Добавить первую поставку
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно добавления поставки -->
+<div id="add-delivery-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+  <div class="relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border w-full max-w-lg sm:max-w-2xl lg:max-w-3xl shadow-lg rounded-md bg-white my-4 sm:my-0">
+    <div class="mt-3">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">
+          <i class="fas fa-plus text-primary-blue mr-2"></i>
+          Добавить поставку материала
+        </h3>
+        <button onclick="closeAddDeliveryModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <form id="add-delivery-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Проект</label>
+          <select id="delivery-project" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+            <option value="">Выберите проект...</option>
+            {% for project in projects %}
+              <option value="{{ project.id }}" {% if selected_project and selected_project.id == project.id %}selected{% endif %}>
+                {{ project.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Материал</label>
+          <select id="delivery-material-type" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+            <option value="">Выберите материал...</option>
+            {% for material_type in material_types %}
+              <option value="{{ material_type.id }}" data-unit="{{ material_type.unit }}">
+                {{ material_type.name }} ({{ material_type.code }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Количество</label>
+            <input type="number" step="0.01" id="delivery-quantity" required 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Единица измерения</label>
+            <input type="text" id="delivery-unit" readonly 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Поставщик</label>
+          <input type="text" id="delivery-supplier" required 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Дата поставки</label>
+            <input type="datetime-local" id="delivery-date" required 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Номер ТТН</label>
+            <input type="text" id="delivery-ttn" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+          </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
+          <button type="button" onclick="closeAddDeliveryModal()" 
+                  class="btn-responsive px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 order-2 sm:order-1">
+            Отмена
+          </button>
+          <button type="submit" 
+                  class="btn-responsive px-4 py-2 bg-primary-blue text-white rounded-md hover:bg-primary-blue/90 order-1 sm:order-2">
+            Добавить поставку
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Модальное окно добавления поставки
+document.getElementById('add-delivery-btn').addEventListener('click', function() {
+  document.getElementById('add-delivery-modal').classList.remove('hidden');
+  // Устанавливаем текущую дату и время
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('delivery-date').value = now.toISOString().slice(0, 16);
+});
+
+function closeAddDeliveryModal() {
+  document.getElementById('add-delivery-modal').classList.add('hidden');
+}
+
+// Обновление единицы измерения при выборе материала
+document.getElementById('delivery-material-type').addEventListener('change', function() {
+  const selectedOption = this.options[this.selectedIndex];
+  const unit = selectedOption.getAttribute('data-unit');
+  document.getElementById('delivery-unit').value = unit || '';
+});
+
+// Получаем CSRF токен
+function getCSRFToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+// Функция для обновления списка поставок без перезагрузки страницы
+async function refreshDeliveryList() {
+  try {
+    // Получаем CSRF токен
+    let csrfToken = getCSRFToken();
+    
+    const response = await fetch('/api/materials/deliveries/', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      credentials: 'same-origin'
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.results) {
+      // Обновляем статистику
+      updateDeliveryStatistics(data.results);
+      
+      // Перерисовываем список, если это настольная версия
+      const desktopTable = document.querySelector('.hidden.md\:block .min-w-full tbody');
+      if (desktopTable) {
+        updateDesktopDeliveryTable(data.results);
+      }
+      
+      // Перерисовываем мобильную версию
+      const mobileContainer = document.querySelector('.block.md\:hidden');
+      if (mobileContainer) {
+        updateMobileDeliveryCards(data.results);
+      }
+      
+      console.log('Список поставок обновлен успешно');
+    }
+  } catch (error) {
+    console.error('Ошибка обновления списка поставок:', error);
+  }
+}
+
+// Обновление статистики поставок
+function updateDeliveryStatistics(deliveries) {
+  const today = new Date().toDateString();
+  
+  const stats = {
+    total: deliveries.length,
+    delivered: deliveries.filter(d => d.status === 'delivered').length,
+    pending: deliveries.filter(d => d.status === 'pending').length,
+    accepted: deliveries.filter(d => d.status === 'accepted').length
+  };
+  
+  // Обновляем статистические карточки
+  const totalEl = document.querySelector('.bg-blue-100 .text-2xl');
+  const pendingEl = document.querySelector('.bg-yellow-100 .text-2xl');
+  const deliveredEl = document.querySelector('.bg-orange-100 .text-2xl');
+  const acceptedEl = document.querySelector('.bg-green-100 .text-2xl');
+  
+  if (totalEl) totalEl.textContent = stats.total;
+  if (pendingEl) pendingEl.textContent = stats.pending;
+  if (deliveredEl) deliveredEl.textContent = stats.delivered;
+  if (acceptedEl) acceptedEl.textContent = stats.accepted;
+}
+
+// Обновление настольной таблицы поставок
+function updateDesktopDeliveryTable(deliveries) {
+  const tbody = document.querySelector('.hidden.md\:block .min-w-full tbody');
+  if (!tbody) return;
+  
+  if (deliveries.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+          <i class="fas fa-boxes text-4xl mb-2"></i>
+          <p>Нет поставок материалов</p>
+          <button onclick="document.getElementById('add-delivery-btn').click()" 
+                  class="mt-2 text-primary-blue hover:text-primary-blue/80">
+            Добавить первую поставку
+          </button>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  let html = '';
+  deliveries.forEach(delivery => {
+    const deliveryDate = new Date(delivery.delivery_date);
+    const statusClass = getStatusClass(delivery.status);
+    
+    html += `
+      <tr class="hover:bg-gray-50">
+        <td class="px-3 lg:px-6 py-4">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 h-8 w-8">
+              <div class="h-8 w-8 rounded-full bg-accent-peach/20 flex items-center justify-center">
+                <i class="fas fa-box text-accent-peach text-sm"></i>
+              </div>
+            </div>
+            <div class="ml-3">
+              <a href="/materials/delivery/${delivery.id}/" class="text-sm font-medium text-gray-900 hover:text-primary-blue block">
+                ${delivery.material_type}
+              </a>
+              <div class="text-xs text-gray-500">
+                ID: ${delivery.id}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td class="px-3 lg:px-6 py-4 text-sm text-gray-900">
+          <div>${delivery.quantity}</div>
+          <div class="text-xs text-gray-500">${delivery.unit}</div>
+        </td>
+        <td class="px-3 lg:px-6 py-4 text-sm text-gray-900">
+          ${delivery.supplier || '—'}
+        </td>
+        <td class="px-3 lg:px-6 py-4 text-sm text-gray-500">
+          <div>${deliveryDate.toLocaleDateString('ru-RU')}</div>
+          <div class="text-xs">${deliveryDate.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}</div>
+        </td>
+        <td class="px-3 lg:px-6 py-4">
+          <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
+            ${getStatusDisplayName(delivery.status)}
+          </span>
+        </td>
+        <td class="px-3 lg:px-6 py-4 text-sm text-gray-500">
+          ${delivery.ttn_number || '<span class="text-gray-400">—</span>'}
+        </td>
+        <td class="px-3 lg:px-6 py-4 text-sm font-medium">
+          <div class="flex space-x-1">
+            <a href="/materials/delivery/${delivery.id}/" 
+               class="text-primary-blue hover:text-primary-blue/80 p-1">
+              <i class="fas fa-eye text-xs"></i>
+            </a>
+            <button onclick="editDelivery(${delivery.id})" 
+                    class="text-green-600 hover:text-green-800 p-1">
+              <i class="fas fa-edit text-xs"></i>
+            </button>
+            ${delivery.status === 'delivered' ? `
+              <button onclick="acceptDelivery(${delivery.id})" 
+                      class="text-blue-600 hover:text-blue-800 p-1" 
+                      title="Принять поставку">
+                <i class="fas fa-check text-xs"></i>
+              </button>` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+  
+  tbody.innerHTML = html;
+}
+
+// Обновление мобильных карточек поставок
+function updateMobileDeliveryCards(deliveries) {
+  const container = document.querySelector('.block.md\:hidden');
+  if (!container) return;
+  
+  if (deliveries.length === 0) {
+    container.innerHTML = `
+      <div class="p-8 text-center text-gray-500">
+        <i class="fas fa-boxes text-4xl mb-2"></i>
+        <p>Нет поставок материалов</p>
+        <button onclick="document.getElementById('add-delivery-btn').click()" 
+                class="mt-2 text-primary-blue hover:text-primary-blue/80">
+          Добавить первую поставку
+        </button>
+      </div>
+    `;
+    return;
+  }
+  
+  let html = '';
+  deliveries.forEach(delivery => {
+    const deliveryDate = new Date(delivery.delivery_date);
+    const statusClass = getStatusClass(delivery.status);
+    
+    html += `
+      <div class="mobile-card border-b border-gray-200 p-4 hover:bg-gray-50">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center flex-1">
+            <div class="flex-shrink-0 h-10 w-10">
+              <div class="h-10 w-10 rounded-full bg-accent-peach/20 flex items-center justify-center">
+                <i class="fas fa-box text-accent-peach"></i>
+              </div>
+            </div>
+            <div class="ml-3 flex-1">
+              <a href="/materials/delivery/${delivery.id}/" class="text-sm font-medium text-gray-900 hover:text-primary-blue">
+                ${delivery.material_type}
+              </a>
+              <div class="text-xs text-gray-500">
+                ID: ${delivery.id} · ${delivery.project}
+              </div>
+              <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500">
+                <span>Кол-во: ${delivery.quantity} ${delivery.unit}</span>
+                <span>${deliveryDate.toLocaleDateString('ru-RU')}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-col items-end space-y-1">
+            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
+              ${getStatusDisplayName(delivery.status)}
+            </span>
+            <div class="flex space-x-1">
+              <a href="/materials/delivery/${delivery.id}/" 
+                 class="text-primary-blue hover:text-primary-blue/80">
+                <i class="fas fa-eye text-sm"></i>
+              </a>
+              <button onclick="editDelivery(${delivery.id})" 
+                      class="text-green-600 hover:text-green-800">
+                <i class="fas fa-edit text-sm"></i>
+              </button>
+              ${delivery.status === 'delivered' ? `
+                <button onclick="acceptDelivery(${delivery.id})" 
+                        class="text-blue-600 hover:text-blue-800" 
+                        title="Принять поставку">
+                  <i class="fas fa-check text-sm"></i>
+                </button>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 text-xs text-gray-500">
+          <div class="flex justify-between">
+            <span>Проект: ${delivery.project}</span>
+            ${delivery.ttn_number ? `<span>ТТН: ${delivery.ttn_number}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+}
+
+// Вспомогательные функции для статусов
+function getStatusClass(status) {
+  const statusClasses = {
+    'pending': 'bg-yellow-100 text-yellow-800',
+    'delivered': 'bg-orange-100 text-orange-800', 
+    'accepted': 'bg-green-100 text-green-800',
+    'rejected': 'bg-red-100 text-red-800'
+  };
+  return statusClasses[status] || 'bg-gray-100 text-gray-800';
+}
+
+function getStatusDisplayName(status) {
+  const statusNames = {
+    'pending': 'Ожидается',
+    'delivered': 'Доставлено',
+    'accepted': 'Принято',
+    'rejected': 'Отклонено'
+  };
+  return statusNames[status] || status;
+}
+
+// Отправка формы добавления поставки
+document.getElementById('add-delivery-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  // Показываем индикатор загрузки
+  const submitBtn = document.querySelector('#add-delivery-form button[type="submit"]');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Добавление...';
+  
+  const formData = {
+    project_id: document.getElementById('delivery-project').value,
+    material_type_id: document.getElementById('delivery-material-type').value,
+    quantity: document.getElementById('delivery-quantity').value,
+    supplier: document.getElementById('delivery-supplier').value,
+    delivery_date: document.getElementById('delivery-date').value,
+    ttn_number: document.getElementById('delivery-ttn').value,
+  };
+  
+  console.log('Sending data:', formData); // Для отладки
+  
+  try {
+    const response = await fetch('/api/materials/deliveries/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRFToken()
+      },
+      body: JSON.stringify(formData)
+    });
+    
+    const responseData = await response.json();
+    console.log('Response:', responseData); // Для отладки
+    
+    if (response.ok) {
+      // Показываем успешное сообщение
+      const successMessage = document.createElement('div');
+      successMessage.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
+      successMessage.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas fa-check-circle mr-2"></i>
+          <span>Поставка успешно добавлена!</span>
+        </div>
+      `;
+      document.body.appendChild(successMessage);
+      
+      // Закрываем модальное окно
+      closeAddDeliveryModal();
+      
+      // Обновляем список поставок без перезагрузки страницы
+      await refreshDeliveryList();
+      
+      // Убираем сообщение об успехе через 3 секунды
+      setTimeout(() => {
+        if (successMessage && successMessage.parentNode) {
+          successMessage.parentNode.removeChild(successMessage);
+        }
+      }, 3000);
+      
+    } else {
+      alert('Ошибка: ' + (responseData.detail || responseData.message || 'Неизвестная ошибка'));
+    }
+  } catch (error) {
+    console.error('Network error:', error);
+    alert('Ошибка сети: ' + error.message);
+  } finally {
+    // Восстанавливаем кнопку
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  }
+});
+
+// Функции для работы с поставками
+// Просмотр поставки теперь через прямые ссылки
+
+function editDelivery(deliveryId) {
+  alert('Редактирование поставки ' + deliveryId + ' (функция в разработке)');
+}
+
+async function acceptDelivery(deliveryId) {
+  if (confirm('Принять эту поставку материала?')) {
+    try {
+      // Здесь будет API вызов для принятия поставки
+      alert('Поставка ' + deliveryId + ' принята (API в разработке)');
+    } catch (error) {
+      alert('Ошибка при принятии поставки: ' + error.message);
+    }
+  }
+}
+
+// Закрытие модального окна по клику вне его
+document.getElementById('add-delivery-modal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeAddDeliveryModal();
+  }
+});
+
+// Экспортируем функцию обновления для использования из других страниц
+window.refreshMaterialDeliveries = refreshDeliveryList;
+
+// Автоматическое обновление списка при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+  // Загружаем список поставок при первой загрузке страницы
+  refreshDeliveryList();
+  
+  // Устанавливаем периодическое обновление каждые 30 секунд (опционально)
+  // setInterval(refreshDeliveryList, 30000);
+});
+</script>
+
+{% csrf_token %}
+{% endblock %}

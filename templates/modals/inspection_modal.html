@@ -1,0 +1,217 @@
+<!-- Модальное окно для создания проверки -->
+<div id="inspectionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-clipboard-check text-primary-blue mr-2"></i>
+                    Создание проверки
+                </h3>
+                <button onclick="closeInspectionModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="inspectionForm" class="space-y-4">
+                <div>
+                    <label for="inspection-project" class="block text-sm font-medium text-gray-700 mb-1">
+                        Объект для проверки *
+                    </label>
+                    <select id="inspection-project" name="project_id" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                        <option value="">Выберите объект...</option>
+                        {% for project in assigned_projects %}
+                        <option value="{{ project.id }}">{{ project.name }} ({{ project.address }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="inspection-type" class="block text-sm font-medium text-gray-700 mb-1">
+                            Тип проверки *
+                        </label>
+                        <select id="inspection-type" name="inspection_type" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                            <option value="">Выберите тип...</option>
+                            <option value="scheduled">Плановая проверка</option>
+                            <option value="spot_check">Внеплановая проверка</option>
+                            <option value="quality_control">Контроль качества</option>
+                            <option value="safety_inspection">Проверка безопасности</option>
+                            <option value="final_inspection">Итоговая проверка</option>
+                            <option value="technical_supervision">Технический надзор</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="inspection-priority" class="block text-sm font-medium text-gray-700 mb-1">
+                            Приоритет
+                        </label>
+                        <select id="inspection-priority" name="priority"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                            <option value="normal">Обычный</option>
+                            <option value="high">Высокий</option>
+                            <option value="urgent">Срочный</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="inspection-date" class="block text-sm font-medium text-gray-700 mb-1">
+                            Дата проверки *
+                        </label>
+                        <input type="date" id="inspection-date" name="scheduled_date" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="inspection-time" class="block text-sm font-medium text-gray-700 mb-1">
+                            Время проверки
+                        </label>
+                        <input type="time" id="inspection-time" name="scheduled_time"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="inspection-description" class="block text-sm font-medium text-gray-700 mb-1">
+                        Описание и цели проверки *
+                    </label>
+                    <textarea id="inspection-description" name="description" rows="4" required
+                        placeholder="Опишите цели проверки, что планируется проверить..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Области проверки</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-quality" name="check_areas" value="quality" class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded">
+                            <label for="check-quality" class="ml-2 block text-sm text-gray-700">Качество работ</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-safety" name="check_areas" value="safety" class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded">
+                            <label for="check-safety" class="ml-2 block text-sm text-gray-700">Техника безопасности</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-materials" name="check_areas" value="materials" class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded">
+                            <label for="check-materials" class="ml-2 block text-sm text-gray-700">Материалы</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-documentation" name="check_areas" value="documentation" class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded">
+                            <label for="check-documentation" class="ml-2 block text-sm text-gray-700">Документация</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-compliance" name="check_areas" value="compliance" class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded">
+                            <label for="check-compliance" class="ml-2 block text-sm text-gray-700">Соответствие проекту</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-environmental" name="check_areas" value="environmental" class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded">
+                            <label for="check-environmental" class="ml-2 block text-sm text-gray-700">Экология</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="inspection-participants" class="block text-sm font-medium text-gray-700 mb-1">
+                        Ожидаемые участники проверки
+                    </label>
+                    <textarea id="inspection-participants" name="expected_participants" rows="2"
+                        placeholder="Укажите, кто должен присутствовать на проверке (прораб, представители подрядчика и т.д.)"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"></textarea>
+                </div>
+                
+                <div>
+                    <label for="inspection-equipment" class="block text-sm font-medium text-gray-700 mb-1">
+                        Необходимое оборудование
+                    </label>
+                    <input type="text" id="inspection-equipment" name="required_equipment"
+                        placeholder="например: измерительные приборы, защитное снаряжение"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="inspection-duration" class="block text-sm font-medium text-gray-700 mb-1">
+                            Предполагаемая длительность (часов)
+                        </label>
+                        <input type="number" id="inspection-duration" name="estimated_duration" min="0.5" step="0.5"
+                            placeholder="2.5"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                    
+                    <div class="flex items-center pt-6">
+                        <input type="checkbox" id="inspection-notify" name="notify_participants" class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded">
+                        <label for="inspection-notify" class="ml-2 block text-sm text-gray-700">
+                            Уведомить участников
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeInspectionModal()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue">
+                        Отменить
+                    </button>
+                    <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-blue hover:bg-primary-blue/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue">
+                        <i class="fas fa-calendar-plus mr-2"></i>
+                        Запланировать проверку
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function closeInspectionModal() {
+    document.getElementById('inspectionModal').classList.add('hidden');
+    document.getElementById('inspectionForm').reset();
+}
+
+// Устанавливаем завтрашнюю дату и время по умолчанию
+window.addEventListener('load', function() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('inspection-date').value = tomorrow.toISOString().split('T')[0];
+    
+    document.getElementById('inspection-time').value = '10:00';
+});
+
+document.getElementById('inspectionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // Собираем области проверки
+    const checkAreas = Array.from(document.querySelectorAll('input[name="check_areas"]:checked'))
+                           .map(cb => cb.value);
+    formData.set('check_areas', JSON.stringify(checkAreas));
+    
+    // Объединяем дату и время
+    const date = formData.get('scheduled_date');
+    const time = formData.get('scheduled_time') || '10:00';
+    formData.set('scheduled_datetime', date + 'T' + time);
+    
+    try {
+        const response = await fetch('/api/inspections/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.fromEntries(formData))
+        });
+        
+        if (response.ok) {
+            alert('Проверка успешно запланирована!');
+            closeInspectionModal();
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка планирования проверки: ' + (error.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+});
+</script>

@@ -1,0 +1,184 @@
+<!-- Модальное окно для редактирования распознанного материала -->
+<div id="materialModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-edit text-accent-peach mr-2"></i>
+                    Редактирование материала
+                </h3>
+                <button onclick="closeMaterialModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="materialForm" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="material-name" class="block text-sm font-medium text-gray-700 mb-1">
+                            Название материала *
+                        </label>
+                        <input type="text" id="material-name" name="material_name" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="material-manufacturer" class="block text-sm font-medium text-gray-700 mb-1">
+                            Производитель
+                        </label>
+                        <input type="text" id="material-manufacturer" name="manufacturer"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="material-batch" class="block text-sm font-medium text-gray-700 mb-1">
+                            Серия/Партия
+                        </label>
+                        <input type="text" id="material-batch" name="batch_number"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="material-production-date" class="block text-sm font-medium text-gray-700 mb-1">
+                            Дата производства
+                        </label>
+                        <input type="date" id="material-production-date" name="production_date"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="material-certificate" class="block text-sm font-medium text-gray-700 mb-1">
+                            Номер сертификата
+                        </label>
+                        <input type="text" id="material-certificate" name="certificate_number"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="material-quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                            Количество
+                        </label>
+                        <input type="text" id="material-quantity" name="quantity"
+                            placeholder="например: 100 шт, 50 м³"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="material-project" class="block text-sm font-medium text-gray-700 mb-1">
+                        Назначить на объект *
+                    </label>
+                    <select id="material-project" name="project_id" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                        <option value="">Выберите объект...</option>
+                        {% for project in assigned_projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="material-category" class="block text-sm font-medium text-gray-700 mb-1">
+                        Категория материала *
+                    </label>
+                    <select id="material-category" name="category" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                        <option value="">Выберите категорию...</option>
+                        <option value="concrete">Бетон и железобетон</option>
+                        <option value="metal">Металлоконструкции</option>
+                        <option value="stone">Камень и щебень</option>
+                        <option value="pipe">Трубы и фитинги</option>
+                        <option value="electrical">Электротехнические изделия</option>
+                        <option value="paint">Лакокрасочные материалы</option>
+                        <option value="insulation">Теплоизоляция</option>
+                        <option value="landscape">Материалы для благоустройства</option>
+                        <option value="other">Прочие материалы</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="material-notes" class="block text-sm font-medium text-gray-700 mb-1">
+                        Дополнительные заметки
+                    </label>
+                    <textarea id="material-notes" name="notes" rows="3"
+                        placeholder="Дополнительная информация о материале..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"></textarea>
+                </div>
+                
+                <div class="flex items-center">
+                    <input type="checkbox" id="material-verified" name="verified" class="h-4 w-4 text-primary-blue focus:ring-primary-blue border-gray-300 rounded">
+                    <label for="material-verified" class="ml-2 block text-sm text-gray-700">
+                        Материал прошел входной контроль и соответствует требованиям
+                    </label>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeMaterialModal()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue">
+                        Отменить
+                    </button>
+                    <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-blue hover:bg-primary-blue/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue">
+                        <i class="fas fa-save mr-2"></i>
+                        Сохранить материал
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function closeMaterialModal() {
+    document.getElementById('materialModal').classList.add('hidden');
+    document.getElementById('materialForm').reset();
+}
+
+function editMaterial() {
+    // Заполняем форму данными из OCR
+    if (currentMaterialData) {
+        document.getElementById('material-name').value = currentMaterialData.material_name || '';
+        document.getElementById('material-manufacturer').value = currentMaterialData.manufacturer || '';
+        document.getElementById('material-batch').value = currentMaterialData.batch_number || '';
+        document.getElementById('material-production-date').value = currentMaterialData.production_date || '';
+        document.getElementById('material-certificate').value = currentMaterialData.certificate_number || '';
+        document.getElementById('material-quantity').value = currentMaterialData.quantity || '';
+    }
+    
+    // Скрываем результаты OCR и показываем модал редактирования
+    document.getElementById('ocr-results').style.display = 'none';
+    document.getElementById('materialModal').classList.remove('hidden');
+}
+
+document.getElementById('materialForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/api/materials/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.fromEntries(formData))
+        });
+        
+        if (response.ok) {
+            alert('Материал успешно добавлен в систему!');
+            closeMaterialModal();
+            // Также скрываем результаты OCR
+            document.getElementById('ocr-results').style.display = 'none';
+            document.getElementById('upload-area').style.display = 'block';
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка сохранения: ' + (error.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+});
+</script>

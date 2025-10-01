@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Генерация QR-кода - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-6 space-y-8">
+    <!-- Заголовок -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-qrcode text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">Идентификатор объекта</h1>
+                    <p class="text-blue-100 mt-1">{{ project.name }}</p>
+                </div>
+            </div>
+            <a href="{% url 'projects:project_detail' project.id %}" 
+               class="inline-flex items-center px-4 py-2 bg-white bg-opacity-20 rounded-lg text-white hover:bg-opacity-30 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Назад к проекту
+            </a>
+        </div>
+    </div>
+
+    <!-- Описание системы -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-400 text-lg"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Система подтверждения нахождения на объекте</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <p>QR-коды позволяют инспекторам подтвердить свое нахождение на объекте при фиксации нарушений. Разместите QR-код в видном месте на объекте и сообщите инспектору о его местоположении.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Форма создания нового QR-кода -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-plus text-green-500 mr-2"></i>
+                Создать новый QR-код
+            </h2>
+        </div>
+        <div class="p-6">
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700">
+                        Название кода <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="name" id="name" required
+                           class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+                           placeholder="Например: Основной вход" value="Идентификатор объекта">
+                </div>
+                <div>
+                    <label for="location_description" class="block text-sm font-medium text-gray-700">
+                        Описание места размещения
+                    </label>
+                    <textarea name="location_description" id="location_description" rows="3"
+                              class="mt-2 block w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all resize-none"
+                              placeholder="Опишите, где будет размещен QR-код для удобства поиска инспекторами"></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" 
+                            class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all font-medium">
+                        <i class="fas fa-qrcode mr-2"></i>
+                        Создать QR-код
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Существующие QR-коды -->
+    {% if qr_codes %}
+    <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-gradient-to-r from-purple-50 to-violet-50 px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-list text-purple-500 mr-2"></i>
+                Существующие QR-коды
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for qr in qr_codes %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-medium text-gray-900">{{ qr.name }}</h3>
+                        <span class="px-2 py-1 text-xs rounded-full {% if qr.is_expired %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                            {% if qr.is_expired %}Истек{% else %}Активен{% endif %}
+                        </span>
+                    </div>
+                    {% if qr.location_description %}
+                        <p class="text-sm text-gray-600 mb-3">{{ qr.location_description }}</p>
+                    {% endif %}
+                    <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                        <span>Создан: {{ qr.created_at|date:"d.m.Y H:i" }}</span>
+                        <span>{{ qr.verifications.count }} исп.</span>
+                    </div>
+                    <div class="flex space-x-2">
+                        <a href="{% url 'projects:qr_code_detail' project.id qr.id %}" 
+                           class="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                            <i class="fas fa-eye mr-1"></i>
+                            Показать
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест OCR автозаполнения</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-4xl mx-auto py-8">
+        <h1 class="text-2xl font-bold text-center mb-8">Тест OCR Автозаполнения</h1>
+        
+        <!-- Область загрузки -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Загрузите изображение документа</h2>
+            <div id="upload-zone" class="border-3 border-dashed border-gray-300 rounded-xl p-8 hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer text-center">
+                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                <p class="text-lg">Перетащите файл сюда или нажмите для выбора</p>
+                <p class="text-sm text-gray-500 mt-2">JPG, PNG • Максимум 10MB</p>
+                <input type="file" id="file-input" class="hidden" accept="image/*">
+            </div>
+            
+            <div id="file-preview" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+                <img id="preview-image" class="w-32 h-32 object-cover rounded-lg mb-4" alt="Preview">
+                <button id="process-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-robot mr-2"></i>Обработать с OCR
+                </button>
+            </div>
+        </div>
+
+        <!-- Результаты OCR -->
+        <div id="results-section" class="bg-white rounded-lg shadow p-6 hidden">
+            <h2 class="text-lg font-semibold mb-4">Результаты OCR</h2>
+            <div id="ocr-stats" class="bg-blue-50 p-4 rounded-lg mb-4">
+                <p><strong>OCR Сервис:</strong> <span id="ocr-service">-</span></p>
+                <p><strong>Уверенность:</strong> <span id="confidence">-</span></p>
+                <p><strong>Найдено полей:</strong> <span id="fields-count">-</span></p>
+            </div>
+            
+            <div id="extracted-fields" class="grid grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Форма поставки -->
+        <div id="form-section" class="bg-white rounded-lg shadow p-6 hidden">
+            <h2 class="text-lg font-semibold mb-4">Форма поставки (автозаполнена)</h2>
+            <form class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Основная информация -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Количество *</label>
+                        <input type="number" name="quantity" step="0.01" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Количество мест</label>
+                        <input type="number" name="package_count" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Дата поставки *</label>
+                        <input type="date" name="delivery_date" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Поставщик *</label>
+                        <input type="text" name="supplier" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    
+                    <!-- Поставщик и документы -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Номер документа</label>
+                        <input type="text" name="document_number" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ИНН поставщика</label>
+                        <input type="text" name="supplier_inn" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Водитель</label>
+                        <input type="text" name="driver_name" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    
+                    <!-- Дополнительная информация -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Номер автомобиля</label>
+                        <input type="text" name="vehicle_number" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Вес груза (кг)</label>
+                        <input type="number" name="cargo_weight" step="0.01" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    
+                    <!-- Поля для транспортной накладной -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Грузополучатель</label>
+                        <input type="text" name="recipient" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Адрес доставки</label>
+                        <input type="text" name="delivery_address" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Объем (м³)</label>
+                        <input type="number" name="volume" step="0.01" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Масса нетто (т)</label>
+                        <input type="number" name="cargo_weight_net" step="0.01" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Масса брутто (т)</label>
+                        <input type="number" name="cargo_weight_gross" step="0.01" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Объем груза (м³)</label>
+                        <input type="number" name="cargo_volume" step="0.01" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Тип владения транспортом</label>
+                        <input type="text" name="ownership_type" class="w-full px-3 py-2 border rounded-md">
+                    </div>
+                    
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Описание груза</label>
+                        <textarea name="description" rows="2" class="w-full px-3 py-2 border rounded-md"></textarea>
+                    </div>
+                </div>
+            </form>
+            <div class="mt-4 text-center space-y-3">
+                <div class="text-green-600 font-medium">✅ Поля автоматически заполнены из OCR!</div>
+                <button onclick="testAutoFill()" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
+                    🧪 Тест автозаполнения
+                </button>
+            </div>
+        </div>
+
+        <div id="notifications" class="fixed top-4 right-4 space-y-2 z-50"></div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+        let ocrResults = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            const uploadZone = document.getElementById('upload-zone');
+            const fileInput = document.getElementById('file-input');
+            
+            uploadZone.addEventListener('click', () => fileInput.click());
+            uploadZone.addEventListener('dragover', handleDragOver);
+            uploadZone.addEventListener('drop', handleDrop);
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            document.getElementById('process-btn').addEventListener('click', processWithOCR);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            uploadedFile = file;
+            showFilePreview(file);
+        }
+
+        function showFilePreview(file) {
+            const preview = document.getElementById('file-preview');
+            const previewImage = document.getElementById('preview-image');
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            
+            preview.classList.remove('hidden');
+        }
+
+        async function processWithOCR() {
+            if (!uploadedFile) {
+                showNotification('Выберите файл', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('process-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Обработка...';
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('ttn', uploadedFile);
+
+                const response = await fetch('/api/materials/ocr/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                console.log('🎯 OCR API Response:', result);
+                
+                if (result.success) {
+                    ocrResults = result;
+                    console.log('✅ OCR successful, calling showOCRResults and autoFillForm...');
+                    showOCRResults(result);
+                    
+                    console.log('🚀 About to call autoFillForm with:', result);
+                    autoFillForm(result);
+                    
+                    showNotification('OCR обработка завершена! Поля формы автоматически заполнены.', 'success');
+                } else {
+                    console.error('❌ OCR failed:', result.error);
+                    showNotification('Ошибка OCR: ' + result.error, 'error');
+                }
+
+            } catch (error) {
+                console.error('OCR Error:', error);
+                showNotification('Ошибка обработки: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function showOCRResults(result) {
+            const section = document.getElementById('results-section');
+            document.getElementById('ocr-service').textContent = result.ocr_service || 'OCR.space';
+            document.getElementById('confidence').textContent = result.confidence + '%';
+            document.getElementById('fields-count').textContent = Object.keys(result.fields || {}).length;
+
+            const fieldsContainer = document.getElementById('extracted-fields');
+            fieldsContainer.innerHTML = '';
+            
+            if (result.fields) {
+                Object.entries(result.fields).forEach(([field, value]) => {
+                    const fieldDiv = document.createElement('div');
+                    fieldDiv.className = 'p-3 bg-gray-50 rounded border';
+                    fieldDiv.innerHTML = `
+                        <div class="text-sm font-medium text-gray-900">${field}</div>
+                        <div class="text-sm text-gray-700">${value}</div>
+                    `;
+                    fieldsContainer.appendChild(fieldDiv);
+                });
+            }
+
+            section.classList.remove('hidden');
+        }
+
+        function autoFillForm(result) {
+            const section = document.getElementById('form-section');
+            const form = section.querySelector('form');
+            
+            console.log('autoFillForm called with:', result);
+            console.log('Fields from OCR:', result.fields);
+            
+            // Соответствие полей OCR и формы
+            const fieldMapping = {
+                // Основная информация
+                'quantity': 'quantity',
+                'package_count': 'package_count', 
+                'delivery_date': 'delivery_date',
+                
+                // Поставщик и документы
+                'supplier': 'supplier',
+                'document_number': 'document_number',
+                'supplier_inn': 'supplier_inn',
+                'driver_name': 'driver_name',
+                
+                // Дополнительная информация
+                'vehicle_number': 'vehicle_number',
+                'cargo_weight': 'cargo_weight',
+                'description': 'description',
+                
+                // Новые поля для транспортной накладной
+                'recipient': 'recipient',
+                'delivery_address': 'delivery_address',
+                'volume': 'volume',
+                'cargo_weight_net': 'cargo_weight_net',
+                'cargo_weight_gross': 'cargo_weight_gross',
+                'cargo_volume': 'cargo_volume',
+                'ownership_type': 'ownership_type'
+            };
+            
+            let filledCount = 0;
+            
+            if (result.fields) {
+                Object.entries(result.fields).forEach(([ocrFieldName, ocrValue]) => {
+                    const formFieldName = fieldMapping[ocrFieldName];
+                    
+                    console.log(`Mapping: ${ocrFieldName} -> ${formFieldName} = ${ocrValue}`);
+                    
+                    if (formFieldName && ocrValue) {
+                        const input = form.querySelector(`[name="${formFieldName}"]`);
+                        
+                        console.log(`Looking for input with name="${formFieldName}":`, input);
+                        
+                        if (input) {
+                            let value = ocrValue;
+                            
+                            // Обработка специальных полей
+                            if (formFieldName === 'delivery_date') {
+                                // Преобразование даты из 28.09.2025 в 2025-09-28
+                                const dateMatch = value.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+                                if (dateMatch) {
+                                    const day = dateMatch[1].padStart(2, '0');
+                                    const month = dateMatch[2].padStart(2, '0');
+                                    const year = dateMatch[3];
+                                    value = `${year}-${month}-${day}`;
+                                }
+                            }
+                            
+                            if (formFieldName === 'quantity') {
+                                // Удаляем единицы измерения
+                                value = value.replace(/\s*(тонн|т\.|\u043aг|шт|\u043c³|м²).*$/, '');
+                            }
+                            
+                            if (formFieldName === 'cargo_weight') {
+                                // Преобразование тонн в кг если нужно
+                                if (value.includes('тонн') || value.includes('т.')) {
+                                    const tonValue = parseFloat(value.replace(/[^д,\.]/g, ''));
+                                    if (!isNaN(tonValue)) {
+                                        value = (tonValue * 1000).toString();
+                                    }
+                                } else {
+                                    value = value.replace(/\s*(кг|т\.).*$/, '');
+                                }
+                            }
+                            
+                            input.value = value;
+                            filledCount++;
+                            
+                            console.log(`Filled: ${formFieldName} = ${value}`);
+                            
+                            // Подсветка заполненного поля
+                            setTimeout(() => {
+                                input.classList.add('bg-green-50', 'border-green-300');
+                                input.style.transform = 'scale(1.02)';
+                                input.style.transition = 'all 0.3s ease';
+                                
+                                setTimeout(() => {
+                                    input.classList.remove('bg-green-50', 'border-green-300');
+                                    input.style.transform = 'scale(1)';
+                                }, 1500);
+                            }, filledCount * 100);
+                        } else {
+                            console.warn(`Input not found for field: ${formFieldName}`);
+                        }
+                    }
+                });
+            }
+            
+            console.log(`Total fields filled: ${filledCount}`);
+            section.classList.remove('hidden');
+        }
+        
+        // Тестовая функция для проверки автозаполнения
+        function testAutoFill() {
+            const testData = {
+                success: true,
+                fields: {
+                    // Основные поля
+                    "document_number": "18674/Е",
+                    "delivery_date": "10.06.2024",
+                    "supplier": "ГБУ города Москвы Автомобильные дороги",
+                    "recipient": "ГБУ города Москвы Автомобильные дороги",
+                    "delivery_address": "г. Москва, поселок Некрасовка, пр-кт Проектируемый 4296",
+                    
+                    // Груз
+                    "description": "Бортовой камень 1000х300х150, 198 шт",
+                    "quantity": "198",
+                    "volume": "19.8",
+                    "cargo_weight_net": "19.463",
+                    "cargo_weight_gross": "19.694",
+                    "cargo_volume": "8.31",
+                    
+                    // Транспорт
+                    "ownership_type": "0"
+                }
+            };
+            
+            console.log('Testing autoFillForm with:', testData);
+            autoFillForm(testData);
+        }
+        
+        // Добавляем консольную команду для тестирования
+        window.testAutoFill = testAutoFill;
+
+        function getCsrfToken() {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (token) return token;
+            
+            const cookieValue = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+            return cookieValue ? cookieValue.split('=')[1] : '';
+        }
+
+        function showNotification(message, type = 'info') {
+            const notifications = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-green-50 border-green-200 text-green-800',
+                error: 'bg-red-50 border-red-200 text-red-800',
+                info: 'bg-blue-50 border-blue-200 text-blue-800'
+            };
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-times-circle',
+                info: 'fa-info-circle'
+            };
+            
+            notification.className = `${colors[type]} border rounded-lg p-4 shadow-lg max-w-sm`;
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <i class="fas ${icons[type]} mt-0.5 mr-3"></i>
+                    <div class="flex-1">
+                        <p class="font-medium">${message}</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-2 opacity-70 hover:opacity-100">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            notifications.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

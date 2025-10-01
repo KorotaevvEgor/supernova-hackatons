@@ -1,0 +1,291 @@
+<!-- Модальное окно для согласования документов -->
+<div id="documentApprovalModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-file-signature text-green-600 mr-2"></i>
+                    Согласование документа
+                </h3>
+                <button onclick="closeDocumentApprovalModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="documentApprovalForm" class="space-y-4">
+                <div>
+                    <label for="approval-project" class="block text-sm font-medium text-gray-700 mb-1">
+                        Проект *
+                    </label>
+                    <select id="approval-project" name="project_id" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">Выберите проект...</option>
+                        {% for project in assigned_projects %}
+                        <option value="{{ project.id }}">{{ project.name }} ({{ project.address }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="approval-document-type" class="block text-sm font-medium text-gray-700 mb-1">
+                            Тип документа *
+                        </label>
+                        <select id="approval-document-type" name="document_type" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <option value="">Выберите тип документа...</option>
+                            <option value="technical_passport">Технический паспорт</option>
+                            <option value="work_permit">Разрешение на работы</option>
+                            <option value="quality_certificate">Сертификат качества</option>
+                            <option value="safety_plan">План безопасности</option>
+                            <option value="progress_report">Отчет о ходе работ</option>
+                            <option value="material_certificate">Сертификат материалов</option>
+                            <option value="acceptance_act">Акт приемки работ</option>
+                            <option value="environmental_permit">Экологическое разрешение</option>
+                            <option value="design_changes">Изменения в проект</option>
+                            <option value="other">Другой документ</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="approval-priority" class="block text-sm font-medium text-gray-700 mb-1">
+                            Приоритет согласования
+                        </label>
+                        <select id="approval-priority" name="priority"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <option value="normal">Обычный</option>
+                            <option value="high">Высокий</option>
+                            <option value="urgent">Срочный</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="approval-document-name" class="block text-sm font-medium text-gray-700 mb-1">
+                        Название документа *
+                    </label>
+                    <input type="text" id="approval-document-name" name="document_name" required
+                        placeholder="например: Технический паспорт объекта благоустройства"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="approval-document-number" class="block text-sm font-medium text-gray-700 mb-1">
+                        Номер/Версия документа
+                    </label>
+                    <input type="text" id="approval-document-number" name="document_number"
+                        placeholder="например: ТП-001-2024 или версия 1.2"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="approval-description" class="block text-sm font-medium text-gray-700 mb-1">
+                        Описание и цели согласования *
+                    </label>
+                    <textarea id="approval-description" name="description" rows="3" required
+                        placeholder="Опишите содержание документа и цели его согласования..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="approval-submitter" class="block text-sm font-medium text-gray-700 mb-1">
+                            Кто подал на согласование
+                        </label>
+                        <input type="text" id="approval-submitter" name="submitted_by"
+                            placeholder="ФИО и должность"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="approval-organization" class="block text-sm font-medium text-gray-700 mb-1">
+                            Организация-подрядчик
+                        </label>
+                        <input type="text" id="approval-organization" name="organization"
+                            placeholder="Название организации"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="approval-files" class="block text-sm font-medium text-gray-700 mb-1">
+                        Файлы документов
+                    </label>
+                    <input type="file" id="approval-files" name="files" multiple 
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.jpg,.png"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">Поддерживаемые форматы: PDF, Word, Excel, AutoCAD, изображения</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Области проверки</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-technical" name="check_areas" value="technical" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <label for="check-technical" class="ml-2 block text-sm text-gray-700">Техническое соответствие</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-legal" name="check_areas" value="legal" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <label for="check-legal" class="ml-2 block text-sm text-gray-700">Правовое соответствие</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-safety-doc" name="check_areas" value="safety" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <label for="check-safety-doc" class="ml-2 block text-sm text-gray-700">Требования безопасности</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-environmental-doc" name="check_areas" value="environmental" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <label for="check-environmental-doc" class="ml-2 block text-sm text-gray-700">Экологические требования</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-quality-doc" name="check_areas" value="quality" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <label for="check-quality-doc" class="ml-2 block text-sm text-gray-700">Стандарты качества</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="check-completeness" name="check_areas" value="completeness" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                            <label for="check-completeness" class="ml-2 block text-sm text-gray-700">Полнота документации</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="approval-deadline" class="block text-sm font-medium text-gray-700 mb-1">
+                            Срок согласования
+                        </label>
+                        <input type="date" id="approval-deadline" name="approval_deadline"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label for="approval-decision" class="block text-sm font-medium text-gray-700 mb-1">
+                            Решение *
+                        </label>
+                        <select id="approval-decision" name="decision" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <option value="">Выберите решение...</option>
+                            <option value="approved">Согласовано</option>
+                            <option value="approved_with_comments">Согласовано с замечаниями</option>
+                            <option value="requires_revision">Требует доработки</option>
+                            <option value="rejected">Отклонено</option>
+                            <option value="pending_review">На рассмотрении</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="approval-comments" class="block text-sm font-medium text-gray-700 mb-1">
+                        Комментарии и замечания
+                    </label>
+                    <textarea id="approval-comments" name="comments" rows="4"
+                        placeholder="Укажите замечания, рекомендации или обоснование решения..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="approval-conditions" name="has_conditions" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                        <label for="approval-conditions" class="ml-2 block text-sm text-gray-700">
+                            Согласование с условиями
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="approval-notify-submitter" name="notify_submitter" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                        <label for="approval-notify-submitter" class="ml-2 block text-sm text-gray-700">
+                            Уведомить подавшего документ
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeDocumentApprovalModal()" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        Отменить
+                    </button>
+                    <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <i class="fas fa-file-signature mr-2"></i>
+                        Оформить согласование
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function closeDocumentApprovalModal() {
+    document.getElementById('documentApprovalModal').classList.add('hidden');
+    document.getElementById('documentApprovalForm').reset();
+}
+
+// Устанавливаем срок согласования по умолчанию (5 рабочих дней)
+window.addEventListener('load', function() {
+    const fiveDaysFromNow = new Date();
+    fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+    document.getElementById('approval-deadline').value = fiveDaysFromNow.toISOString().split('T')[0];
+});
+
+// Автоматическое изменение срока в зависимости от приоритета
+document.getElementById('approval-priority').addEventListener('change', function() {
+    const priority = this.value;
+    const deadlineField = document.getElementById('approval-deadline');
+    const now = new Date();
+    
+    let daysToAdd = 5; // По умолчанию 5 дней
+    
+    if (priority === 'urgent') {
+        daysToAdd = 1; // 1 день для срочных
+    } else if (priority === 'high') {
+        daysToAdd = 3; // 3 дня для высокого приоритета
+    } else if (priority === 'normal') {
+        daysToAdd = 5; // 5 дней для обычного
+    }
+    
+    const deadline = new Date(now);
+    deadline.setDate(deadline.getDate() + daysToAdd);
+    deadlineField.value = deadline.toISOString().split('T')[0];
+});
+
+document.getElementById('documentApprovalForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // Собираем области проверки
+    const checkAreas = Array.from(document.querySelectorAll('input[name="check_areas"]:checked'))
+                           .map(cb => cb.value);
+    formData.set('check_areas', JSON.stringify(checkAreas));
+    
+    try {
+        const response = await fetch('/api/document-approvals/', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const decision = formData.get('decision');
+            let message = 'Согласование документа оформлено!';
+            
+            if (decision === 'approved') {
+                message = 'Документ успешно согласован!';
+            } else if (decision === 'approved_with_comments') {
+                message = 'Документ согласован с замечаниями!';
+            } else if (decision === 'requires_revision') {
+                message = 'Документ отправлен на доработку!';
+            } else if (decision === 'rejected') {
+                message = 'Документ отклонен!';
+            }
+            
+            alert(message);
+            closeDocumentApprovalModal();
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Ошибка оформления согласования: ' + (error.detail || 'Неизвестная ошибка'));
+        }
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+    }
+});
+</script>

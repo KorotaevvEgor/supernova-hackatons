@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная - Система управления благоустройством{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="bg-gradient-to-r from-moscow-blue to-moscow-blue/90 py-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold tracking-tight text-white sm:text-6xl">
+                Система управления <span class="text-moscow-gold">благоустройством</span>
+            </h1>
+            <p class="mt-6 text-lg leading-8 text-gray-200">
+                Современная платформа для контроля процессов благоустройства города Москвы с использованием передовых технологий
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="bg-white py-12">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Active Projects -->
+            <div class="bg-gradient-to-br from-moscow-blue to-moscow-blue/80 overflow-hidden rounded-xl shadow-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-building text-2xl text-moscow-gold"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-200">Активные объекты</p>
+                            <p class="text-2xl font-bold text-white">{{ stats.active_projects|default:0 }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-200">
+                            <i class="fas fa-arrow-up text-moscow-gold mr-1"></i>
+                            <span class="font-medium text-moscow-gold">+12%</span>
+                            <span class="ml-1">за месяц</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Materials Delivered -->
+            <div class="bg-gradient-to-br from-moscow-green to-moscow-green/80 overflow-hidden rounded-xl shadow-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-boxes text-2xl text-white"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-200">Поставки материалов</p>
+                            <p class="text-2xl font-bold text-white">{{ stats.materials_delivered|default:0 }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-200">
+                            <i class="fas fa-check-circle text-white mr-1"></i>
+                            <span class="font-medium text-white">{{ stats.materials_today|default:0 }}</span>
+                            <span class="ml-1">сегодня</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Violations -->
+            <div class="bg-gradient-to-br from-moscow-red to-moscow-red/80 overflow-hidden rounded-xl shadow-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-2xl text-white"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-200">Активные нарушения</p>
+                            <p class="text-2xl font-bold text-white">{{ stats.active_violations|default:0 }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-200">
+                            <i class="fas fa-clock text-white mr-1"></i>
+                            <span class="font-medium text-white">{{ stats.overdue_violations|default:0 }}</span>
+                            <span class="ml-1">просрочено</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Progress -->
+            <div class="bg-gradient-to-br from-moscow-gold to-moscow-gold/80 overflow-hidden rounded-xl shadow-lg">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-chart-line text-2xl text-moscow-blue"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-moscow-blue">Общий прогресс</p>
+                            <p class="text-2xl font-bold text-moscow-blue">{{ stats.overall_progress|default:0 }}%</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="w-full bg-moscow-blue/20 rounded-full h-2">
+                            <div class="bg-moscow-blue h-2 rounded-full" style="width: {{ stats.overall_progress|default:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard Content -->
+<div class="bg-gray-50 py-12">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <!-- Projects Map -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-map-marker-alt text-moscow-blue mr-2"></i>
+                        Карта объектов
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div id="projects-map" class="h-80 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <div class="text-center">
+                            <i class="fas fa-map text-4xl text-gray-400 mb-4"></i>
+                            <p class="text-gray-600">Интерактивная карта объектов благоустройства</p>
+                            <button class="mt-4 bg-moscow-blue text-white px-4 py-2 rounded-md hover:bg-moscow-blue/90 transition-colors">
+                                Загрузить карту
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-clock text-moscow-green mr-2"></i>
+                        Последняя активность
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="h-8 w-8 bg-moscow-green rounded-full flex items-center justify-center">
+                                    <i class="fas fa-check text-white text-xs"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900">Материалы доставлены</p>
+                                <p class="text-sm text-gray-500">Проспект Мира, 194 - Бордюрные камни (2376 шт.)</p>
+                                <p class="text-xs text-gray-400 mt-1">15 минут назад</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="h-8 w-8 bg-moscow-red rounded-full flex items-center justify-center">
+                                    <i class="fas fa-exclamation text-white text-xs"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900">Новое нарушение</p>
+                                <p class="text-sm text-gray-500">Флотская ул., 54/58к1 - Нарушение техники безопасности</p>
+                                <p class="text-xs text-gray-400 mt-1">2 часа назад</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="h-8 w-8 bg-moscow-blue rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-white text-xs"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900">График изменен</p>
+                                <p class="text-sm text-gray-500">Бестужевых, 27А - Перенос работ на завтра</p>
+                                <p class="text-xs text-gray-400 mt-1">4 часа назад</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="h-8 w-8 bg-moscow-gold rounded-full flex items-center justify-center">
+                                    <i class="fas fa-star text-moscow-blue text-xs"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900">Объект завершен</p>
+                                <p class="text-sm text-gray-500">Каргопольская, 18 - Благоустройство завершено</p>
+                                <p class="text-xs text-gray-400 mt-1">Вчера</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <a href="#" class="w-full bg-gray-50 text-moscow-blue px-4 py-2 rounded-md hover:bg-gray-100 transition-colors flex items-center justify-center">
+                            <span>Показать всю активность</span>
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <!-- Progress Chart -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-chart-bar text-moscow-blue mr-2"></i>
+                        Прогресс работ по объектам
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="progressChart" class="h-64"></canvas>
+                </div>
+            </div>
+
+            <!-- Quality Control Chart -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-shield-alt text-moscow-green mr-2"></i>
+                        Контроль качества
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="qualityChart" class="h-64"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="mt-8">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-bolt text-moscow-gold mr-2"></i>
+                        Быстрые действия
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                        <button class="bg-moscow-blue hover:bg-moscow-blue/90 text-white p-4 rounded-xl transition-colors text-center">
+                            <i class="fas fa-plus-circle text-2xl mb-2"></i>
+                            <div class="text-sm font-medium">Новый объект</div>
+                        </button>
+                        <button class="bg-moscow-green hover:bg-moscow-green/90 text-white p-4 rounded-xl transition-colors text-center">
+                            <i class="fas fa-camera text-2xl mb-2"></i>
+                            <div class="text-sm font-medium">Сканировать ТТН</div>
+                        </button>
+                        <button class="bg-moscow-red hover:bg-moscow-red/90 text-white p-4 rounded-xl transition-colors text-center">
+                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                            <div class="text-sm font-medium">Новое нарушение</div>
+                        </button>
+                        <button class="bg-moscow-gold hover:bg-moscow-gold/90 text-moscow-blue p-4 rounded-xl transition-colors text-center">
+                            <i class="fas fa-file-alt text-2xl mb-2"></i>
+                            <div class="text-sm font-medium">Отчеты</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Progress Chart
+const progressCtx = document.getElementById('progressChart').getContext('2d');
+const progressChart = new Chart(progressCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Проспект Мира 194', 'Флотская 54/58к1', 'Бестужевых 27А', 'Каргопольская 18', 'Путевой проезд 38'],
+        datasets: [{
+            label: 'Прогресс (%)',
+            data: [85, 67, 92, 100, 45],
+            backgroundColor: [
+                '#003366',
+                '#228B22', 
+                '#DC143C',
+                '#FFD700',
+                '#003366'
+            ],
+            borderRadius: 8
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Quality Control Chart
+const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+const qualityChart = new Chart(qualityCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Соответствует', 'Требует доработки', 'Не соответствует'],
+        datasets: [{
+            data: [78, 18, 4],
+            backgroundColor: ['#228B22', '#FFD700', '#DC143C'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

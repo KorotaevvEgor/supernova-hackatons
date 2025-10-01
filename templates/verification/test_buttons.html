@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}Тест видимости кнопок верификации{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-4">
+            <i class="fas fa-check-circle text-green-600 mr-2"></i>
+            Тест видимости кнопок верификации
+        </h1>
+        <p class="text-gray-600 mb-6">
+            Эта страница демонстрирует исправления видимости кнопок верификации для службы строительного контроля.
+        </p>
+    </div>
+
+    <!-- Обычные кнопки верификации -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Стандартные кнопки верификации</h2>
+        
+        <div class="space-y-4">
+            <div class="flex gap-4">
+                <button class="verification-button">
+                    <i class="fas fa-check mr-2"></i>Верифицировать работу
+                </button>
+                
+                <button class="verify-btn">
+                    <i class="fas fa-clipboard-check mr-2"></i>Быстрая верификация
+                </button>
+                
+                <button onclick="verifyWork(123)" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                    <i class="fas fa-check mr-2"></i>Проверить выполнение
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопки в группах (card hover) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Кнопки в карточках проектов</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="border border-gray-200 rounded-lg p-4 group hover:shadow-md transition-shadow project-card">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Проект благоустройства №1</h3>
+                <p class="text-sm text-gray-600 mb-4">г. Москва, ул. Примерная, 123</p>
+                
+                <div class="verification-actions flex gap-2">
+                    <button onclick="addRemark(1)" class="flex-1 bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Замечание
+                    </button>
+                    <button onclick="verifyWork(1)" class="flex-1 verification-button">
+                        <i class="fas fa-check mr-2"></i>Проверить
+                    </button>
+                </div>
+            </div>
+            
+            <div class="border border-gray-200 rounded-lg p-4 group hover:shadow-md transition-shadow project-card">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Проект благоустройства №2</h3>
+                <p class="text-sm text-gray-600 mb-4">г. Москва, пр. Тестовый, 456</p>
+                
+                <div class="verification-actions flex gap-2">
+                    <button onclick="addRemark(2)" class="flex-1 bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Замечание
+                    </button>
+                    <button onclick="verifyWork(2)" class="flex-1 verification-button">
+                        <i class="fas fa-check mr-2"></i>Проверить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопки с разными состояниями -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Кнопки с разными состояниями</h2>
+        
+        <div class="space-y-4">
+            <div class="flex gap-4 flex-wrap">
+                <button class="verification-approve">
+                    <i class="fas fa-thumbs-up mr-2"></i>Одобрить
+                </button>
+                
+                <button class="verification-reject">
+                    <i class="fas fa-thumbs-down mr-2"></i>Отклонить
+                </button>
+                
+                <button class="verification-pending">
+                    <i class="fas fa-clock mr-2"></i>В ожидании
+                </button>
+                
+                <button class="verification-button verification-highlight">
+                    <i class="fas fa-star mr-2"></i>Важная верификация
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Отключенные кнопки -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Отключенные кнопки верификации</h2>
+        
+        <div class="space-y-4">
+            <div class="flex gap-4">
+                <button class="verification-button" disabled>
+                    <i class="fas fa-ban mr-2"></i>Недоступно
+                </button>
+                
+                <button class="verify-btn" disabled>
+                    <i class="fas fa-lock mr-2"></i>Заблокировано
+                </button>
+            </div>
+            
+            <p class="text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-2"></i>
+                Отключенные кнопки показывают серый цвет и курсор "not-allowed"
+            </p>
+        </div>
+    </div>
+
+    <!-- Таблица с кнопками -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Кнопки в таблице</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Работа</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <tr class="table-row hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Установка бордюров</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Ожидает проверки</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="verifyWork(101)" class="verification-button text-sm">
+                                <i class="fas fa-check mr-1"></i>Проверить
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="table-row hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Укладка асфальта</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Выполняется</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="verifyWork(102)" class="verify-btn text-sm" disabled>
+                                <i class="fas fa-clock mr-1"></i>В работе
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Функции-заглушки для демонстрации
+function verifyWork(id) {
+    alert('Верификация работы ID: ' + id);
+}
+
+function addRemark(id) {
+    alert('Добавление замечания для проекта ID: ' + id);
+}
+
+// Демонстрация функциональности
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Страница тестирования кнопок верификации загружена');
+    
+    // Показываем количество кнопок верификации на странице
+    const verificationButtons = document.querySelectorAll('.verification-button, .verify-btn, button[onclick*="verify"]');
+    console.log(`Найдено ${verificationButtons.length} кнопок верификации на странице`);
+    
+    // Проверяем их видимость
+    verificationButtons.forEach((btn, index) => {
+        const styles = window.getComputedStyle(btn);
+        console.log(`Кнопка ${index + 1}: opacity=${styles.opacity}, visibility=${styles.visibility}, display=${styles.display}`);
+    });
+});
+</script>
+{% endblock %}

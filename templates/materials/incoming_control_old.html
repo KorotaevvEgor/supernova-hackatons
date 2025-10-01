@@ -1,0 +1,1261 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Создание поставки с OCR распознаванием - Система управления{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+  <!-- Заголовок -->
+  <div class="bg-white shadow-lg rounded-xl border border-gray-100">
+    <div class="px-8 py-6 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">
+            <i class="fas fa-robot text-blue-600 mr-3"></i>
+            Создание поставки с OCR
+          </h1>
+          <p class="mt-2 text-lg text-gray-600">
+            Загрузите фото документа для автоматического распознавания и заполнения полей
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <div class="px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-medium">
+            <i class="fas fa-shield-check mr-2"></i>
+            AI Поддержка
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+    
+    <style>
+        .upload-area {
+            border: 3px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area.drag-over {
+            border-color: #2942F9;
+            background-color: #f0f4ff;
+        }
+        
+        .processing {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .ocr-field {
+            transition: all 0.3s ease;
+        }
+        
+        .ocr-field.high-confidence {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+        
+        .ocr-field.medium-confidence {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+        }
+        
+        .ocr-field.low-confidence {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+        
+        .image-preview {
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .confidence-indicator {
+            position: relative;
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        .pulse-success {
+            animation: pulse-green 0.6s ease-in-out;
+        }
+        
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        
+        .shake-error {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .processing-glow {
+            box-shadow: 0 0 20px rgba(41, 66, 249, 0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(41, 66, 249, 0.3); }
+            to { box-shadow: 0 0 30px rgba(41, 66, 249, 0.6); }
+        }
+    </style>
+
+  <!-- Информационная панель -->
+  <div class="bg-gradient-to-r from-primary-blue/10 to-accent-peach/10 border border-primary-blue/20 rounded-lg p-6">
+    <div class="flex items-start">
+      <div class="flex-shrink-0">
+        <div class="w-12 h-12 bg-primary-blue rounded-lg flex items-center justify-center">
+          <i class="fas fa-search-plus text-white text-xl"></i>
+        </div>
+      </div>
+      <div class="ml-4">
+        <h3 class="text-primary-dark font-medium mb-1">Автоматизация входного контроля</h3>
+        <p class="text-gray-700 text-sm">
+          Загрузите фотографии товарно-транспортной накладной (ТТН) и других документов. 
+          Система автоматически распознает данные с помощью компьютерного зрения и заполнит поля.
+        </p>
+      </div>
+    </div>
+  </div>
+
+        <!-- Выбор проекта и поставки -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-building text-primary-blue mr-2"></i>
+                Выбор объекта и поставки
+            </h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Выбор проекта -->
+                <div>
+                    <label for="project-select" class="block text-sm font-medium text-gray-700 mb-2">
+                        Объект строительства
+                    </label>
+                    <select id="project-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent">
+                        <option value="">Выберите объект...</option>
+                    </select>
+                </div>
+                
+                <!-- Выбор поставки -->
+                <div>
+                    <label for="delivery-select" class="block text-sm font-medium text-gray-700 mb-2">
+                        Поставка материалов
+                    </label>
+                    <select id="delivery-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent" disabled>
+                        <option value="">Сначала выберите объект...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Информация о выбранной поставке -->
+            <div id="delivery-info" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                <h3 class="font-medium text-gray-900 mb-2">Информация о поставке:</h3>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-600">Материал:</span>
+                        <div id="delivery-material" class="font-medium"></div>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Количество:</span>
+                        <div id="delivery-quantity" class="font-medium"></div>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Поставщик:</span>
+                        <div id="delivery-supplier" class="font-medium"></div>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Дата поставки:</span>
+                        <div id="delivery-date" class="font-medium"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Секция загрузки документов -->
+        <div id="upload-section" class="bg-white rounded-lg shadow p-6 mb-6 hidden">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-camera text-primary-blue mr-2"></i>
+                Загрузка документов
+            </h2>
+            
+            <!-- Выбор типа документа -->
+            <div class="mb-4">
+                <label for="document-type" class="block text-sm font-medium text-gray-700 mb-2">
+                    Тип документа
+                </label>
+                <select id="document-type" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue">
+                    <option value="ttn_main">Основная страница ТТН</option>
+                    <option value="ttn_additional">Дополнительная страница ТТН</option>
+                    <option value="quality_certificate">Сертификат качества</option>
+                    <option value="passport_material">Паспорт материала</option>
+                    <option value="invoice">Счет-фактура</option>
+                    <option value="other">Другой документ</option>
+                </select>
+            </div>
+            
+            <!-- Область загрузки -->
+            <div id="upload-area" class="upload-area border-2 rounded-lg p-8 text-center cursor-pointer">
+                <div class="space-y-4">
+                    <div>
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-lg text-gray-700">Перетащите фото документа сюда</p>
+                        <p class="text-sm text-gray-500">или нажмите для выбора файла</p>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-400">Поддерживаются форматы: JPG, PNG, PDF (до 10МБ)</span>
+                    </div>
+                </div>
+                <input type="file" id="file-input" class="hidden" accept="image/*,.pdf">
+            </div>
+        </div>
+
+        <!-- Секция обработки и результатов -->
+        <div id="processing-section" class="bg-white rounded-lg shadow p-6 hidden">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-cog text-primary-blue mr-2"></i>
+                Обработка документа
+            </h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Превью изображения -->
+                <div>
+                    <h3 class="font-medium text-gray-900 mb-3">Загруженный документ</h3>
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <img id="image-preview" class="image-preview w-full object-contain" alt="Превью документа">
+                    </div>
+                </div>
+                
+                <!-- Статус обработки -->
+                <div>
+                    <h3 class="font-medium text-gray-900 mb-3">
+                        <i class="fas fa-cog text-primary-blue mr-2"></i>
+                        Система распознавания OCR
+                    </h3>
+                    
+                    <!-- Индикатор обработки -->
+                    <div id="processing-indicator" class="mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div id="processing-spinner" class="processing hidden">
+                                <i class="fas fa-spinner fa-spin text-primary-blue text-lg"></i>
+                            </div>
+                            <div id="processing-status" class="text-sm text-gray-600 font-medium">📄 Ожидание загрузки документа...</div>
+                        </div>
+                        
+                        <!-- Прогресс-бар обработки -->
+                        <div id="processing-progress" class="mt-3 hidden">
+                            <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Прогресс обработки</span>
+                                <span id="processing-percent">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div id="processing-bar" class="bg-primary-blue h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Индикатор уверенности OCR -->
+                        <div id="confidence-indicator" class="mt-3 hidden">
+                            <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Уверенность распознавания</span>
+                                <span id="confidence-percent">0%</span>
+                            </div>
+                            <div class="confidence-indicator">
+                                <div id="confidence-fill" class="confidence-fill bg-green-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Кнопки действий -->
+                    <div class="space-y-2">
+                        <button id="process-btn" class="w-full bg-primary-blue text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-robot mr-2"></i>
+                            Запустить распознавание OCR
+                        </button>
+                        
+                        <button id="reprocess-btn" class="w-full bg-secondary-blue text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors hidden">
+                            <i class="fas fa-redo mr-2"></i>
+                            Повторить распознавание
+                        </button>
+                        
+                        <button id="auto-process-toggle" class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors text-sm hidden">
+                            <i class="fas fa-magic mr-2"></i>
+                            Автораспознавание: ВКЛ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Секция извлеченных данных -->
+        <div id="extracted-data-section" class="bg-white rounded-lg shadow p-6 hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-clipboard-list text-primary-blue mr-2"></i>
+                    Извлеченные данные
+                </h2>
+                
+                <div class="flex space-x-2">
+                    <button id="validate-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors transform hover:scale-105 font-medium shadow-lg" onclick="validateData()">
+                        <i class="fas fa-check mr-2"></i>
+                        Валидировать
+                    </button>
+                    
+                    <button id="save-btn" class="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors transform hover:scale-105 font-medium shadow-lg" onclick="saveData()">
+                        <i class="fas fa-save mr-2"></i>
+                        Сохранить данные
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Форма с извлеченными данными -->
+            <form id="extracted-data-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- Основная информация о документе -->
+                    <div class="space-y-4">
+                        <h3 class="font-medium text-gray-900 border-b pb-2">Информация о документе</h3>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Номер ТТН
+                                <span class="confidence-badge ml-1"></span>
+                            </label>
+                            <input type="text" name="document_number" class="ocr-field w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue" readonly>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Дата документа
+                                <span class="confidence-badge ml-1"></span>
+                            </label>
+                            <input type="date" name="document_date" class="ocr-field w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue" readonly>
+                        </div>
+                    </div>
+                    
+                    <!-- Информация об отправителе и получателе -->
+                    <div class="space-y-4">
+                        <h3 class="font-medium text-gray-900 border-b pb-2">Отправитель и получатель</h3>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Отправитель
+                                <span class="confidence-badge ml-1"></span>
+                            </label>
+                            <input type="text" name="sender_name" class="ocr-field w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue" readonly>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Получатель
+                                <span class="confidence-badge ml-1"></span>
+                            </label>
+                            <input type="text" name="receiver_name" class="ocr-field w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue" readonly>
+                        </div>
+                    </div>
+                    
+                    <!-- Транспортная информация -->
+                    <div class="space-y-4">
+                        <h3 class="font-medium text-gray-900 border-b pb-2">Транспортные данные</h3>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Номер ТС
+                                <span class="confidence-badge ml-1"></span>
+                            </label>
+                            <input type="text" name="vehicle_number" class="ocr-field w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue" readonly>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                ФИО водителя
+                                <span class="confidence-badge ml-1"></span>
+                            </label>
+                            <input type="text" name="driver_name" class="ocr-field w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue" readonly>
+                        </div>
+                    </div>
+                    
+                    <!-- Информация о грузе -->
+                    <div class="space-y-4">
+                        <h3 class="font-medium text-gray-900 border-b pb-2">Информация о грузе</h3>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Описание груза
+                                <span class="confidence-badge ml-1"></span>
+                            </label>
+                            <textarea name="cargo_description" rows="2" class="ocr-field w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue" readonly></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Вес груза (кг)
+                                <span class="confidence-badge ml-1"></span>
+                            </label>
+                            <input type="number" step="0.01" name="cargo_weight" class="ocr-field w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue" readonly>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Кнопка редактирования -->
+                <div class="flex justify-between items-center pt-4 border-t">
+                    <button type="button" id="edit-btn" class="bg-yellow-600 text-white px-6 py-3 rounded-md hover:bg-yellow-700 transition-colors transform hover:scale-105 font-medium shadow-lg" onclick="toggleEditMode()">
+                        <i class="fas fa-edit mr-2"></i>
+                        Редактировать данные
+                    </button>
+                    
+                    <div class="text-sm text-gray-500">
+                        <span id="manual-check-indicator" class="hidden">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-1"></i>
+                            Требует ручной проверки
+                        </span>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Секция валидации -->
+        <div id="validation-section" class="bg-white rounded-lg shadow p-6 hidden">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-shield-alt text-primary-blue mr-2"></i>
+                Результат валидации
+            </h2>
+            
+            <div id="validation-results" class="space-y-3">
+                <!-- Результаты валидации будут добавлены динамически -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Уведомления -->
+    <div id="notifications" class="fixed top-4 right-4 space-y-2 z-50">
+        <!-- Уведомления добавляются динамически -->
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Глобальные переменные
+        let currentDeliveryId = null;
+        let currentPhotoId = null;
+        let currentOCRResultId = null;
+        let isEditMode = false;
+        
+        // Получение CSRF токена
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProjects();
+            setupEventListeners();
+        });
+        
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            // Выбор проекта
+            document.getElementById('project-select').addEventListener('change', function() {
+                const projectId = this.value;
+                if (projectId) {
+                    loadProjectDeliveries(projectId);
+                } else {
+                    resetDeliverySelect();
+                }
+            });
+            
+            // Выбор поставки
+            document.getElementById('delivery-select').addEventListener('change', function() {
+                const deliveryId = this.value;
+                if (deliveryId) {
+                    selectDelivery(deliveryId);
+                } else {
+                    hideUploadSection();
+                }
+            });
+            
+            // Загрузка файлов
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('drop', handleDrop);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Кнопки обработки
+            document.getElementById('process-btn').addEventListener('click', processDocument);
+            document.getElementById('reprocess-btn').addEventListener('click', reprocessDocument);
+            document.getElementById('validate-btn').addEventListener('click', validateData);
+            document.getElementById('save-btn').addEventListener('click', saveData);
+            document.getElementById('edit-btn').addEventListener('click', toggleEditMode);
+        }
+        
+        // Загрузка списка проектов
+        async function loadProjects() {
+            try {
+                // Здесь должен быть API вызов для получения проектов
+                // Пока используем заглушку с проектами из существующей системы
+                const projects = [
+                    { id: 7, name: "Благоустройство сквера на ул. Тверская" },
+                    { id: 6, name: "Ремонт дороги на пр. Мира" },
+                    { id: 5, name: "Установка детской площадки в парке Сокольники" }
+                ];
+                
+                const projectSelect = document.getElementById('project-select');
+                projectSelect.innerHTML = '<option value="">Выберите объект...</option>';
+                
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.name;
+                    projectSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Ошибка загрузки проектов:', error);
+                showNotification('Ошибка загрузки списка проектов', 'error');
+            }
+        }
+        
+        // Загрузка поставок проекта
+        async function loadProjectDeliveries(projectId) {
+            try {
+                const response = await fetch(`/api/materials/projects/${projectId}/deliveries-ocr/`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+                
+                const deliverySelect = document.getElementById('delivery-select');
+                deliverySelect.innerHTML = '<option value="">Выберите поставку...</option>';
+                deliverySelect.disabled = false;
+                
+                data.data.deliveries.forEach(delivery => {
+                    const option = document.createElement('option');
+                    option.value = delivery.id;
+                    option.textContent = `${delivery.material_type.name} - ${delivery.quantity} ${delivery.material_type.unit} (${delivery.supplier})`;
+                    deliverySelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Ошибка загрузки поставок:', error);
+                showNotification('Ошибка загрузки поставок проекта', 'error');
+                resetDeliverySelect();
+            }
+        }
+        
+        // Выбор поставки
+        async function selectDelivery(deliveryId) {
+            currentDeliveryId = deliveryId;
+            
+            try {
+                const response = await fetch(`/api/materials/deliveries/${deliveryId}/ttn-documents/`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+                
+                // Отображаем информацию о поставке
+                showDeliveryInfo(data.data.delivery);
+                
+                // Показываем секцию загрузки
+                showUploadSection();
+                
+                // Если уже есть документы, показываем их
+                if (data.data.documents.length > 0) {
+                    // Можно добавить отображение существующих документов
+                }
+                
+            } catch (error) {
+                console.error('Ошибка получения информации о поставке:', error);
+                showNotification('Ошибка получения информации о поставке', 'error');
+            }
+        }
+        
+        // Обработчики загрузки файлов
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            const uploadArea = e.currentTarget;
+            uploadArea.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+        
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+        
+        // Обработка загруженного файла
+        function handleFile(file) {
+            // Проверка типа файла
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                showNotification('Неподдерживаемый тип файла. Используйте JPG, PNG или PDF', 'error');
+                return;
+            }
+            
+            // Проверка размера файла (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showNotification('Файл слишком большой. Максимальный размер: 10МБ', 'error');
+                return;
+            }
+            
+            // Отображаем превью
+            showImagePreview(file);
+            
+            // Загружаем файл
+            uploadDocument(file);
+        }
+        
+        // Отображение превью изображения
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imagePreview = document.getElementById('image-preview');
+                imagePreview.src = e.target.result;
+                showProcessingSection();
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Загрузка документа на сервер
+        async function uploadDocument(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('delivery_id', currentDeliveryId);
+            formData.append('photo_type', document.getElementById('document-type').value);
+            
+            try {
+                updateProcessingStatus('Загрузка документа...', true);
+                
+                const response = await fetch('/api/materials/ttn/upload/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+                
+                currentPhotoId = data.data.document_photo_id;
+                updateProcessingStatus('Документ загружен. Готов к распознаванию.', false);
+                
+                // Включаем кнопку обработки
+                enableProcessButton();
+                
+                // Проверяем, есть ли автоматический OCR результат
+                if (data.data.ocr_result && data.data.ocr_result.success) {
+                    currentOCRResultId = data.data.ocr_result.ocr_result_id;
+                    showExtractedData(data.data.ocr_result);
+                    updateProcessingStatus('✨ Документ автоматически распознан. <strong>Кликните "Редактировать данные"</strong> для изменения.', false);
+                } else if (data.data.ocr_result && !data.data.ocr_result.success) {
+                    updateProcessingStatus('⚠️ Автораспознавание не удалось. Нажмите кнопку для запуска OCR.', false);
+                    enableReprocessButton();
+                } else {
+                    updateProcessingStatus('🚀 Документ загружен. Нажмите <strong>"Запустить распознавание OCR"</strong>.', false);
+                }
+                
+                showNotification(data.message, 'success');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки документа:', error);
+                showNotification('Ошибка загрузки документа: ' + error.message, 'error');
+                updateProcessingStatus('Ошибка загрузки', false);
+            }
+        }
+        
+        // Обработка документа
+        async function processDocument() {
+            if (!currentPhotoId) {
+                showNotification('Сначала загрузите документ', 'error');
+                return;
+            }
+            
+            // Отключаем кнопку на время обработки
+            const processBtn = document.getElementById('process-btn');
+            processBtn.disabled = true;
+            processBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            try {
+                updateProcessingStatus('🤖 Запуск искусственного интеллекта...', true);
+                addProcessingGlow();
+                
+                const response = await fetch(`/api/materials/ttn/photos/${currentPhotoId}/process/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+                
+                if (data.data.success) {
+                    // Завершаем прогресс
+                    completeProgress();
+                    currentOCRResultId = data.data.ocr_result_id;
+                    showExtractedData(data.data);
+                    updateProcessingStatus('✅ Распознавание завершено! <strong>Кликните "Редактировать данные"</strong> для изменения.', false);
+                    showNotification('🎉 Документ успешно распознан! Кликните "Редактировать" для изменения данных.', 'success');
+                    // Добавляем визуальные эффекты
+                    addSuccessAnimation();
+                    // Показываем кнопку повторной обработки
+                    enableReprocessButton();
+                    
+                    // Автоматически подсвечиваем кнопку редактирования
+                    highlightEditButton();
+                } else {
+                    updateProcessingStatus('❌ Ошибка распознавания: ' + data.data.error, false);
+                    showNotification('⚠️ Ошибка OCR: ' + data.data.error, 'error');
+                    addErrorAnimation();
+                    enableReprocessButton();
+                }
+                
+            } catch (error) {
+                console.error('Ошибка обработки документа:', error);
+                showNotification('Ошибка OCR обработки: ' + error.message, 'error');
+                updateProcessingStatus('❌ Сбой в системе распознавания', false);
+            } finally {
+                // Убираем эффект свечения
+                removeProcessingGlow();
+                // Возвращаем кнопку в активное состояние
+                processBtn.disabled = false;
+                processBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+        
+        // Повторная обработка документа
+        async function reprocessDocument() {
+            await processDocument();
+        }
+        
+        // Отображение извлеченных данных
+        function showExtractedData(ocrData) {
+            const section = document.getElementById('extracted-data-section');
+            const form = document.getElementById('extracted-data-form');
+            
+            // Заполняем форму извлеченными данными
+            const fields = ocrData.extracted_fields || {};
+            const confidences = ocrData.field_confidences || {};
+            
+            Object.keys(fields).forEach(fieldName => {
+                const input = form.querySelector(`[name="${fieldName}"]`);
+                if (input) {
+                    input.value = fields[fieldName];
+                    
+                    // Устанавливаем класс уверенности
+                    const confidence = confidences[fieldName] || 0;
+                    setConfidenceClass(input, confidence);
+                    
+                    // Добавляем индикатор уверенности
+                    updateConfidenceBadge(input, confidence);
+                }
+            });
+            
+            // Обновляем общий индикатор уверенности
+            updateConfidenceIndicator(ocrData.confidence || 0);
+            
+            // Показываем индикатор необходимости ручной проверки
+            if (ocrData.requires_manual_check) {
+                document.getElementById('manual-check-indicator').classList.remove('hidden');
+            }
+            
+            section.classList.remove('hidden');
+        }
+        
+        // Валидация данных
+        async function validateData() {
+            if (!currentOCRResultId) {
+                showNotification('Нет данных для валидации', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/materials/ttn/ocr-results/${currentOCRResultId}/validate/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+                
+                showValidationResults(data.data);
+                showNotification('Валидация завершена', 'success');
+                
+            } catch (error) {
+                console.error('Ошибка валидации:', error);
+                showNotification('Ошибка валидации: ' + error.message, 'error');
+            }
+        }
+        
+        // Сохранение данных
+        async function saveData() {
+            // Проверяем, что режим редактирования активен
+            if (!isEditMode) {
+                showNotification('⚠️ Сначала активируйте режим редактирования!', 'warning');
+                highlightEditButton();
+                return;
+            }
+            
+            if (!currentOCRResultId) {
+                showNotification('Нет данных для сохранения', 'error');
+                return;
+            }
+            
+            // Собираем данные из формы
+            const form = document.getElementById('extracted-data-form');
+            const formData = new FormData(form);
+            const extractedFields = {};
+            
+            // Проверяем обязательные поля
+            const requiredFields = form.querySelectorAll('input[required], textarea[required]');
+            let hasErrors = false;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('ring-2', 'ring-red-300', 'bg-red-50');
+                    hasErrors = true;
+                } else {
+                    field.classList.remove('ring-2', 'ring-red-300', 'bg-red-50');
+                }
+            });
+            
+            if (hasErrors) {
+                showNotification('❌ Пожалуйста, заполните все обязательные поля!', 'error');
+                return;
+            }
+            
+            for (let [key, value] of formData.entries()) {
+                extractedFields[key] = value;
+            }
+            
+            // Отключаем кнопку сохранения на время сохранения
+            const saveBtn = document.getElementById('save-btn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Сохранение...';
+            saveBtn.className = 'bg-gray-400 text-white px-6 py-3 rounded-md cursor-not-allowed';
+            
+            showNotification('💾 Сохранение данных...', 'info');
+            
+            try {
+                const response = await fetch(`/api/materials/ttn/ocr-results/${currentOCRResultId}/update/`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        extracted_fields: extractedFields
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+                
+                showNotification('✅ Данные успешно сохранены!', 'success');
+                
+                // Переводим поля обратно в режим только для чтения
+                setTimeout(() => {
+                    if (isEditMode) {
+                        toggleEditMode();
+                    }
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                showNotification('❌ Ошибка сохранения: ' + error.message, 'error');
+            } finally {
+                // Возвращаем кнопке оригинальный вид
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+                saveBtn.className = 'bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors transform hover:scale-105 font-medium shadow-lg';
+            }
+        }
+        
+        // Переключение режима редактирования
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const form = document.getElementById('extracted-data-form');
+            const inputs = form.querySelectorAll('input, textarea');
+            const editBtn = document.getElementById('edit-btn');
+            
+            // Убираем подсветку при клике
+            editBtn.classList.remove('ring-4', 'ring-yellow-300', 'animate-pulse');
+            
+            inputs.forEach(input => {
+                input.readOnly = !isEditMode;
+                
+                if (isEditMode) {
+                    // Добавляем подсветку полей в режиме редактирования
+                    input.classList.add('ring-2', 'ring-blue-300', 'bg-blue-50');
+                    input.style.cursor = 'text';
+                } else {
+                    input.classList.remove('ring-2', 'ring-blue-300', 'bg-blue-50');
+                    input.style.cursor = 'default';
+                }
+            });
+            
+            if (isEditMode) {
+                editBtn.innerHTML = '<i class="fas fa-times mr-2"></i>Отменить редактирование';
+                editBtn.className = 'bg-gray-600 text-white px-6 py-3 rounded-md hover:bg-gray-700 transition-colors transform hover:scale-105 font-medium shadow-lg';
+                showNotification('✏️ Режим редактирования активирован. Изменяйте данные и нажмите "Сохранить".', 'info');
+            } else {
+                editBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Редактировать данные';
+                editBtn.className = 'bg-yellow-600 text-white px-6 py-3 rounded-md hover:bg-yellow-700 transition-colors transform hover:scale-105 font-medium shadow-lg';
+                showNotification('✅ Режим редактирования отключен.', 'success');
+            }
+        }
+        
+        // Вспомогательные функции
+        function showDeliveryInfo(delivery) {
+            document.getElementById('delivery-material').textContent = delivery.material_type;
+            document.getElementById('delivery-quantity').textContent = `${delivery.quantity} ед.`;
+            document.getElementById('delivery-supplier').textContent = delivery.supplier;
+            document.getElementById('delivery-date').textContent = new Date(delivery.delivery_date).toLocaleDateString();
+            document.getElementById('delivery-info').classList.remove('hidden');
+        }
+        
+        function showUploadSection() {
+            document.getElementById('upload-section').classList.remove('hidden');
+        }
+        
+        function hideUploadSection() {
+            document.getElementById('upload-section').classList.add('hidden');
+            document.getElementById('processing-section').classList.add('hidden');
+            document.getElementById('extracted-data-section').classList.add('hidden');
+            document.getElementById('validation-section').classList.add('hidden');
+        }
+        
+        function showProcessingSection() {
+            document.getElementById('processing-section').classList.remove('hidden');
+        }
+        
+        function enableProcessButton() {
+            const processBtn = document.getElementById('process-btn');
+            processBtn.disabled = false;
+            processBtn.classList.remove('bg-gray-300');
+            processBtn.classList.add('bg-primary-blue', 'hover:bg-primary-dark');
+        }
+        
+        function updateProcessingStatus(status, isProcessing) {
+            document.getElementById('processing-status').innerHTML = status;
+            const spinner = document.getElementById('processing-spinner');
+            const progressSection = document.getElementById('processing-progress');
+            
+            if (isProcessing) {
+                spinner.classList.remove('hidden');
+                progressSection.classList.remove('hidden');
+                // Запускаем анимацию прогресса
+                animateProgress();
+            } else {
+                spinner.classList.add('hidden');
+                progressSection.classList.add('hidden');
+                // Сбрасываем прогресс
+                resetProgress();
+            }
+        }
+        
+        // Анимация прогресс-бара
+        function animateProgress() {
+            const bar = document.getElementById('processing-bar');
+            const percent = document.getElementById('processing-percent');
+            let currentProgress = 0;
+            
+            const interval = setInterval(() => {
+                currentProgress += Math.random() * 15; // Случайный прирост
+                
+                if (currentProgress >= 90) {
+                    currentProgress = 90; // Останавливаемся на 90% до завершения
+                    clearInterval(interval);
+                }
+                
+                bar.style.width = currentProgress + '%';
+                percent.textContent = Math.round(currentProgress) + '%';
+            }, 300);
+        }
+        
+        function resetProgress() {
+            document.getElementById('processing-bar').style.width = '0%';
+            document.getElementById('processing-percent').textContent = '0%';
+        }
+        
+        function completeProgress() {
+            const bar = document.getElementById('processing-bar');
+            const percent = document.getElementById('processing-percent');
+            bar.style.width = '100%';
+            percent.textContent = '100%';
+            
+            // Через немного скрываем прогресс-бар
+            setTimeout(() => {
+                document.getElementById('processing-progress').classList.add('hidden');
+            }, 1000);
+        }
+        
+        // Визуальные эффекты
+        function addSuccessAnimation() {
+            const section = document.getElementById('processing-section');
+            section.classList.add('pulse-success');
+            
+            setTimeout(() => {
+                section.classList.remove('pulse-success');
+            }, 600);
+        }
+        
+        function addErrorAnimation() {
+            const section = document.getElementById('processing-section');
+            section.classList.add('shake-error');
+            
+            setTimeout(() => {
+                section.classList.remove('shake-error');
+            }, 500);
+        }
+        
+        function addProcessingGlow() {
+            const section = document.getElementById('processing-section');
+            section.classList.add('processing-glow');
+        }
+        
+        function removeProcessingGlow() {
+            const section = document.getElementById('processing-section');
+            section.classList.remove('processing-glow');
+        }
+        
+        function enableReprocessButton() {
+            document.getElementById('reprocess-btn').classList.remove('hidden');
+        }
+        
+        function updateConfidenceIndicator(confidence) {
+            const indicator = document.getElementById('confidence-indicator');
+            const fill = document.getElementById('confidence-fill');
+            const percent = document.getElementById('confidence-percent');
+            
+            fill.style.width = confidence + '%';
+            percent.textContent = Math.round(confidence) + '%';
+            
+            // Цвет в зависимости от уверенности
+            if (confidence >= 80) {
+                fill.className = 'confidence-fill bg-green-500';
+            } else if (confidence >= 60) {
+                fill.className = 'confidence-fill bg-yellow-500';
+            } else {
+                fill.className = 'confidence-fill bg-red-500';
+            }
+            
+            indicator.classList.remove('hidden');
+        }
+        
+        function setConfidenceClass(input, confidence) {
+            input.classList.remove('high-confidence', 'medium-confidence', 'low-confidence');
+            
+            if (confidence >= 80) {
+                input.classList.add('high-confidence');
+            } else if (confidence >= 60) {
+                input.classList.add('medium-confidence');
+            } else {
+                input.classList.add('low-confidence');
+            }
+        }
+        
+        function updateConfidenceBadge(input, confidence) {
+            const label = input.closest('div').querySelector('label');
+            const badge = label.querySelector('.confidence-badge');
+            
+            if (confidence > 0) {
+                badge.innerHTML = `<span class="text-xs px-2 py-1 rounded-full ${
+                    confidence >= 80 ? 'bg-green-100 text-green-800' :
+                    confidence >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                }">${Math.round(confidence)}%</span>`;
+            }
+        }
+        
+        function showValidationResults(validationData) {
+            const section = document.getElementById('validation-section');
+            const results = document.getElementById('validation-results');
+            
+            results.innerHTML = '';
+            
+            // Общий статус
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `p-4 rounded-lg ${
+                validationData.validation_status === 'valid' ? 'bg-green-50 border-green-200' :
+                validationData.validation_status === 'partial' ? 'bg-yellow-50 border-yellow-200' :
+                'bg-red-50 border-red-200'
+            } border`;
+            
+            statusDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+                        validationData.validation_status === 'valid' ? 'fa-check-circle text-green-500' :
+                        validationData.validation_status === 'partial' ? 'fa-exclamation-circle text-yellow-500' :
+                        'fa-times-circle text-red-500'
+                    } mr-2"></i>
+                    <span class="font-medium">
+                        ${validationData.validation_status === 'valid' ? 'Все данные корректны' :
+                          validationData.validation_status === 'partial' ? 'Данные частично корректны' :
+                          'Обнаружены ошибки в данных'}
+                    </span>
+                </div>
+            `;
+            
+            results.appendChild(statusDiv);
+            
+            // Список ошибок
+            if (validationData.errors && validationData.errors.length > 0) {
+                const errorsDiv = document.createElement('div');
+                errorsDiv.className = 'bg-red-50 border border-red-200 rounded-lg p-4';
+                errorsDiv.innerHTML = `
+                    <h4 class="font-medium text-red-900 mb-2">Найденные ошибки:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-red-700">
+                        ${validationData.errors.map(error => `<li>${error}</li>`).join('')}
+                    </ul>
+                `;
+                results.appendChild(errorsDiv);
+            }
+            
+            section.classList.remove('hidden');
+        }
+        
+        function resetDeliverySelect() {
+            const deliverySelect = document.getElementById('delivery-select');
+            deliverySelect.innerHTML = '<option value="">Сначала выберите объект...</option>';
+            deliverySelect.disabled = true;
+            document.getElementById('delivery-info').classList.add('hidden');
+            hideUploadSection();
+        }
+        
+        // Подсветка кнопки редактирования
+        function highlightEditButton() {
+            const editBtn = document.getElementById('edit-btn');
+            if (editBtn) {
+                // Добавляем яркую подсветку
+                editBtn.classList.add('ring-4', 'ring-yellow-300', 'animate-pulse');
+                editBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Кликните для редактирования!';
+                
+                // Убираем подсветку через 5 секунд
+                setTimeout(() => {
+                    editBtn.classList.remove('ring-4', 'ring-yellow-300', 'animate-pulse');
+                    if (!isEditMode) {
+                        editBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Редактировать данные';
+                    }
+                }, 5000);
+            }
+        }
+        
+        function showNotification(message, type = 'info') {
+            const notifications = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            
+            // Определяем стили для разных типов уведомлений
+            const styles = {
+                success: { border: 'border-green-500', bg: 'bg-green-50', icon: 'fa-check-circle text-green-500' },
+                error: { border: 'border-red-500', bg: 'bg-red-50', icon: 'fa-times-circle text-red-500' },
+                warning: { border: 'border-yellow-500', bg: 'bg-yellow-50', icon: 'fa-exclamation-triangle text-yellow-500' },
+                info: { border: 'border-blue-500', bg: 'bg-blue-50', icon: 'fa-info-circle text-blue-500' }
+            };
+            
+            const style = styles[type] || styles.info;
+            
+            notification.className = `max-w-sm mx-auto ${style.bg} border-l-4 ${style.border} p-4 shadow-lg rounded-r-md mb-2 transform transition-all duration-300 ease-in-out`;
+            
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <i class="fas ${style.icon} text-lg"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <p class="text-sm font-medium text-gray-800">${message}</p>
+                    </div>
+                    <div class="ml-2">
+                        <button onclick="this.parentElement.parentElement.parentElement.style.transform='translateX(100%)'; setTimeout(() => this.parentElement.parentElement.parentElement.remove(), 300)" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Добавляем анимацию появления
+            notification.style.transform = 'translateX(100%)';
+            notification.style.opacity = '0';
+            
+            notifications.appendChild(notification);
+            
+            // Анимация появления
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+                notification.style.opacity = '1';
+            }, 10);
+            
+            // Автоматическое удаление
+            const autoRemoveTime = type === 'error' ? 8000 : type === 'warning' ? 6000 : 5000;
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.transform = 'translateX(100%)';
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, autoRemoveTime);
+        }
+        
+    </script>
+    
+    <!-- Нотификации -->
+    <div id="notifications" class="fixed top-4 right-4 space-y-2 z-50"></div>
+</div>
+
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}

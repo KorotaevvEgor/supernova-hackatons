@@ -1,0 +1,460 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Чек-лист активации - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex mb-8" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li>
+                    <div>
+                        <a href="{% url 'projects:construction_control_dashboard' %}" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-home"></i>
+                            <span class="sr-only">Мои объекты</span>
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-400 mr-4"></i>
+                        <span class="text-sm font-medium text-gray-500">Активация проекта</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="flex items-center">
+                        <i class="fas fa-chevron-right text-gray-400 mr-4"></i>
+                        <span class="text-sm font-medium text-gray-900">Чек-лист активации</span>
+                    </div>
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Заголовок -->
+        <div class="mb-8">
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-clipboard-check text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">Чек-лист активации объекта</h1>
+                            <p class="text-gray-600">{{ activation.project.name }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Готовность</div>
+                        <div class="text-2xl font-bold" id="completion-percentage">{{ checklist.completion_percentage }}%</div>
+                        <div class="w-20 bg-gray-200 rounded-full h-2 mt-1">
+                            <div class="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                                 id="progress-bar" 
+                                 style="width: {{ checklist.completion_percentage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация о проекте -->
+        <div class="bg-white shadow-sm rounded-lg p-6 mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Информация о проекте</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <span class="font-medium text-gray-500">Назначенный прораб:</span>
+                    <div class="text-gray-900">{{ activation.assigned_foreman.get_full_name }}</div>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-500">Контракт:</span>
+                    <div class="text-gray-900">{{ activation.project.contract_number }}</div>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-500">Плановая дата:</span>
+                    <div class="text-gray-900">{{ activation.project.planned_start_date|date:"d.m.Y" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма чек-листа -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Секции чек-листа -->
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-6">Проверка готовности объекта к активации</h2>
+                
+                <div class="space-y-8">
+                    <!-- 1. Наличие разрешительной, организационно-технологической, рабочей документации -->
+                    <div class="checklist-item">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700">(п. 5.3. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📋 Наличие разрешительной, организационно-технологической, рабочей документации
+                        </h3>
+                        
+                        <div class="flex space-x-4 mb-3">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="regulatory_documentation" value="yes" 
+                                       {% if checklist.regulatory_documentation == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="regulatory_documentation" value="no" 
+                                       {% if checklist.regulatory_documentation == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="regulatory_documentation" value="not_required" 
+                                       {% if checklist.regulatory_documentation == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <textarea name="regulatory_documentation_notes" 
+                                      placeholder="Примечания по документации..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.regulatory_documentation_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 2. Наличие приказа на ответственное лицо, осуществляющего строительство -->
+                    <div class="checklist-item border-t pt-8">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                            <p class="text-sm text-blue-700">(п. 5.3. СП 48.13330.2019. Изм. №1. Организация строительства)</p>
+                        </div>
+                        
+                        <h3 class="text-base font-semibold text-gray-900 mb-4">
+                            📄 Наличие приказа на ответственное лицо, осуществляющего строительство (производство работ)
+                        </h3>
+                        
+                        <div class="flex space-x-4 mb-3">
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_manager_order" value="yes" 
+                                       {% if checklist.construction_manager_order == 'yes' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-green-600">
+                                <span class="ml-2 text-green-700 font-medium">ДА</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_manager_order" value="no" 
+                                       {% if checklist.construction_manager_order == 'no' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-red-600">
+                                <span class="ml-2 text-red-700 font-medium">НЕТ</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="radio" name="construction_manager_order" value="not_required" 
+                                       {% if checklist.construction_manager_order == 'not_required' %}checked{% endif %}
+                                       class="form-radio h-4 w-4 text-gray-600">
+                                <span class="ml-2 text-gray-700 font-medium">Не требуется</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <textarea name="construction_manager_order_notes" 
+                                      placeholder="Примечания по приказу на ответственного за строительство..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                      rows="2">{{ checklist.construction_manager_order_notes }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- 3. Меры безопасности -->
+                    <div class="checklist-item border-t pt-8">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" 
+                                       name="safety_measures"
+                                       id="safety_measures"
+                                       class="checklist-checkbox w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                       {% if checklist.safety_measures %}checked{% endif %}>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <label for="safety_measures" class="text-base font-medium text-gray-900 cursor-pointer">
+                                    🦺 Меры безопасности обеспечены
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Проведен инструктаж, средства защиты, планы эвакуации, аптечки, огнетушители
+                                </p>
+                                <div class="mt-3">
+                                    <textarea name="safety_notes" 
+                                              placeholder="Примечания по безопасности..."
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-sm"
+                                              rows="2">{{ checklist.safety_notes }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Оборудование -->
+                    <div class="checklist-item border-t pt-8">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" 
+                                       name="equipment_ready"
+                                       id="equipment_ready"
+                                       class="checklist-checkbox w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                       {% if checklist.equipment_ready %}checked{% endif %}>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <label for="equipment_ready" class="text-base font-medium text-gray-900 cursor-pointer">
+                                    🚜 Оборудование готово
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Строительная техника, инструменты, контрольно-измерительные приборы
+                                </p>
+                                <div class="mt-3">
+                                    <textarea name="equipment_notes" 
+                                              placeholder="Примечания по оборудованию..."
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-sm"
+                                              rows="2">{{ checklist.equipment_notes }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Разрешения -->
+                    <div class="checklist-item border-t pt-8">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" 
+                                       name="permits_obtained"
+                                       id="permits_obtained"
+                                       class="checklist-checkbox w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                       {% if checklist.permits_obtained %}checked{% endif %}>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <label for="permits_obtained" class="text-base font-medium text-gray-900 cursor-pointer">
+                                    📄 Разрешения получены
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Разрешение на строительство, согласования с УК, ресурсоснабжающими организациями
+                                </p>
+                                <div class="mt-3">
+                                    <textarea name="permits_notes" 
+                                              placeholder="Примечания по разрешениям..."
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-sm"
+                                              rows="2">{{ checklist.permits_notes }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Коммуникации -->
+                    <div class="checklist-item border-t pt-8">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" 
+                                       name="utilities_connected"
+                                       id="utilities_connected"
+                                       class="checklist-checkbox w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                       {% if checklist.utilities_connected %}checked{% endif %}>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <label for="utilities_connected" class="text-base font-medium text-gray-900 cursor-pointer">
+                                    ⚡ Коммуникации подключены
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Временное электроснабжение, водоснабжение, вывоз мусора
+                                </p>
+                                <div class="mt-3">
+                                    <textarea name="utilities_notes" 
+                                              placeholder="Примечания по коммуникациям..."
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-sm"
+                                              rows="2">{{ checklist.utilities_notes }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7. Доступ -->
+                    <div class="checklist-item border-t pt-8">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" 
+                                       name="access_organized"
+                                       id="access_organized"
+                                       class="checklist-checkbox w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                       {% if checklist.access_organized %}checked{% endif %}>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <label for="access_organized" class="text-base font-medium text-gray-900 cursor-pointer">
+                                    🚪 Доступ к объекту организован
+                                </label>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Подъездные пути, парковка, контрольно-пропускной режим, охрана
+                                </p>
+                                <div class="mt-3">
+                                    <textarea name="access_notes" 
+                                              placeholder="Примечания по доступу..."
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 text-sm"
+                                              rows="2">{{ checklist.access_notes }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Общая оценка готовности -->
+                <div class="border-t pt-8 mt-8">
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input type="checkbox" 
+                                       name="overall_readiness"
+                                       id="overall_readiness"
+                                       class="w-5 h-5 text-yellow-600 border-gray-300 rounded focus:ring-yellow-500"
+                                       {% if checklist.overall_readiness %}checked{% endif %}>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <label for="overall_readiness" class="text-base font-semibold text-yellow-800 cursor-pointer">
+                                    ✅ Объект готов к активации
+                                </label>
+                                <p class="text-sm text-yellow-700 mt-1">
+                                    Подтверждаю, что все необходимые проверки проведены и объект готов к началу работ
+                                </p>
+                                <div class="mt-3">
+                                    <textarea name="additional_notes" 
+                                              placeholder="Дополнительные примечания..."
+                                              class="w-full px-3 py-2 border border-yellow-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500 text-sm"
+                                              rows="3">{{ checklist.additional_notes }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопки -->
+            <div class="bg-white shadow-sm rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <a href="{% url 'projects:construction_control_dashboard' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Вернуться к проектам
+                    </a>
+                    
+                    <div class="flex space-x-3">
+                        <button type="submit" 
+                                name="save"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-save mr-2"></i>
+                            Сохранить черновик
+                        </button>
+                        
+                        <button type="submit" 
+                                name="submit_for_review"
+                                id="submit-for-review-btn"
+                                class="inline-flex items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                disabled>
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Отправить на проверку инспектору
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Помощь -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-blue-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">
+                        Как заполнять чек-лист?
+                    </h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Отмечайте пункты только после фактической проверки готовности</li>
+                            <li>В примечаниях указывайте детали и особенности</li>
+                            <li>Чтобы отправить на проверку, должны быть отмечены ВСЕ пункты включая итоговую готовность</li>
+                            <li>После отправки чек-лист поступит инспектору для финального согласования</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.checklist-checkbox');
+    const overallReadinessCheckbox = document.getElementById('overall_readiness');
+    const submitButton = document.getElementById('submit-for-review-btn');
+    const completionPercentage = document.getElementById('completion-percentage');
+    const progressBar = document.getElementById('progress-bar');
+    
+    function updateProgress() {
+        const mainCheckboxes = document.querySelectorAll('.checklist-checkbox');
+        const checkedCount = Array.from(mainCheckboxes).filter(cb => cb.checked).length;
+        const percentage = Math.round((checkedCount / mainCheckboxes.length) * 100);
+        
+        completionPercentage.textContent = percentage + '%';
+        progressBar.style.width = percentage + '%';
+        
+        // Обновляем цвет прогресс-бара
+        if (percentage === 100) {
+            progressBar.className = 'bg-green-500 h-2 rounded-full transition-all duration-300';
+        } else if (percentage >= 70) {
+            progressBar.className = 'bg-yellow-500 h-2 rounded-full transition-all duration-300';
+        } else {
+            progressBar.className = 'bg-red-500 h-2 rounded-full transition-all duration-300';
+        }
+        
+        // Проверяем возможность отправки на проверку
+        const allMainChecked = Array.from(mainCheckboxes).every(cb => cb.checked);
+        const overallChecked = overallReadinessCheckbox.checked;
+        
+        if (allMainChecked && overallChecked) {
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            submitButton.disabled = true;
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+    
+    // Обработчики событий для чекбоксов
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateProgress);
+    });
+    
+    overallReadinessCheckbox.addEventListener('change', updateProgress);
+    
+    // Инициальное обновление
+    updateProgress();
+    
+    // Добавляем анимацию при отмечении чекбоксов
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const item = this.closest('.checklist-item');
+            if (this.checked) {
+                item.classList.add('bg-green-50', 'border-l-4', 'border-green-500', 'pl-4');
+                // Небольшая анимация
+                item.style.transform = 'scale(1.01)';
+                setTimeout(() => {
+                    item.style.transform = 'scale(1)';
+                }, 200);
+            } else {
+                item.classList.remove('bg-green-50', 'border-l-4', 'border-green-500', 'pl-4');
+            }
+        });
+        
+        // Применяем стили для уже отмеченных элементов при загрузке
+        if (checkbox.checked) {
+            const item = checkbox.closest('.checklist-item');
+            item.classList.add('bg-green-50', 'border-l-4', 'border-green-500', 'pl-4');
+        }
+    });
+});
+</script>
+{% endblock %}
